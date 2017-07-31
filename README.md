@@ -63,4 +63,4 @@ Reference ranges for LV trabeculation (fractal dimension; FD) and myocardial def
 ## Authors
 
 * **Jiashen Cai ** - *Duke-NUS Medical School* - [caijiashen](https://github.com/caijiashen)
-* **Pawel Tokarczuk -*LMS London Institute of Medical Sciences*
+* **Pawel Tokarczuk ** -*LMS London Institute of Medical Sciences*
