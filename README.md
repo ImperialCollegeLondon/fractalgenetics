@@ -61,4 +61,4 @@ Base_Folder/FDSummary.csv
 Reference ranges for LV trabeculation (fractal dimension; FD) and myocardial deformation (global myocardial strain) parameters can be found at [Reference Ranges](refranges/)
 
 ## Citation
-Cai J, Bryant JA, Le T-T, Su B, de Marvao A, O'Regan DP, et al. Fractal analysis of left ventricular trabeculations is associated with impaired myocardial deformation in healthy Chinese. JCMR. 2017;19:1807. 
+Cai J, Bryant JA, Le T-T, Su B, de Marvao A, O’Regan DP, Cook SA, Chin CW-L: Fractal analysis of left ventricular trabeculations is associated with impaired myocardial deformation in healthy Chinese. Journal of Cardiovascular Magnetic Resonance 2017, 19:102.
