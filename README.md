@@ -64,8 +64,8 @@ Reference ranges for LV trabeculation (fractal dimension; FD) and myocardial def
 
 For LV analysis:
 
-Cai J, Bryant JA, Le T-T, Su B, de Marvao A, O’Regan DP, Cook SA, Chin CW-L: Fractal analysis of left ventricular trabeculations is associated with impaired myocardial deformation in healthy Chinese. [*J Cardiovasc Magn Reson*](https://doi.org/10.1186/s12968-017-0413-z). 2017, 19:102. DOI: 
+Cai J, Bryant JA, Le T-T, Su B, de Marvao A, O’Regan DP, Cook SA, Chin CW-L: Fractal analysis of left ventricular trabeculations is associated with impaired myocardial deformation in healthy Chinese. [*J Cardiovasc Magn Reson*](https://doi.org/10.1186/s12968-017-0413-z). 2017, 19:102.
 
 For RV analysis:
 
-Dawes T, Cai J, Quinlan M, de Marvao A, Ostowski P, Tokarczuk P, Watson G, Wharton J, Howard L, Gibbs J, Cook S, Wilkins M and O'Regan DP. Fractal analysis of right ventricular trabeculae in pulmonary hypertension. *Radiology*. 2018, In press. DOI:
+Dawes T, Cai J, Quinlan M, de Marvao A, Ostowski P, Tokarczuk P, Watson G, Wharton J, Howard L, Gibbs J, Cook S, Wilkins M and O'Regan DP. Fractal analysis of right ventricular trabeculae in pulmonary hypertension. *Radiology*. 2018, In press.
