@@ -64,7 +64,7 @@ Reference ranges for LV trabeculation (fractal dimension; FD) and myocardial def
 
 *Software:*
 
-Jiashen Cai, & Declan O'Regan. (2017, August 1). UK-Digital-Heart-Project/fracAnalyse: fracAnalyse v1.2 (Version v1.2). Zenodo. http://doi.org/10.5281/zenodo.837246
+Cai J, O'Regan DP. (2017, August 1). UK-Digital-Heart-Project/fracAnalyse: fracAnalyse v1.2 (Version v1.2). Zenodo. http://doi.org/10.5281/zenodo.837246
 
 *LV analysis:*
 
