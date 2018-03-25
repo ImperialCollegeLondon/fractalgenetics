@@ -8,7 +8,7 @@ Fractal analysis tool for computation of LV/RV fractal characteristics, using LV
 
 ### Prerequisites
 
-Current version is supported on Mac OS only, support for Windows is pending.
+Current version is supported on Mac OS and Windows.
 
 It is essential to set up MATLAB Compiler Runtime (MCR) 2016b prior to installation of fracAnalyse.
 MATLAB Compiler Runtime (MCR): https://www.mathworks.com/products/compiler/mcr.html
