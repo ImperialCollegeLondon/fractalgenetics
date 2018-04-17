@@ -3,7 +3,7 @@ Matlab script for automated fractal analysis of segmented cardiac images.
 
 ## Prerequisites
 - Matlab
-- Windows
+- Windows or Linux
 
 ## Input data
 
