@@ -5,7 +5,7 @@ Matlab script for automated fractal analysis of segmented cardiac images.
 - Matlab
 - Windows
 
-##Input data
+## Input data
 
 
 ## Method
@@ -15,8 +15,8 @@ within the myocardium for fractal analysis.
 
 ![FD images](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/FD_workflow.png)
 
-##Installation
+## Installation
 
-##Test data
+## Test data
 
-##Outputs
+## Outputs
