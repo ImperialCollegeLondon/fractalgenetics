@@ -41,6 +41,7 @@ but uses pre-exisiting image segmentations to determine a region of interest wit
   Do Not Discard).
 
 ## Test data
+- See the archive in Examples; both normal execution and most of the error conditions in the flowchart are illustrated.
 
 ## Outputs
 - A new sub-folder will be created under the original top-level folder, with results grouped by study underneath.
