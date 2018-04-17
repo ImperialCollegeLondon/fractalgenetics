@@ -45,4 +45,4 @@ Data for 7 subjects (A to G) is held in [Test Data](https://github.com/UK-Digita
 ## Outputs
 Outputs are written to a new sub-folder ```Automated FD Calculation Results```.  Each subject's folder will show the intermediate images (see figure) and box-counting.
 
-Fractal dimensional values are output to ```Summary-Auto-FD-v0.csv```. If you run the script more than once, new results will be appended.
+Fractal dimension values are output to ```Summary-Auto-FD-v0.csv```. If you run the script more than once, new results will be appended.
