@@ -29,8 +29,7 @@ Put the input data into a top-level folder, containing one or more sub-folders, 
 
 The labels are Background  = 0, Blood Pool  = 1, Myocardium  = 2, Other Heart = 3 or 4.
 
-Run  
-```pft_FractalDimensionCalculationOnMultipleFolders```
+Run the script ```pft_FractalDimensionCalculationOnMultipleFolders```
 
 Dialogue boxes are used to confirm the following: 
 
