@@ -37,8 +37,7 @@ Dialogue boxes are used to confirm the following:
   * Interpolate images to 0.25 mm pixels (default) or x4 in each direction in-plane.
   * Minimum blood pool pixel count (default = 50) and a connection percentage (of the blood pool perimeter
   to the myocardium). Refer to the [Processing Flowchart](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/Processing%20Flowchart.pdf) for details.
-  * Keep or discard the end slices in the calculation of the summary statistics (the default is Keep =
-  Do Not Discard).
+  * Keep or discard the end slices in the calculation of the summary statistics (the default is Keep).
 
 ## Test data
 Data for 7 subjects (A to G) is held in [Test Data](https://github.com/UK-Digital-Heart-Project/AutoFD/tree/master/Test%20data). Select this as the top level folder for analysis. Choose acquisition order of Apex to Base.
