@@ -7,6 +7,7 @@ Matlab script for automated fractal analysis of segmented cardiac images.
 
 ## Input data
 
+NIfTI files
 
 ## Method
 
