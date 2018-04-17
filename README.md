@@ -29,10 +29,10 @@ Put the input data into a top-level folder, containing one or more sub-folders, 
 
 The labels are Background  = 0, Blood Pool  = 1, Myocardium  = 2, Other Heart = 3 or 4.
 
-Run;
-```pft_FractalDimensionCalculationOnMultipleFolders```;
+Run  
+```pft_FractalDimensionCalculationOnMultipleFolders```
 
-There are dialog boxes for 
+Dialogue boxes are used to confirm the following: 
 
   * Stacks are stored from Base to Apex (the default) or vice-versa.
   * Interpolate images to 0.25 mm pixels (the default) or x4 in each direction in-plane.
