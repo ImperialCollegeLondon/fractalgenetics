@@ -23,7 +23,7 @@ Clone this repo to a folder in your MATLAB workspace then add all directories to
 ```addpath(genpath('folder')); savepath;```
 
 ## Usage
-Put the input data into a top-level folder, containing one or more sub-folders, each containing:
+Put the input data into a top-level folder with sub-folders for each subject containing:
   * Grayscale main image  ```sa_ED.nii.gz```
   * Segmentation ```seg_sa_ED.nii.gz``` or ```seg_sa_ED.gipl```.
 
@@ -35,15 +35,14 @@ Dialogue boxes are used to confirm the following:
 
   * Stacks are stored from Base to Apex (default) or vice-versa.
   * Interpolate images to 0.25 mm pixels (default) or x4 in each direction in-plane.
-  * Minimum blood pool pixel count (default = 50) and a connection percentage (of the blood pool perimeter
-  to the myocardium). Refer to the [Processing Flowchart](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/Processing%20Flowchart.pdf) for details.
-  * Keep or discard the end slices in the calculation of the summary statistics (the default is Keep).
+  * Minimum blood pool pixel count (default = 50) and percentage of blood pool connected to myocardium (default = 50%). Refer to the [Processing Flowchart](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/Processing%20Flowchart.pdf) for details.
+  * Keep or discard the end slices in the calculation of the summary statistics (the default is keep).
 
 ## Test data
 Data for 7 subjects (A to G) is held in [Test Data](https://github.com/UK-Digital-Heart-Project/AutoFD/tree/master/Test%20data). Unzip  and select as the top level folder for analysis. Choose acquisition order of Apex to Base.
 Set the interpolation to x4. For the other parameters, either accept or edit the processing defaults.
 
 ## Outputs
-Outputs are written to a new sub-folder ```Automated FD Calculation Results```.  Each subject's folder will show the intermediate images (see figure) and box-counting.
+Outputs are written to a new sub-folder ```Automated FD Calculation Results```.  Each subject's folder will contain intermediate images (see figure) and box-counting.
 
 Fractal dimension values are output to ```Summary-Auto-FD-v0.csv```. If you run the script more than once, new results will be appended.
