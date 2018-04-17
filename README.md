@@ -4,11 +4,11 @@ Matlab script for automated fractal analysis of segmented cardiac images.
 ## Prerequisites
 - Matlab.
 - Windows or Linux.
-- A working installation of GhostScript on either platform.
+- GhostScript
 
 ## Input data
 
-Compressed NIfTI files (NII.GZ).
+Compressed NIfTI files (NII.GZ) of end-diastolic left ventricular short axis stacks.
 
 ## Method
 
@@ -18,21 +18,24 @@ but uses pre-exisiting image segmentations to determine a region of interest wit
 ![FD images](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/FD_workflow.png)
 
 ## Installation
-- Unpack the repo to a folder in your MATLAB workspace.
-- Add the main directory (containing pft_FractalDimensionCalculationOnMultipleFolders.m) and its sub-folders to the path.
-- Be sure to know where you have your installation of GhostScript, in case you are prompted for it (this should only happen once).
+- Clone this repo to a folder in your MATLAB workspace then add all directories to the path:
+
+```addpath(genpath('folder')); savepath;```
 
 ## Usage
-- Organize your input data into a top-level folder, containing one or more sub-folders, each containing:
-  - A grayscale image stack called "sa_ED.nii.gz" (short-axis, end-diastole);
-  - A segmentation stack called "seg_sa_ED.nii.gz" or "seg_sa_ED.gipl".
-    This latter may be padded in the slice direction with zeros, but the script will squeeze those out so that the
-    grayscale image and the segmentation match.
-    The labelling scheme is:
+- Put input data into a top-level folder, containing one or more sub-folders, each containing:
+  - Grayscale main image  ```sa_ED.nii.gz```;
+  - Segmentation ```seg_sa_ED.nii.gz``` or ```seg_sa_ED.gipl```.
+
+The labels are
     - Background  = 0;
     - Blood Pool  = 1;
     - Myocardium  = 2;
     - Other Heart = 3 or 4.
+
+Run;
+```pft_FractalDimensionCalculationOnMultipleFolders```;
+
 - Check whether your stacks are stored from Base to Apex (the default) or vice-versa.
 - Decide whether to interpolate your images to 0.25 mm pixels (the default) or x4 in each direction in-plane.
 - Decide on a minimum blood pool pixel count (the default is 50) and a connection percentage (of the blood pool perimeter
