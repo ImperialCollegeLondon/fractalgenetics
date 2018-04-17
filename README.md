@@ -27,25 +27,23 @@ Put the input data into a top-level folder, containing one or more sub-folders, 
   * Grayscale main image  ```sa_ED.nii.gz```
   * Segmentation ```seg_sa_ED.nii.gz``` or ```seg_sa_ED.gipl```.
 
-The labels are Background  = 0, Blood Pool  = 1, Myocardium  = 2, Other Heart = 3 or 4.
+The labels are Background  = 0, Blood Pool  = 1, Myocardium  = 2, Other = 3 or 4.
 
 Run the script ```pft_FractalDimensionCalculationOnMultipleFolders```
 
 Dialogue boxes are used to confirm the following: 
 
-  * Stacks are stored from Base to Apex (the default) or vice-versa.
-  * Interpolate images to 0.25 mm pixels (the default) or x4 in each direction in-plane.
-  * Minimum blood pool pixel count (the default is 50) and a connection percentage (of the blood pool perimeter
-  to the myocardium): the default is 50.0. Refer to the Processing Flowchart for details.
+  * Stacks are stored from Base to Apex (default) or vice-versa.
+  * Interpolate images to 0.25 mm pixels (default) or x4 in each direction in-plane.
+  * Minimum blood pool pixel count (default = 50) and a connection percentage (of the blood pool perimeter
+  to the myocardium). Refer to the [Processing Flowchart](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/Processing%20Flowchart.pdf) for details.
   * Keep or discard the end slices in the calculation of the summary statistics (the default is Keep =
   Do Not Discard).
 
 ## Test data
-- See the archive in Examples; both normal execution and most of the error conditions in the flowchart are illustrated.
+Data for 7 subjects (A to G) is held in [Test Data](https://github.com/UK-Digital-Heart-Project/AutoFD/tree/master/Test%20data). Select this as the top level folder for analysis. Choose acquisition order of Apex to Base.
 
 ## Outputs
-- A new sub-folder will be created under the original top-level folder, with results grouped by study underneath.
-- Each study will have its own audit trail, consisting of images documenting the process of the FD calculation,
-  and some small CSV files, slice by slice.
-- A master CSV file will be created in the original top-level folder, as well as a backup.
-  If you run the script more than once, new results will be appended to the master file.
+Outputs are written to a new sub-folder ```Automated FD Calculation Results```.  Each subject's folder will show the intermediate images (see figure) and box-counting.
+
+Fractal dimensional values are output to ```Summary-Auto-FD-v0.csv```. If you run the script more than once, new results will be appended.
