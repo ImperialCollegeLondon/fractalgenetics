@@ -40,7 +40,7 @@ Dialogue boxes are used to confirm the following:
   * Keep or discard the end slices in the calculation of the summary statistics (the default is Keep).
 
 ## Test data
-Data for 7 subjects (A to G) is held in [Test Data](https://github.com/UK-Digital-Heart-Project/AutoFD/tree/master/Test%20data). Select this as the top level folder for analysis. Choose acquisition order of Apex to Base.
+Data for 7 subjects (A to G) is held in [Test Data](https://github.com/UK-Digital-Heart-Project/AutoFD/tree/master/Test%20data). Unzip  and select as the top level folder for analysis. Choose acquisition order of Apex to Base.
 
 ## Outputs
 Outputs are written to a new sub-folder ```Automated FD Calculation Results```.  Each subject's folder will show the intermediate images (see figure) and box-counting.
