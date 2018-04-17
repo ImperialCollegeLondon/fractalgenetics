@@ -4,7 +4,7 @@ Matlab script for automated fractal analysis of segmented cardiac images.
 ## Prerequisites
 - Matlab.
 - Windows or Linux.
-- GhostScript
+- GhostScript.
 
 ## Input data
 
