@@ -15,7 +15,7 @@ Compressed NIfTI files (NII.GZ) of end-diastolic left ventricular short axis sta
 The approach is based on our [FracAnalyse](https://github.com/UK-Digital-Heart-Project/fracAnalyse) software, 
 but uses pre-exisiting image segmentations to determine a region of interest within the myocardium for fractal analysis.  
 
-![FD images](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/FD_workflow.png)
+![FD images](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/FDworkflow.png)
 
 ## Installation
 Clone this repo to a folder in your MATLAB workspace then add all directories to the path:
