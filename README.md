@@ -18,29 +18,27 @@ but uses pre-exisiting image segmentations to determine a region of interest wit
 ![FD images](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/FD_workflow.png)
 
 ## Installation
-- Clone this repo to a folder in your MATLAB workspace then add all directories to the path:
+Clone this repo to a folder in your MATLAB workspace then add all directories to the path:
 
 ```addpath(genpath('folder')); savepath;```
 
 ## Usage
-- Put input data into a top-level folder, containing one or more sub-folders, each containing:
-  - Grayscale main image  ```sa_ED.nii.gz```;
-  - Segmentation ```seg_sa_ED.nii.gz``` or ```seg_sa_ED.gipl```.
+Put the input data into a top-level folder, containing one or more sub-folders, each containing:
+  * Grayscale main image  ```sa_ED.nii.gz```
+  * Segmentation ```seg_sa_ED.nii.gz``` or ```seg_sa_ED.gipl```.
 
-The labels are
-    - Background  = 0;
-    - Blood Pool  = 1;
-    - Myocardium  = 2;
-    - Other Heart = 3 or 4.
+The labels are Background  = 0, Blood Pool  = 1, Myocardium  = 2, Other Heart = 3 or 4.
 
 Run;
 ```pft_FractalDimensionCalculationOnMultipleFolders```;
 
-- Check whether your stacks are stored from Base to Apex (the default) or vice-versa.
-- Decide whether to interpolate your images to 0.25 mm pixels (the default) or x4 in each direction in-plane.
-- Decide on a minimum blood pool pixel count (the default is 50) and a connection percentage (of the blood pool perimeter
+There are dialog boxes for 
+
+  * Stacks are stored from Base to Apex (the default) or vice-versa.
+  * Interpolate images to 0.25 mm pixels (the default) or x4 in each direction in-plane.
+  * Minimum blood pool pixel count (the default is 50) and a connection percentage (of the blood pool perimeter
   to the myocardium): the default is 50.0. Refer to the Processing Flowchart for details.
-- Decide whether to keep or discard the end slices in the calculation of the summary statistics (the default is Keep =
+  * Keep or discard the end slices in the calculation of the summary statistics (the default is Keep =
   Do Not Discard).
 
 ## Test data
