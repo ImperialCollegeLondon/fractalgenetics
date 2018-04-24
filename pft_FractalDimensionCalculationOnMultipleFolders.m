@@ -68,24 +68,24 @@ NDIRS = length(Entries);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Fetch the acquisition slice order (as implemented in the segmentation files)
-% AcquisitionOrder = pft_GetAcquisitionOrder;
-  AcquisitionOrder = 'Base to Apex';
+  AcquisitionOrder = pft_GetAcquisitionOrder;
+% AcquisitionOrder = 'Base to Apex';
 
 % Select the type of interpolation
-% InterpolationType = pft_GetInterpolationType;
-  InterpolationType = 'Imresize - 0.25 mm pixels - cubic';
+  InterpolationType = pft_GetInterpolationType;
+% InterpolationType = 'Imresize - 0.25 mm pixels - cubic';
 
 % Set the default perimeter type - there is no choice here, and if the default cannot be created, then the brute-force Ansatz is applied
-PerimeterType = 'Out from blood pool';
+  PerimeterType = 'Out from blood pool';
 
-% Fetch the blood pool threshold parameters - hard-wired after an optimisation study on a sample of 100 UKBB datasets by TJWD
-% [ MinimumPixelCount, ConnectedPercentage ] = pft_GetBloodPoolThresholdParameters;
-  MinimumPixelCount = 38;
-  ConnectedPercentage = 50.0;
+% Fetch the blood pool threshold parameters - 60-65 pixels is optimum for Genscan, 38 for UKBB, according to TJWD's balanced/maximum probability study
+  [ MinimumPixelCount, ConnectedPercentage ] = pft_GetBloodPoolThresholdParameters;
+% MinimumPixelCount = 38;
+% ConnectedPercentage = 50.0;
 
 % Ask whether to trim data for summary FD statistics
-% Ans = questdlg('Discard end slices for summary statistics ?', 'Processing decision', 'Yes', 'No', 'No');
-  Ans = 'No';
+  Ans = questdlg('Discard end slices for summary statistics ?', 'Processing decision', 'Yes', 'No', 'No');
+% Ans = 'No';
 
 switch Ans
   case { '', 'No' }

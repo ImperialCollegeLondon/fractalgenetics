@@ -32,7 +32,7 @@ uApexToBase = uicontrol('Style', 'Radio', 'String', 'Apex to Base', 'Units', 'no
 set(hButtonGroup, 'SelectionChangeFcn', @AcquisitionOrderSelectionCallBack);
 
 % Select and display an initial value
-set(hButtonGroup, 'SelectedObject', uBaseToApex); 
+set(hButtonGroup, 'SelectedObject', uApexToBase); 
 
 % Make the button group visible
 set(hButtonGroup, 'Visible', 'on'); 
