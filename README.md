@@ -39,8 +39,8 @@ Dialogue boxes are used to confirm the following:
   * Keep or discard the end slices in the calculation of the summary statistics (the default is keep).
   
 ## Test data
-Data for 7 subjects (A to G) is held in [Test Data](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/Test%20data.zip). Unzip  and select as the top level folder for analysis. Choose acquisition order of Apex to Base.
-Set the interpolation to x4. For the other parameters, either accept or edit the processing defaults.
+Data for 7 subjects (A to G) is held in [Test Data](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/Test%20data.zip). Unzip  and select as the top level folder for analysis. The acquisition order must be Apex to Base.
+The preferred interpolation is x4. For the other parameters, either accept or edit the processing defaults.
 
 ## Outputs
 Outputs are written to a new sub-folder ```Automated FD Calculation Results```.  Each subject's folder will contain intermediate images (see figure) and box-counting.
