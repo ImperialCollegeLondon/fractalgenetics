@@ -38,8 +38,6 @@ Dialogue boxes are used to confirm the following:
   * Minimum blood pool pixel count (default = 50) and percentage of blood pool connected to myocardium (default = 50%). Refer to the [Processing Flowchart](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/Processing%20Flowchart.pdf) for details.
   * Keep or discard the end slices in the calculation of the summary statistics (the default is keep).
   
-  An optimisation process by logistic regression on images acquired from 100 community-based subjects suggested that a minimum segmented blood pool pixel count of 38 pixels (see resolution above) results in >99% balanced accuracy in automated slice selection compared to a clinician selection.
-
 ## Test data
 Data for 7 subjects (A to G) is held in [Test Data](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/Test%20data.zip). Unzip  and select as the top level folder for analysis. Choose acquisition order of Apex to Base.
 Set the interpolation to x4. For the other parameters, either accept or edit the processing defaults.
