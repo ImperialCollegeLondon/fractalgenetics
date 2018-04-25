@@ -47,3 +47,9 @@ The preferred interpolation is x4. For the other parameters, either accept or ed
 Outputs are written to a new sub-folder ```Automated FD Calculation Results```.  Each subject's folder will contain intermediate images (see figure) and box-counting statistics.
 
 Fractal dimension values are output to ```Summary-Auto-FD-v0.csv```. If you run the script more than once, new results will be appended.
+
+## Citation
+
+[![DOI](https://zenodo.org/badge/129865649.svg)](https://zenodo.org/badge/latestdoi/129865649)
+
+
