@@ -78,7 +78,7 @@ NDIRS = length(Entries);
 % Set the default perimeter type - there is no choice here, and if the default cannot be created, then the brute-force Ansatz is applied
   PerimeterType = 'Out from blood pool';
 
-% Fetch the blood pool threshold parameters - 60-65 pixels is optimum for Genscan, 38 for UKBB, according to TJWD's balanced/maximum probability study
+% Fetch the blood pool threshold parameters - 60-65 (64) pixels is optimum for Genscan, 38 for UKBB, according to TJWD's balanced/maximum probability study
   [ MinimumPixelCount, ConnectedPercentage ] = pft_GetBloodPoolThresholdParameters;
 % MinimumPixelCount = 38;
 % ConnectedPercentage = 50.0;
