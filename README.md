@@ -50,6 +50,8 @@ Fractal dimension values are output to ```Summary-Auto-FD-v0.csv```. If you run 
 
 ## Citation
 
+Tokarczuk P, O'Regan DP, Dawes TJW (2018, April 25). UK-Digital-Heart-Project/AutoFD: AutoFD (Version v1.0). Zenodo. http://doi.org/10.5281/zenodo.1228963
+
 [![DOI](https://zenodo.org/badge/129865649.svg)](https://zenodo.org/badge/latestdoi/129865649)
 
 
