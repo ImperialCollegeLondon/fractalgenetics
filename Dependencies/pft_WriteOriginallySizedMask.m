@@ -10,7 +10,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(a, PathName);
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end

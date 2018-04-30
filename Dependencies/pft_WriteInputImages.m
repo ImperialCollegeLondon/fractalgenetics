@@ -22,7 +22,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(a, PathName);
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end
@@ -34,7 +34,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(b, PathName);
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end
@@ -46,7 +46,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(imadd(a, d), PathName);
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end
@@ -58,7 +58,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(imadd(c, d), PathName);
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end
@@ -70,7 +70,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(c, PathName);
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end
@@ -82,7 +82,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(d, PathName);
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end

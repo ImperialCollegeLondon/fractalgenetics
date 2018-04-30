@@ -71,7 +71,7 @@ fclose(fid);
 
 % Box Count Plot
 bcFig = figure('Name', 'Box Count Plot', 'MenuBar', 'none', 'NumberTitle', 'off', 'Visible', 'off');
-pause(0.1);
+pause(0.05);
 set(0, 'CurrentFigure', bcFig);
 loglog(boxSizeA, nBoxA, 's-');
 xlabel('r, box size (pixels)'); 
@@ -88,7 +88,7 @@ FileName = sprintf('Box-Count-Plot-Slice-%1d-ED.png', Slice);
 
 export_fig(gca, fullfile(OutputFolder, FileName), '-png', '-m3');
 
-pause(0.1);
+pause(0.05);
 
 delete(bcFig);
 

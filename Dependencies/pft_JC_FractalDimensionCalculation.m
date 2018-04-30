@@ -80,7 +80,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(e, PathName);
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end
@@ -92,7 +92,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(imadd(e, t), PathName);
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end

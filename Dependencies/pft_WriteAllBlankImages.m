@@ -9,7 +9,7 @@ axis off, box off, grid off, hold on
 
 % Output the cropped image - jog the frame into position for the first (invisible) screen capture
 imshow(Black, [0, 255]);
-pause(0.1);
+pause(0.05);
 imshow(Black, [0, 255]);
 text(8, 16, sprintf('Slice %1d', Slice), 'Color', [1 1 1], 'FontSize', 12, 'FontWeight', 'bold');
 text(8, 32, 'No cropped image', 'Color', [1 1 1], 'FontSize', 12, 'FontWeight', 'bold');
@@ -23,7 +23,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(X, PathName, 'png');
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end
@@ -31,7 +31,7 @@ end
 
 clf(f);
 
-pause(0.1);
+pause(0.05);
 
 % Show where the outer perimeter was drawn (within the image plane)
 imshow(Black, [0, 255]);
@@ -47,7 +47,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(X, PathName, 'png');
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end
@@ -55,7 +55,7 @@ end
 
 clf(f);
 
-pause(0.1);
+pause(0.05);
 
 % Show where the outer perimeter was drawn (within the segmentation plane)
 imshow(Black, [0, 255]);
@@ -71,7 +71,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(X, PathName, 'png');
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end
@@ -79,7 +79,7 @@ end
 
 clf(f);
 
-pause(0.1);
+pause(0.05);
 
 % Show the segmentation on its own - useful for writing the technical paper
 imshow(Black, [0, 255]);
@@ -95,7 +95,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(X, PathName, 'png');
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end
@@ -103,7 +103,7 @@ end
 
 clf(f);
 
-pause(0.1);
+pause(0.05);
 
 % And finally the perimeter - that completes the i/p images
 imshow(Black, [0, 255]);
@@ -119,7 +119,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(X, PathName, 'png');
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end
@@ -127,7 +127,7 @@ end
 
 clf(f);
 
-pause(0.1);
+pause(0.05);
 
 % Now for the the level-set computed edge image (JC's calculation) - one of two outputs
 imshow(Black, [0, 255]);
@@ -143,7 +143,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(X, PathName, 'png');
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end
@@ -151,7 +151,7 @@ end
 
 clf(f);
 
-pause(0.1);
+pause(0.05);
 
 % This is a poor choice of name by JC, but let's keep things consistent with his nomenclature
 imshow(Black, [0, 255]);
@@ -167,7 +167,7 @@ PathName = fullfile(OutputFolder, FileName);
 FileWritten = false;
 while (FileWritten == false)
   imwrite(X, PathName, 'png');
-  pause(0.1);
+  pause(0.05);
   if (exist(PathName, 'file') == 2)
     FileWritten = true;
   end
@@ -175,7 +175,7 @@ end
 
 clf(f);
 
-pause(0.1);
+pause(0.05);
 
 % Don't forget to delete the figure
 delete(f);

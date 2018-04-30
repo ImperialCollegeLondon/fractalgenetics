@@ -17,7 +17,7 @@ Total = numel(FR);
 % Set a starting value for the number of adjacent pixels, but quit if the blood pool is too small
 Adjacent = 0;
 
-% Now count those pixels adjacent to the myocardium, with a connectivity of 4
+% Now count those pixels adjacent to the myocardium, with a connectivity of 8
 [ NR, NC ] = size(P);
 
 for n = 1:Total
@@ -30,7 +30,7 @@ for n = 1:Total
   uc = Col + 1;
 
   if (1 <= lr) && (lr <= NR) && (1 <= ur) && (ur <= NR) && (1 <= lc) && (lc <= NC) && (1 <= uc) && (uc <= NC)
-    if (M(Row, lc) || M(Row, uc) || M(lr, Col) || M(ur, Col))
+    if (M(Row, lc) || M(Row, uc) || M(lr, Col) || M(ur, Col)) || M(lr, lc) || M(lr, uc) || M(ur, lc) || M(ur, uc)
       Adjacent = Adjacent + 1;
     end
   end
