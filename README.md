@@ -16,11 +16,11 @@ Put `FD.csv` on the Desktop.
 
 2. In the console type: output.txt<- fracDecimate(a,b,c) [Enter], where:
 
-a = A number between 3 and 50 indicating the number of slices you want the data interpolated to (suggest: 10)
+    a = A number between 3 and 50 indicating the number of slices you want the data interpolated to (suggest: 10)
 
-b = A number between 1 and 20 indicating the minimum number of datapoints per patient for that patient to be included in the analysis (suggest: 3)
+    b = A number between 1 and 20 indicating the minimum number of datapoints per patient for that patient to be included in the analysis (suggest: 3)
 
-c = The filename of the FD data exported from AutoFD (suggest: FD.csv)
+    c = The filename of the FD data exported from AutoFD (suggest: FD.csv)
 
 The output is a text file with the interpolated data. Rownames are the subject IDs. Column names are: "Slice_x" where x is a number from 1 to a.
 
