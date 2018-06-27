@@ -14,14 +14,15 @@ Put `FD.csv` on the Desktop.
 ## Running the code
 1. Run the code, which defines a function called 'fracDecimate'
 
-2. In the console type: output.txt<- fracDecimate(a,b,c) [Enter], where
+2. In the console type: output.txt<- fracDecimate(a,b,c) [Enter], where:
+
 a = A number between 3 and 50 indicating the number of slices you want the data interpolated to (suggest: 10)
+
 b = A number between 1 and 20 indicating the minimum number of datapoints per patient for that patient to be included in the analysis (suggest: 3)
+
 c = The filename of the FD data exported from AutoFD (suggest: FD.csv)
 
-3. Code will output a histogram of the number of viable slices per subject with the cut.off shown by a vertical dashed red line
-
-The output is a text file with the interpolated data and the max/mean apical/basal FDs from the original file appended.
+The output is a text file with the interpolated data. Rownames are the subject IDs. Column names are: "Slice_x" where x is a number from 1 to a.
 
 ## Notes
 - Code will assume that any FD values which are not "NA", "NaN", "Meagre blood pool", "Sparse myocardium" or "FD measure failed" are FD values.
