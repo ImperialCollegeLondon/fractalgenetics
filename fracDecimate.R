@@ -31,7 +31,7 @@ fracDecimate<- function (interpNoSlices, cut.off, filename)
     # Remove any subjects with fewer than a set number of FD values available for analysis
     # The threshold for this is set by the variable "cut-off"
         
-        cat("Excluding ",round(100*length(which(no.of.values<cut.off))/nrow(FR.all),1),"% subjects because they have <",cut.off," slices available.",sep="")
+        cat("\n \n Excluding ",round(100*length(which(no.of.values<cut.off))/nrow(FR.all),1),"% subjects because they have <",cut.off," slices available. \n \n",sep="")
         FR.all<- FR.all[which(no.of.values>=cut.off),]
         
         # Set up the output matrix
