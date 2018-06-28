@@ -32,7 +32,7 @@ fracDecimate<- function (interpNoSlices, cut.off, filename)
     # The threshold for this is set by the variable "cut-off"
         
         cat("Excluding ",round(100*length(which(no.of.values<cut.off))/nrow(FR.all),1),"% subjects because they have <",cut.off," slices available.",sep="")
-        FR.all<- FR.all[-which(no.of.values<cut.off),]
+        FR.all<- FR.all[which(no.of.values>=cut.off),]
         
         # Set up the output matrix
           
@@ -65,7 +65,7 @@ fracDecimate<- function (interpNoSlices, cut.off, filename)
     
           
           # Remove any subjects in which there were no points within the hernel width -> Nadaraya-Watson estimator to become 0/0 = NaN
-            FRi<- FRi[-which(is.na(FRi[,1])==TRUE),]
+            FRi<- FRi[which(is.na(FRi[,1])==FALSE),]
     
      
     # Return results as a text file
