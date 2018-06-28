@@ -14,17 +14,9 @@ fracDecimate<- function (interpNoSlices, cut.off, filename)
         if("stats" %in% rownames(installed.packages()) == FALSE) {install.packages("stats")}
         library(stats)
         is.this.an.FD.value<- function(vec) {sapply(vec, function(x) {!x %in% c("NA","NaN","Meagre blood pool", "Sparse myocardium", "FD measure failed")})}
-        
-    
-    # Change working directory to point at FD data  
-        switch(Sys.info()[['sysname']],
-               Windows= {setwd(gsub('/Documents','',file.path(path.expand('~'),'Desktop')))},
-               Darwin = {setwd("~/Desktop")})
-        cat("Current working directory is:",getwd())
     
     # Read in the FD data
         d<- read.csv(file=filename, fill=TRUE)
-    
         
     # Pull out the columns to use for interpolation
         FR.all<- d[,10:29]
