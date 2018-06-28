@@ -3,13 +3,12 @@ R code for post-processing of FD values output by [AutoFD](https://github.com/UK
 
 ## Requisites
 
-R.
-Code will install the 'stats' package, if it is not currently installed
+R code will install the 'stats' package, if it is not currently installed
 
 ## Installation
-Open fracDecimate.R  
-Rename your fractal data .csv file as 'FD.csv'
-Put `FD.csv` on the Desktop.
+Open fracDecimate.R 
+
+A test file `FD.csv` is included in the repo, but any csv file can be called by the function.
 
 ## Running the code
 1. Run the code, which defines a function called 'fracDecimate'
@@ -21,6 +20,8 @@ Put `FD.csv` on the Desktop.
     b = A number between 1 and 20 indicating the minimum number of datapoints per patient for that patient to be included in the analysis (suggest: 3)
 
     c = The filename of the FD data exported from AutoFD (suggest: FD.csv)
+    
+    eg `output.txt<- fracDecimate(10,3,"FD.csv")`
 
 The output is a text file with the interpolated data. Rownames are the subject IDs. Column names are: "Slice_x" where x is a number from 1 to a.
 
