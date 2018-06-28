@@ -11,7 +11,7 @@ Open fracDecimate.R
 A test file `FD.csv` is included in the repo, but any csv file can be called by the function.
 
 ## Running the code
-1. Run the code, which defines a function called 'fracDecimate'
+1. Run the code, which defines a function called `fracDecimate`
 
 2. In the console type: output.txt<- fracDecimate(a,b,c) [Enter], where:
 
