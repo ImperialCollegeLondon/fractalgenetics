@@ -1,0 +1,6 @@
+ukbdir: "/homes/hannah/data/ukbb/ukb-hrt"
+maf-in: "0.001"
+maf: "0.1"
+hapdir: "/homes/hannah/data/hmeyer/HapMap"
+hapmap: "HapMapIII_CGRCh37.good_pos"
+
