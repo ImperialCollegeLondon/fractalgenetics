@@ -4,47 +4,8 @@ configfile: "config_hapmap.yaml"
 
 rule all:
     input:
-        expand("{ukb}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
-            ukb=config["ukbdir"],
-            maf=config["maf"]),
-        expand("{ukb}/ancestry/{hapmap}.intersection.snplist",
-            ukb=config["ukbdir"],
-            hapmap=config["hapmap"]),
-        expand("{ukb}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.intersection.bed",
-            ukb=config["ukbdir"],
-            maf=config["maf"]),
-        expand("{ukb}/ancestry/compare.{hapmap}.ukb_imp_v3_maf{maf}.pruned.missnp",
-            ukb=config["ukbdir"],
-            maf=config["maf"],
-            hapmap=config["hapmap"]),
-        expand("{ukb}/ancestry/compare.{hapmap}.ukb_imp_v3_maf{maf}.pruned.missnp",
-            ukb=config["ukbdir"],
-            maf=config["maf"],
-            hapmap=config["hapmap"]),
-        expand("{ukb}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.intersection.nomissnp.bed",
-            ukb=config["ukbdir"],
-            maf=config["maf"]),
-        expand("{ukb}/ancestry/{hapmap}.intersection.nomissnp.bed",
-            ukb=config["ukbdir"],
-            hapmap=config["hapmap"]),
-        expand("{ukb}/ancestry/compare.{hapmap}.ukb_imp_v3_maf{maf}.pruned.keep",
-            ukb=config["ukbdir"],
-            maf=config["maf"],
-            hapmap=config["hapmap"]),
-        expand("{ukb}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.intersection.matched.bed",
-            ukb=config["ukbdir"],
-            maf=config["maf"]),
-        expand("{ukb}/ancestry/{hapmap}.intersection.matched.bed",
-            ukb=config["ukbdir"],
-            hapmap=config["hapmap"]),
-        expand("{ukb}/ancestry/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.bed",
-            ukb=config["ukbdir"],
-            maf=config["maf"],
-            hapmap=config["hapmap"]),
-        expand("{ukb}/ancestry/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged_pca",
-            ukb=config["ukbdir"],
-            maf=config["maf"],
-            hapmap=config["hapmap"])
+        expand("{ukb}/ancestry/HapMap_UKBB-FD_pca.png",
+            ukb=config["ukbdir"])
 
 rule ukbSNPs:
     input:
@@ -281,7 +242,7 @@ rule filterAndFlipHapmap:
             --make-bed \
             --out {wildcards.dir}/ancestry/HapMap{wildcards.hapmap}.intersection.matched"
 
-rule mergeFiles:
+rule mergeHapMap:
     input:
         ukb_bed=expand("{ukb}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.intersection.matched.bed",
             maf=config["maf"],
@@ -334,3 +295,20 @@ rule pca_merge:
                 --outpc {wildcards.dir}/ancestry/{wildcards.hapmap}_ukb_imp_genome_v3_maf{wildcards.maf}.pruned.merged_pca \
                 --suffix {wildcards.hapmap}_ukb_imp_genome_v3_maf{wildcards.maf}.pruned.merged.txt"
 
+rule plotPCA:
+    input:
+        samples=expand("{ukb}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.intersection.matched.fam",
+            maf=config["maf"],
+            ukb=config["ukbdir"]),
+        pcafile=expand("{ukb}/ancestry/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged_pca",
+            maf=config["maf"],
+            ukb=config["ukbdir"],
+            hapmap=config['hapmap'])
+    output:
+        "{dir}/ancestry/HapMap_UKBB-FD_pca.png",
+        "{dir}/ancestry/European_samples.csv"
+    shell:
+        "Rscript 'selectPCA.R' --directory={wildcards.dir}/ancestry \
+            --pcadata={input.pcafile} \
+            --samples={input.samples} \
+            --name=UKBB-FD"
