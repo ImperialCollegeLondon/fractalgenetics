@@ -2,6 +2,8 @@
 #### libraries ###
 ##################
 library("optparse")
+library("ggplot2")
+library("geomnet")
 
 library (R.methodsS3)
 library (R.oo)
@@ -45,6 +47,7 @@ option_list <- list(
                type="string", help="Color for study samples (for plotting)
                [default: %default].", default=NULL)
 )
+
 args <- parse_args(OptionParser(option_list=option_list))
 
 if (interactive) {
@@ -88,6 +91,11 @@ data_all$col[is.na(data_all$col)] <- args$samplesColor
 data_all$pch[is.na(data_all$pch)] <- 24
 data_all <- data_all[order(data_all$pop, decreasing=TRUE),]
 
+pop_data_color <- rbind(pop_data_color,c(args$name, args$samplesColor, 24))
+data_all$col <- as.factor(data_all$col)
+data_all$pop <- factor(data_all$pop, levels=pop_data_color$pop)
+data_all$pch <- as.factor(data_all$pch)
+
 ## Find mean coordinates and distances of HapMap Europeans ####
 all_european <- dplyr::filter(data_all, pop %in% c("CEU", "TSI"))
 euro_pc1_mean <- mean(all_european$PC1)
@@ -113,22 +121,12 @@ write.table(not_euro_ukbb, file=paste(args$dir, "/", "NonEuropean_samples.csv",
     sep=""), sep=",", row.names=FALSE, col.names=FALSE)
 
 ## Plot distribution ####
-plot(data_all[,2], data_all[,3],
-     main=paste("PCA of HapMapIII populations and ukbb dataset"), 
-     col=data_all$col, pch=".", xlab="PC1", ylab="PC2", xlim=c(-0.02,0.03), ylim=c(-0.02,0.03))
-abline(v=euro_pc1_mean)
-abline(h=euro_pc2_mean)
-abline(v=euro_pc1_mean+max_euclid_dist1.5)
-abline(v=euro_pc1_mean-max_euclid_dist1.5)
-abline(h=euro_pc2_mean+max_euclid_dist1.5)
-abline(h=euro_pc2_mean-max_euclid_dist1.5)
-draw.circle(euro_pc1_mean, euro_pc2_mean, max_euclid_dist)
-draw.circle(euro_pc1_mean, euro_pc2_mean, max_euclid_dist1.5)
-draw.circle(euro_pc1_mean, euro_pc2_mean, ukbb$euclid_dist_bb[ukbb$euclid_dist_bb > max_euclid_dist1.5])
-points(ukbb$euclid_dist_bb, ukbb$euclid_dist_bb)
-points(ukbb[ukbb$euclid_dist_bb <= max_euclid_dist1.5,2], 
-       ukbb[ukbb$euclid_dist_bb <= max_euclid_dist1.5,3], pch=".")
-legend(-0.023,0.03, c(as.character(pop_dat_color$pop),"ukbb"), x.intersp=0.5, text.col=c(pop_dat_color$col,'#2c7bb6'), cex=0.7, pch=c(pop_dat_color$pch,24), col=c(pop_dat_color$col,'#2c7bb6'), box.lty = 0)
-
-smoothScatter(data_all[,2], data_all[,3],
-              col=data_all$col, xlab="PC1", ylab="PC2"   )
+p <- ggplot()
+p <- p + geom_point(data=data_all, aes(x=PC1, y=PC2, color=pop)) +
+    scale_color_manual(values=pop_data_color$col, name="Population") +
+    geom_circle(data=data.frame(x=euro_pc1_mean, y=euro_pc2_mean), 
+                aes(x=x, y=y), linewidth=2, color="black",
+                radius=(max_euclid_dist * 1.5)) +
+    theme_bw()
+ggsave(plot=p,
+       file=paste(args$dir, "/", "HapMap_", args$name, "_pca.png", sep=""))
