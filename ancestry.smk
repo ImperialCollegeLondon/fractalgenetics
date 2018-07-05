@@ -1,9 +1,20 @@
-# snakemake -s hapmap_fusion.smk --jobs 5000 --latency-wait 30 --cluster-config cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources} -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete
+# how to run fro ./:
+# snakemake -s ancestry.smk --jobs 5000 --latency-wait 30 --cluster-config cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources} -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete
 
-configfile: "config_hapmap.yaml"
+configfile: "config_ancestry.yaml"
 
 rule all:
     input:
+        expand("{ukb}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.kinship.rel",
+            ukb=config["ukbdir"],
+            maf=config["maf"]),
+        expand("{ukb}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.pca",
+            ukb=config["ukbdir"],
+            maf=config["maf"]),
+        expand("{ukb}/ancestry/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.pca",
+            ukb=config["ukbdir"],
+            maf=config["maf"],
+            hapmap=config["hapmap"]),
         expand("{ukb}/ancestry/HapMap_UKBB-FD_pca.png",
             ukb=config["ukbdir"])
 
@@ -33,6 +44,51 @@ rule ukbSNPs:
         cp {wildcards.dir}/maf{wildcards.maf}/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.snplist \
            {wildcards.dir}/ancestry
         """
+
+rule kinshipUKB:
+    input:
+        bed=expand("{ukb}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
+            maf=config["maf"],
+            ukb=config["ukbdir"]),
+        bim=expand("{ukb}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.bim",
+            maf=config["maf"],
+            ukb=config["ukbdir"]),
+        fam=expand("{ukb}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.fam",
+            maf=config["maf"],
+            ukb=config["ukbdir"])
+    output:
+        "{dir}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.kinship.rel"
+    shell:
+        "plink2 --bed {input.bed} \
+                --fam {input.fam} \
+                --bim {input.bim} \
+                --make-rel square \
+                --out {wildcards.dir}/ancestry/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.kinship"
+
+rule pcaUKB:
+    input:
+        bed=expand("{ukb}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
+            maf=config["maf"],
+            ukb=config["ukbdir"]),
+        bim=expand("{ukb}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.bim",
+            maf=config["maf"],
+            ukb=config["ukbdir"]),
+        fam=expand("{ukb}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.fam",
+            maf=config["maf"],
+            ukb=config["ukbdir"])
+    output:
+        "{dir}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.pca"
+    shell:
+        "flashpca --bed {input.bed} \
+                --fam {input.fam} \
+                --bim {input.bim} \
+                --ndim 10 \
+                --outpc {wildcards.dir}/ancestry/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.pca \
+                --outvec  {wildcards.dir}/ancestry/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.eigenvectors \
+                --outload  {wildcards.dir}/ancestry/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.SNPloadings \
+                --outval  {wildcards.dir}/ancestry/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.eigenvalues \
+                --outpve  {wildcards.dir}/ancestry/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.variance_explained"
+
 
 rule extractUKBfromHapmap:
     input:
@@ -271,7 +327,7 @@ rule mergeHapMap:
             --bmerge {input.ukb_bed} {input.ukb_bim} {input.ukb_fam} \
             --out {wildcards.dir}/ancestry/{wildcards.hapmap}_ukb_imp_genome_v3_maf{wildcards.maf}.pruned.merged"
 
-rule pca_merge:
+rule pcaMerge:
     input:
         bed=expand("{ukb}/ancestry/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.bed",
             maf=config["maf"],
@@ -286,14 +342,17 @@ rule pca_merge:
             ukb=config["ukbdir"],
             hapmap=config["hapmap"])
     output:
-        "{dir}/ancestry/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged_pca"
+        "{dir}/ancestry/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.pca"
     shell:
         "flashpca --bed {input.bed} \
                 --fam {input.fam} \
                 --bim {input.bim} \
                 --ndim 10 \
-                --outpc {wildcards.dir}/ancestry/{wildcards.hapmap}_ukb_imp_genome_v3_maf{wildcards.maf}.pruned.merged_pca \
-                --suffix {wildcards.hapmap}_ukb_imp_genome_v3_maf{wildcards.maf}.pruned.merged.txt"
+                --outpc {wildcards.dir}/ancestry/{wildcards.hapmap}_ukb_imp_genome_v3_maf{wildcards.maf}.pruned.merged.pca \
+                --outvec  {wildcards.dir}/ancestry/{wildcards.hapmap}_ukb_imp_genome_v3_maf{wildcards.maf}.pruned.merged.eigenvectors \
+                --outload  {wildcards.dir}/ancestry/{wildcards.hapmap}_ukb_imp_genome_v3_maf{wildcards.maf}.pruned.merged.SNPloadings \
+                --outval  {wildcards.dir}/ancestry/{wildcards.hapmap}_ukb_imp_genome_v3_maf{wildcards.maf}.pruned.merged.eigenvalues \
+                --outpve  {wildcards.dir}/ancestry/{wildcards.hapmap}_ukb_imp_genome_v3_maf{wildcards.maf}.pruned.merged.variance_explained"
 
 rule plotPCA:
     input:

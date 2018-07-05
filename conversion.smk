@@ -234,7 +234,7 @@ rule pca:
         "flashpca --bed {input.bed} \
                 --fam {input.fam} \
                 --bim {input.bim} \
-                --ndim 50 \
+                --ndim 10 \
                 --outpc {wildcards.dir}/ukb_imp_v3_pca \
                 --suffix _ukb_imp_v3.txt"
 
