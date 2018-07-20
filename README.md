@@ -22,7 +22,7 @@ Parameters for filtering, file names and target directories are supplied in conf
 
 ## ancestry.smk and config_ancestry.yaml
 Work-flow for estimating kinship and ancestry of sample cohort. Takes ld-pruned, maf-filtered files from conversion.smk.
-For ancestry estimation, cohort genotypes are fused with HapMap genotypes of known ancestry (processed as described in [HapMap processing](https://www.nature.com/articles/nprot.2010.16)),
+For ancestry estimation, cohort genotypes are fused with HapMap genotypes of known ancestry (processed as described in [HapMap processing](https://www.ncbi.nlm.nih.gov/pubmed/21085122)),
 principal components computed and cohort samples within 1.5 times the maximum Euclidean distance of European Hapmap samples
 to the center of the European Hapmap samples are selected as European via [selectPCA.R](https://github.com/HannahVMeyer/ukbb-fd/blob/master/selectPCA.R).
 Parameters for filtering, file names and target directories are supplied in config_ancestry.yaml.
