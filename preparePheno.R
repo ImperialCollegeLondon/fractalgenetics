@@ -4,7 +4,19 @@
 library("optparse")
 library("ukbtools")
 library("ggplot2")
+library("GGally")
 
+interpfunc<- function(x,origMaxNoSlices,interpNoSlices){
+    # origMaxNoSlices: No. of slices listed in XLS
+    # interpNoSlices: No. of slices to be interpolated to
+    tmp<-spline(1:origMaxNoSlices, x, interpNoSlices)
+    t(tmp$y)
+}
+
+interpSlices<-function(x, origMaxNoSlices =12,interpNoSlices=10 ){
+    tmp<-apply(x, 1, function(x) interpfunc(x, origMaxNoSlices, interpNoSlices))
+    t(tmp)
+}
 
 #################################
 ## parameters and input data ####
@@ -60,21 +72,27 @@ if (FALSE) {
 ################
 
 ## Read data ####
-dataFD <- data.table::fread(args$pheno, data.table=FALSE, stringsAsFactors=FALSE)
+dataFD <- data.table::fread(args$pheno, data.table=FALSE,
+                            stringsAsFactors=FALSE)
 
 ukbb <- ukb_df(fileset="ukb22219", path=args$rawdir)
 saveRDS(ukbb, paste(args$rawdir, "/ukb22219.rds", sep=""))
 
 ukbb_fd <- dplyr::filter(ukbb, eid %in% dataFD$Folder)
 
-## FD measurements of interest for association mapping
-fd_measured_all <- dataFD[,33:37]
-rownames(fd_measured_all) <- dataFD[, 1]
-colnames(fd_measured_all) <- c("globalFD", "meanBasalFD", "meanApicalFD",
-    "maxBasalFD", "maxApicalFD")
-fd_na <- apply(fd_measured_all, 1,  function(x) any(is.na(x)))
-fd_measured <- fd_measured_all[!fd_na, ]
+## FD measurements of interest for association mapping ####
+fd_na <- apply(dataFD[,33:37], 1,  function(x) any(is.na(x)))
+dataFD <- dataFD[!fd_na, ]
+rownames(dataFD) <- dataFD[, 1]
 
+fd_measured <- dataFD[,32:37]
+colnames(fd_measured) <- c("Slices", "globalFD", "meanBasalFD", "meanApicalFD",
+    "maxBasalFD", "maxApicalFD")
+
+fd_slices <- dataFD[,10:29]
+colnames(fd_slices)[1] <- "Slice1"
+colnames(fd_slices) <- gsub(" ", "", colnames(fd_slices))
+fd_slices <- fd_slices[!apply(fd_slices, 2, function(x) all(is.na(x)))]
 
 ## grep columns with covariates sex, age, bmi and weight ####
 sex <- which(grepl("genetic_sex_", colnames(ukbb_fd)))
@@ -84,13 +102,16 @@ bmi <- which(grepl("bmi_", colnames(ukbb_fd)))
 weight <- which(grepl("^weight_", colnames(ukbb_fd)))
 
 
-## manually check which columns are relevant and most complete ####
+# manually check which columns are relevant and most complete
 sexNA <- is.na(ukbb_fd[,sex]) # length(which(sexNA)) -> 467
 allSex <- ukbb_fd[!sexNA,]
 
-ageNA <- apply(ukbb_fd[!sexNA, age], 2, function(x) length(which(is.na(x)))) #0,14343,1171
-weightNA <- apply(ukbb_fd[!sexNA, weight], 2, function(x) length(which(is.na(x)))) #28,14303,441
-bmiNA <- apply(ukbb_fd[!sexNA, bmi] , 2, function(x) length(which(is.na(x)))) #32,14304,480
+ageNA <- apply(ukbb_fd[!sexNA, age], 2, function(x) 
+    length(which(is.na(x)))) #0,14343,1171
+weightNA <- apply(ukbb_fd[!sexNA, weight], 2, function(x) 
+    length(which(is.na(x)))) #28,14303,441
+bmiNA <- apply(ukbb_fd[!sexNA, bmi] , 2, function(x) 
+    length(which(is.na(x)))) #32,14304,480
 
 relevant <- c(sex, age[which.min(ageNA)], weight[which.min(weightNA)],
     bmi[which.min(bmiNA)])
@@ -102,12 +123,76 @@ covs_noNA <- covs[index_noNA,]
 covs_noNA <- as.data.frame(apply(covs_noNA, 2, as.numeric))
 rownames(covs_noNA) <- allSex$eid[index_noNA]
 
-covs_noNA$height_f21002_comp <- sqrt(covs_noNA$weight_f21002_0_0/covs_noNA$body_mass_index_bmi_f21001_0_0)
+covs_noNA$height_f21002_comp <- 
+    sqrt(covs_noNA$weight_f21002_0_0/covs_noNA$body_mass_index_bmi_f21001_0_0)
 
-
-
+## Save FD measures and covariates to order by samples ####
 fd_all <- merge(fd_measured, covs_noNA[,-4], by=0)
-write.table(fd_all[,2:6], paste(args$outdir, "/FD_phenotypes.csv", sep=""),
-    sep=",", row.names=fd_all$Row.names, col.names=NA, quote=FALSE)
-write.table(fd_all[,7:10], paste(args$outdir, "/FD_covariates.csv", sep=""),
-    sep=",", row.names=fd_all$Row.names, col.names=NA, quote=FALSE)
+fd_all$genetic_sex_f22001_0_0 <- as.factor(fd_all$genetic_sex_f22001_0_0)
+fd_pheno <- fd_all[,2:6]
+fd_cov <- fd_all[,7:10]
+
+write.table(fd_pheno, paste(args$outdir, "/FD_phenotypes.csv", sep=""),
+            sep=",", row.names=fd_all$Row.names, col.names=NA, quote=FALSE)
+write.table(fd_cov, paste(args$outdir, "/FD_covariates.csv", sep=""),
+            sep=",", row.names=fd_all$Row.names, col.names=NA, quote=FALSE)
+
+## Plot distribution of covarariates ####
+
+p <- ggpairs(as.data.frame(fd_all[,-c(1,4,5)]),
+             upper = list(continuous = wrap("density", col="#b30000",
+                                            size=0.1)),
+             diag = list(continuous = wrap("densityDiag", size=0.4)),
+             lower = list(continuous = wrap("smooth", alpha=0.5,size=0.1,
+                                            pch=20)),
+             columnLabels = c(colnames(fd_measured)[-c(3,4)], "Sex [f/m]",
+                              "Age [years]", "Height [cm]", "Weight [kg]"),
+             axisLabels = "show") +
+    theme_bw() +
+    theme(panel.grid = element_blank(),
+          axis.text = element_text(size=6),
+          axis.text.x = element_text(angle=90),
+          strip.text = element_text(size=8),
+          strip.background = element_rect(fill="white", colour=NA))
+ggsave(plot=p, file=paste(args$outdir, "/pairs_fdcovariates.pdf", sep=""),
+       height=6.5, width=6.5, units="in")
+
+## Plot distribution of fd measures ####
+# manually look at non-numerics in FD slices
+nn <- sort(unique(unlist(fd_slices)), decreasing =TRUE)
+# nn[1:4]: "Sparse myocardium" "NaN" "Meagre blood pool" "FD measure failed"
+fd_slices <- as.data.frame(apply(fd_slices, 2, function(x) {
+    x[x %in% nn[2]] <- NA
+    x[x %in% nn[c(1,3,4)]] <- NaN
+    return(as.numeric(x))
+}))
+
+# plot distirbution of nas 
+all_nas <- apply(fd_slices, 2, function(x) length(which(is.na(x))))
+nans <- apply(fd_slices, 2, function(x) length(which(is.nan(x))))
+nas <- all_nas-nans
+data_na <- rbind(data.frame(Slice=1:ncol(fd_slices), missing=nas, type="NA"),
+                 data.frame(Slice=1:ncol(fd_slices), missing=nans, type="NaN"))
+
+p_na <- ggplot(data_na, aes(x=Slice, y=missing, color=type))
+p_na <- p_na + geom_point() +
+    scale_color_brewer(type="qual", palette=6) +
+    theme_bw()
+ggsave(plot=p_na, file=paste(args$outdir, "/NAdist_FD.pdf", sep=""),
+       height=4, width=4, units="in")
+
+# plot distribution of FD along heart
+FDalongHeart <- reshape2::melt(fd_slices[,3:8], value.name = "FD", 
+                     variable.name = "Slice" )
+FDalongHeart$slice <- as.numeric(gsub("Slice", "", FDalongHeart$Slice))
+FDalongHeart$Location <- "Apical"
+FDalongHeart$Location[as.numeric(FDalongHeart$slice) <= 5] <- "Basal" 
+
+p_fd <- ggplot(data=FDalongHeart)
+p_fd <- p_fd + geom_boxplot(aes(x=Slice, y=FD, color=Location)) +
+    scale_color_manual(values=c("#b30000", "gray20")) +
+    labs(x="Slice", y="FD") +
+    theme_bw()
+
+ggsave(plot=p_fd, file=paste(args$outdir, "/FDAlongHeart.pdf", sep=""),
+       height=4, width=4, units="in")
