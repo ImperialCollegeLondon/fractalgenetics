@@ -79,6 +79,7 @@ ukbb <- ukb_df(fileset="ukb22219", path=args$rawdir)
 saveRDS(ukbb, paste(args$rawdir, "/ukb22219.rds", sep=""))
 
 ukbb_fd <- dplyr::filter(ukbb, eid %in% dataFD$Folder)
+saveRDS(ukbb_fd, paste(args$rawdir, "/ukb22219_fd.rds", sep=""))
 
 ## FD measurements of interest for association mapping ####
 fd_na <- apply(dataFD[,33:37], 1,  function(x) any(is.na(x)))
