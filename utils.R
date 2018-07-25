@@ -1,6 +1,6 @@
 #' Remove related samples while keeping maximum number of samples in cohort
 #'
-#' @param IDs [N] vector with N samples IDs of study cohort
+#' @param ID [N] vector with N samples IDs of study cohort
 #' @param relatedness relatedness data.frame as obtained from ukbgene -rel
 #' containing pairwise relatedness estimates for individuals in the 500 UKB
 #' genotypes. Has to have original header i.e. ID1 ID2 HetHet IBS0 Kinship
@@ -14,7 +14,7 @@
 #' are not in the current study - these IDs are just provided for information
 #' and nothing needs to be done.
 
-smartRelatednessFilter <- function(IDs, relatedness) {
+smartRelatednessFilter <- function(ID, relatedness) {
     relatedness_study <-
         relatedness[unique(union(which(relatedness$ID1 %in% ID),
                              which(relatedness$ID2 %in% ID))),]
@@ -82,18 +82,36 @@ smartRelatednessFilter <- function(IDs, relatedness) {
     })
     rel_ge_2 <- unique(unlist(rel_ge_2))
 
+
     # List of trios
-    rel_trios_rm <- duplicate_IDs[!(duplicate_IDs %in% rel_ge_2)]
     rel_trios <- unlist(both[rowSums(cbind(both$ID1 %in% rel_trios_rm,
                               both$ID2 %in% rel_trios_rm)) != 0,1:2])
     tokeep_trios <- rel_trios[!(rel_trios %in% rel_trios_rm)]
 
-    # Check that all IDs with relatives in cohort are accounted for
+    # Check for any IDs missed in previous steps
     id_singlets <- unique(c(singlets$ID1, singlets$ID2))
+    id_both_combined <-  c(rel_ge_2, id_singlets, rel_trios_rm, tokeep_trios)
+
+    # Check that all IDs with relatives in cohort are accounted for
+    if (length(id_both[!id_both %in% id_both_combined]) != length(id_both)){
+        notsorted <- id_both[!id_both %in% id_both_combined]
+        both_filtered <-
+            both[rowSums(cbind(!both$ID1 %in% c(rel_ge_2, rel_trios_rm),
+                           !both$ID2 %in% c(rel_ge_2, rel_trios_rm))) != 0,1:2]
+        new_single <-
+            both_filtered[rowSums(cbind(both_filtered$ID1 %in% notsorted,
+                                 both_filtered$ID2 %in% notsorted)) != 0,1:2]
+        already_filtered <-
+            unlist(new_single)[!unlist(new_single) %in% notsorted]
+        if (!all(already_filtered %in% c(rel_ge_2, rel_trios_rm))){
+            stop("Same sample IDs cannot be filtered")
+        } else {
+            tokeep_trios <- c(tokeep_trios, notsorted)
+        }
+    }
 
     id_both_combined <-  length(rel_ge_2) + length(id_singlets) +
-        length(rel_trios_rm) + length(tokeep_trios)
-
+                length(rel_trios_rm) + length(tokeep_trios)
     if (id_both_combined != length(id_both)) {
         stop("Not all IDs of samples with relatives in study accounted for")
     }
