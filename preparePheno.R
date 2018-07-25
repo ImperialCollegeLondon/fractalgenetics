@@ -18,6 +18,7 @@ interpSlices<-function(x, origMaxNoSlices =12,interpNoSlices=10 ){
     t(tmp)
 }
 
+source("~/GWAs/analysis/ukbb-fd/utils.R")
 #################################
 ## parameters and input data ####
 #################################
@@ -56,6 +57,9 @@ if (FALSE) {
     args$pheno <- "~/data/ukbb/ukb-hrt/rawdata/FD.csv"
     args$rawdir <- "~/data/ukbb/ukb-hrt/rawdata"
     args$outdir <- "~/data/ukbb/ukb-hrt/phenotypes"
+    args$samples <- "~/data/ukbb/ukb-hrt/rawdata/ukb18545_imp_chr1_v3_s487378.sample"
+    args$relatedness <-"~/data/ukbb/ukb-hrt/rawdata/ukb18545_rel_s488346.dat"
+    args$europeans <- "~/data/ukbb/ukb-hrt/ancestry/European_samples.csv"
 }
 
 ### ukb files converted via ukb_tools: http://biobank.ctsu.ox.ac.uk/showcase/docs/UsingUKBData.pdf
@@ -80,6 +84,16 @@ saveRDS(ukbb, paste(args$rawdir, "/ukb22219.rds", sep=""))
 
 ukbb_fd <- dplyr::filter(ukbb, eid %in% dataFD$Folder)
 saveRDS(ukbb_fd, paste(args$rawdir, "/ukb22219_fd.rds", sep=""))
+
+# sample order in genotype file
+samples <- data.table::fread(args$samples, data.table=FALSE, skip=2,
+                             stringsAsFactors=FALSE,
+                             col.names=c("ID_1", "ID_2", "missing", "sex"))
+
+relatedness <- data.table::fread(args$relatedness, data.table=FALSE,
+                             stringsAsFactors=FALSE)
+europeans <- data.table::fread(args$europeans, data.table=FALSE,
+                            stringsAsFactors=FALSE, col.names="ID")
 
 ## FD measurements of interest for association mapping ####
 fd_na <- apply(dataFD[,33:37], 1,  function(x) any(is.na(x)))
@@ -107,11 +121,11 @@ weight <- which(grepl("^weight_", colnames(ukbb_fd)))
 sexNA <- is.na(ukbb_fd[,sex]) # length(which(sexNA)) -> 467
 allSex <- ukbb_fd[!sexNA,]
 
-ageNA <- apply(ukbb_fd[!sexNA, age], 2, function(x) 
+ageNA <- apply(ukbb_fd[!sexNA, age], 2, function(x)
     length(which(is.na(x)))) #0,14343,1171
-weightNA <- apply(ukbb_fd[!sexNA, weight], 2, function(x) 
+weightNA <- apply(ukbb_fd[!sexNA, weight], 2, function(x)
     length(which(is.na(x)))) #28,14303,441
-bmiNA <- apply(ukbb_fd[!sexNA, bmi] , 2, function(x) 
+bmiNA <- apply(ukbb_fd[!sexNA, bmi] , 2, function(x)
     length(which(is.na(x)))) #32,14304,480
 
 relevant <- c(sex, age[which.min(ageNA)], weight[which.min(weightNA)],
@@ -124,10 +138,10 @@ covs_noNA <- covs[index_noNA,]
 covs_noNA <- as.data.frame(apply(covs_noNA, 2, as.numeric))
 rownames(covs_noNA) <- allSex$eid[index_noNA]
 
-covs_noNA$height_f21002_comp <- 
+covs_noNA$height_f21002_comp <-
     sqrt(covs_noNA$weight_f21002_0_0/covs_noNA$body_mass_index_bmi_f21001_0_0)
 
-## Save FD measures and covariates to order by samples ####
+## Merge FD measures and covariates to order by samples and save ####
 fd_all <- merge(fd_measured, covs_noNA[,-4], by=0)
 fd_all$genetic_sex_f22001_0_0 <- as.factor(fd_all$genetic_sex_f22001_0_0)
 fd_pheno <- fd_all[,2:6]
@@ -138,8 +152,8 @@ write.table(fd_pheno, paste(args$outdir, "/FD_phenotypes.csv", sep=""),
 write.table(fd_cov, paste(args$outdir, "/FD_covariates.csv", sep=""),
             sep=",", row.names=fd_all$Row.names, col.names=NA, quote=FALSE)
 
-## Plot distribution of covarariates ####
 
+## Plot distribution of covariates ####
 p <- ggpairs(as.data.frame(fd_all[,-c(1,4,5)]),
              upper = list(continuous = wrap("density", col="#b30000",
                                             size=0.1)),
@@ -168,7 +182,7 @@ fd_slices <- as.data.frame(apply(fd_slices, 2, function(x) {
     return(as.numeric(x))
 }))
 
-# plot distirbution of nas 
+# plot distirbution of nas
 all_nas <- apply(fd_slices, 2, function(x) length(which(is.na(x))))
 nans <- apply(fd_slices, 2, function(x) length(which(is.nan(x))))
 nas <- all_nas-nans
@@ -197,3 +211,19 @@ p_fd <- p_fd + geom_boxplot(aes(x=Slice, y=FD, color=Location)) +
 
 ggsave(plot=p_fd, file=paste(args$outdir, "/FDAlongHeart.pdf", sep=""),
        height=4, width=4, units="in")
+
+## Filter phenotypes for ethnicity and relatedness
+related_samples <- smartRelatednessFilter(fd_all$Row.names, relatedness)
+related2filter <- c(related_samples$related2filter,
+                    related_samples$related2decide$ID1)
+
+fd_norelated <- fd_all[!fd_all$Row.names %in% related2filter,]
+fd_europeans_norelated <- fd_norelated[fd_norelated$Row.names %in% europeans$ID,]
+
+
+## Format phenotypes and covariates for bgenie
+# Everything else has to be matched to order in sample file;excluded and missing
+# samples will have to be included in phenotypes and covariates and values set
+# to -999
+
+
