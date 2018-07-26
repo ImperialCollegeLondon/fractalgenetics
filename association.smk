@@ -36,4 +36,4 @@ rule bgenie:
             --include_rsids  {input.rsids} \
             --pvals --exc_missing_inds \
             --scale_phenotypes \
-            --out {output}"
+            --out {dir}/gwas/bgenie_lm_st_chr{chr}"
