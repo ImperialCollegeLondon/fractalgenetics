@@ -49,5 +49,24 @@
         "name" : "{rule}.{wildcards}",
         "output" : "log/{rule}.out",
         "error" : "log/{rule}.err"
+    },
+    "basalApicalMax" :
+    {
+        "memory" : "100000 -P bigmem",
+        "resources" : "\"select[mem>80000] rusage[mem=80000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}.{wildcards}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
+    },
+    "bgenie" :
+    {
+        "memory" : "50000",
+        "n" : "8",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}.{wildcards.chr}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
     }
 }
