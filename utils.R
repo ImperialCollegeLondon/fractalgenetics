@@ -84,6 +84,7 @@ smartRelatednessFilter <- function(ID, relatedness) {
 
 
     # List of trios
+    rel_trios_rm <- duplicate_IDs[!(duplicate_IDs %in% rel_ge_2)]
     rel_trios <- unlist(both[rowSums(cbind(both$ID1 %in% rel_trios_rm,
                               both$ID2 %in% rel_trios_rm)) != 0,1:2])
     tokeep_trios <- rel_trios[!(rel_trios %in% rel_trios_rm)]
