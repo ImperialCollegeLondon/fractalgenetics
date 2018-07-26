@@ -212,7 +212,7 @@ p_fd <- p_fd + geom_boxplot(aes(x=Slice, y=FD, color=Location)) +
 ggsave(plot=p_fd, file=paste(args$outdir, "/FDAlongHeart.pdf", sep=""),
        height=4, width=4, units="in")
 
-## Filter phenotypes for ethnicity and relatedness
+## Filter phenotypes for ethnicity and relatedness ####
 related_samples <- smartRelatednessFilter(fd_all$Row.names, relatedness)
 related2filter <- c(related_samples$related2filter,
                     related_samples$related2decide$ID1)
@@ -220,10 +220,29 @@ related2filter <- c(related_samples$related2filter,
 fd_norelated <- fd_all[!fd_all$Row.names %in% related2filter,]
 fd_europeans_norelated <- fd_norelated[fd_norelated$Row.names %in% europeans$ID,]
 
+write.table(fd_europeans_norelated[,3:7],
+            paste(args$outdir, "/FD_phenotypes_EUnorel.csv", sep=""), sep=",",
+            row.names=fd_europeans_norelated$Row.names, col.names=NA,
+            quote=FALSE)
+write.table(fd_europeans_norelated[,8:11],
+            paste(args$outdir, "/FD_covariates_EUnorel.csv", sep=""), sep=",",
+            row.names=fd_europeans_norelated$Row.names, col.names=NA,
+            quote=FALSE)
 
-## Format phenotypes and covariates for bgenie
+## Format phenotypes and covariates for bgenie ####
 # Everything else has to be matched to order in sample file;excluded and missing
 # samples will have to be included in phenotypes and covariates and values set
 # to -999
 
+fd_bgenie <- merge(samples, fd_europeans_norelated, by=1, all.x=TRUE, sort=FALSE)
+fd_bgenie <- fd_bgenie[match(samples$ID_1, fd_bgenie$ID_1),]
+fd_bgenie$genetic_sex_f22001_0_0 <- as.numeric(fd_bgenie$genetic_sex_f22001_0_0)
+fd_bgenie[is.na(fd_bgenie)] <- -999
+
+write.table(fd_bgenie[,6:10],
+            paste(args$outdir, "/FD_phenotypes_bgenie.csv", sep=""), sep=" ",
+            row.names=FALSE, col.names=TRUE, quote=FALSE)
+write.table(fd_bgenie[,11:14],
+            paste(args$outdir, "/FD_covariates_bgenie.csv", sep=""), sep=" ",
+            row.names=FALSE, col.names=TRUE, quote=FALSE)
 
