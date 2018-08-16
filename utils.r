@@ -19,6 +19,7 @@ smartRelatednessFilter <- function(ID, relatedness) {
         relatedness[unique(union(which(relatedness$ID1 %in% ID),
                              which(relatedness$ID2 %in% ID))),]
     ID_study <- ID[ID %in% c(relatedness_study$ID1, relatedness_study$ID2)]
+
     # clear individuals whose relatives is not part of ID_study
     id_class <- rowSums(cbind(relatedness_study$ID1 %in% ID_study,
             relatedness_study$ID2 %in% ID_study))

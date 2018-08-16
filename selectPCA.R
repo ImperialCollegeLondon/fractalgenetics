@@ -108,9 +108,9 @@ not_euro_ukbb <- ukbb$ID[which(ukbb$euclid_dist > (max_euclid_dist * 1.5))]
 
 ## save sample lists ####
 write.table(euro_ukbb, file=paste(args$dir, "/", "European_samples.csv", sep=""),
-    sep=",", row.names=FALSE, col.names=FALSE)
+    sep=",", row.names=FALSE, col.names=FALSE, quote=FALSE)
 write.table(not_euro_ukbb, file=paste(args$dir, "/", "NonEuropean_samples.csv",
-    sep=""), sep=",", row.names=FALSE, col.names=FALSE)
+    sep=""), sep=",", row.names=FALSE, col.names=FALSE, quote=FALSE)
 
 ## Plot distribution ####
 p <- ggplot()
