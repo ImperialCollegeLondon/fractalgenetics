@@ -16,14 +16,17 @@ rule all:
             maf=config["maf"],
             hapmap=config["hapmap"]),
         expand("{ukb}/ancestry/HapMap_UKBB-FD_pca.png",
-            ukb=config["ukbdir"])
+            ukb=config["ukbdir"]),
+        expand("{ukb}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.European.pca",
+            ukb=config["ukbdir"],
+            maf=config["maf"])
 
 rule ukbSNPs:
     input:
         bed=expand("{ukb}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
             maf=config["maf-in"],
             ukb=config["ukbdir"]),
-        bim=expand("{ukb}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.bim",
+        bim=expand("{ukb}/maf{maf}/ukb_imp_genome_v4_maf{maf}.pruned.bim",
             maf=config["maf-in"],
             ukb=config["ukbdir"]),
         fam=expand("{ukb}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.fam",
@@ -371,3 +374,52 @@ rule plotPCA:
             --pcadata={input.pcafile} \
             --samples={input.samples} \
             --name=UKBB-FD"
+
+rule filterEuropeans:
+    input:
+        keep="{dir}/ancestry/European_samples.csv",
+        bed=expand("{ukb}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
+            maf=config["maf"],
+            ukb=config["ukbdir"]),
+        bim=expand("{ukb}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.bim",
+            maf=config["maf"],
+            ukb=config["ukbdir"]),
+        fam=expand("{ukb}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.fam",
+            maf=config["maf"],
+            ukb=config["ukbdir"])
+    output:
+        "{dir}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.European.fam",
+        "{dir}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.European.bim",
+        "{dir}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.European.bed"
+    shell:
+        "plink --bed {input.bed} \
+            --fam {input.fam} \
+            --bim {input.bim} \
+            --keep {input.keep} \
+            --make-bed \
+            --out {wildcards.dir}/ancestry/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.European"
+
+rule pcaEuropean:
+    input:
+        bed=expand("{ukb}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.European.bed",
+            maf=config["maf"],
+            ukb=config["ukbdir"]),
+        bim=expand("{ukb}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.European.bim",
+            maf=config["maf"],
+            ukb=config["ukbdir"]),
+        fam=expand("{ukb}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.European.fam",
+            maf=config["maf"],
+            ukb=config["ukbdir"])
+    output:
+        "{dir}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.European.pca"
+    shell:
+        "flashpca --bed {input.bed} \
+                --fam {input.fam} \
+                --bim {input.bim} \
+                --ndim 10 \
+                --outpc {wildcards.dir}/ancestry/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.European.pca \
+                --outvec  {wildcards.dir}/ancestry/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.European.eigenvectors \
+                --outload  {wildcards.dir}/ancestry/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.European.SNPloadings \
+                --outval  {wildcards.dir}/ancestry/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.European.eigenvalues \
+                --outpve  {wildcards.dir}/ancestry/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.European.variance_explained"
+
