@@ -27,6 +27,8 @@ rule bgenie:
             ukb=config["ukbdir"]),
         rsids=expand("{ukb}/maf0.001/ukb_imp_chr{{chr}}_v3_maf0.001.rsid",
                     ukb=config["ukbdir"])
+    params:
+        n=config["n"]
     output:
         "{dir}/gwas/bgenie_lm_st_chr{chr}.gz"
     shell:
@@ -36,4 +38,5 @@ rule bgenie:
             --include_rsids  {input.rsids} \
             --pvals --exc_missing_inds \
             --scale_phenotypes \
-            --out {dir}/gwas/bgenie_lm_st_chr{chr}"
+            --thread {params.n} \
+            --out {wildcards.dir}/gwas/bgenie_lm_st_chr{wildcards.chr}"
