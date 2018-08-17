@@ -1,7 +1,7 @@
 # how to run fro ./:
-# snakemake -s ancestry.smk --jobs 5000 --latency-wait 30 --cluster-config cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources} -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete
+# snakemake -s ancestry.smk --jobs 5000 --latency-wait 30 --cluster-config config/cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources} -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete
 
-configfile: "config_ancestry.yaml"
+configfile: "config/config_ancestry.yaml"
 
 rule all:
     input:
@@ -370,7 +370,7 @@ rule plotPCA:
         "{dir}/ancestry/HapMap_UKBB-FD_pca.png",
         "{dir}/ancestry/European_samples.csv"
     shell:
-        "Rscript 'selectPCA.R' --directory={wildcards.dir}/ancestry \
+        "Rscript 'ancestry/selectPCA.R' --directory={wildcards.dir}/ancestry \
             --pcadata={input.pcafile} \
             --samples={input.samples} \
             --name=UKBB-FD"

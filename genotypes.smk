@@ -1,7 +1,7 @@
-# snakemake -s conversion.smk --jobs 5000 --latency-wait 30 --cluster-config cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources} -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete
+# snakemake -s conversion.smk --jobs 5000 --latency-wait 30 --cluster-config config/cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources} -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete
 
-import pdb
-configfile: "config_conversion.yaml"
+
+configfile: "config/config_conversion.yaml"
 
 rule all:
     input:
@@ -129,7 +129,6 @@ rule pruneLD:
             --extract {input.prunein} \
             --make-bed \
             --out {wildcards.dir}/maf{wildcards.maf}/ukb_imp_chr{wildcards.chr}_v3_maf{wildcards.maf}.pruned"
-#echo -e "$outdir/ukb_imp_chr${chr}_v3" >> $outdir/file_list
 
 rule findDuplicates:
     input:
