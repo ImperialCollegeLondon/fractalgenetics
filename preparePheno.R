@@ -1,24 +1,24 @@
 #################
 ## libraries ####
 #################
-library("optparse")
-library("ukbtools")
-library("ggplot2")
-library("GGally")
+modules::import_package('ggplot2', attach = TRUE)
+optparse <- modules::import_package('optparse')
+ukbtools <- modules::import_package('ukbtools')
+GGally <- modules::import_package('GGally')
+utils <- modules::import('~/GWAS/analysis/ukbb-fd/utils')
 
-interpfunc<- function(x,origMaxNoSlices,interpNoSlices){
+interpfunc <- function(x,origMaxNoSlices,interpNoSlices){
     # origMaxNoSlices: No. of slices listed in XLS
     # interpNoSlices: No. of slices to be interpolated to
-    tmp<-spline(1:origMaxNoSlices, x, interpNoSlices)
+    tmp <-spline(1:origMaxNoSlices, x, interpNoSlices)
     t(tmp$y)
 }
 
-interpSlices<-function(x, origMaxNoSlices =12,interpNoSlices=10 ){
+interpSlices <-function(x, origMaxNoSlices =12,interpNoSlices=10 ){
     tmp<-apply(x, 1, function(x) interpfunc(x, origMaxNoSlices, interpNoSlices))
     t(tmp)
 }
 
-source("~/GWAs/analysis/ukbb-fd/utils.R")
 #################################
 ## parameters and input data ####
 #################################
@@ -50,7 +50,7 @@ option_list <- list(
                [default: %default].", default="#2c7bb6")
 )
 
-args <- parse_args(OptionParser(option_list=option_list))
+args <- optparse$parse_args(OptionParser(option_list=option_list))
 
 if (FALSE) {
     args <- list()
@@ -60,46 +60,57 @@ if (FALSE) {
     args$samples <- "~/data/ukbb/ukb-hrt/rawdata/ukb18545_imp_chr1_v3_s487378.sample"
     args$relatedness <-"~/data/ukbb/ukb-hrt/rawdata/ukb18545_rel_s488346.dat"
     args$europeans <- "~/data/ukbb/ukb-hrt/ancestry/European_samples.csv"
+    args$pcs <- "~/data/ukbb/ukb-hrt/ancestry/ukb_imp_genome_v3_maf0.1.pruned.European.pca"
 }
 
-### ukb files converted via ukb_tools: http://biobank.ctsu.ox.ac.uk/showcase/docs/UsingUKBData.pdf
+## ukb phenotype files converted via ukb_tools:
+# http://biobank.ctsu.ox.ac.uk/showcase/docs/UsingUKBData.pdf
 # ukb_unpack ukb22219.enc key
 # ukb_conv ukb22219.enc_ukb r
 # ukb_conv ukb22219.enc_ukb docs
-
 # get rosetta error, but according to
 # https://biobank.ctsu.ox.ac.uk/crystal/exinfo.cgi?src=faq#rosetta, nothing to
 # worry about
+
+## ukb genotype files via https://biobank.ndph.ox.ac.uk/showcase/refer.cgi?id=664
+# ukbgene rel ukb22219.enc
+# ukbgene imp -c1 -m
 
 ################
 ## analysis ####
 ################
 
 ## Read data ####
+# FD measurements
 dataFD <- data.table::fread(args$pheno, data.table=FALSE,
                             stringsAsFactors=FALSE)
+fd_na <- apply(dataFD[,33:37], 1,  function(x) any(is.na(x)))
+dataFD <- dataFD[!fd_na, ]
+rownames(dataFD) <- dataFD[, 1]
 
+# ukbb phenotype dataset
 ukbb <- ukb_df(fileset="ukb22219", path=args$rawdir)
 saveRDS(ukbb, paste(args$rawdir, "/ukb22219.rds", sep=""))
 
 ukbb_fd <- dplyr::filter(ukbb, eid %in% dataFD$Folder)
 saveRDS(ukbb_fd, paste(args$rawdir, "/ukb22219_fd.rds", sep=""))
 
-# sample order in genotype file
+# ukbb genotype samples via ukbgene imp -c1 -m
 samples <- data.table::fread(args$samples, data.table=FALSE, skip=2,
                              stringsAsFactors=FALSE,
                              col.names=c("ID_1", "ID_2", "missing", "sex"))
 
+# ukbb relatedness file via ukbgene rel
 relatedness <- data.table::fread(args$relatedness, data.table=FALSE,
                              stringsAsFactors=FALSE)
+# European ancestry via ancestry.smk
 europeans <- data.table::fread(args$europeans, data.table=FALSE,
                             stringsAsFactors=FALSE, col.names="ID")
 
-## FD measurements of interest for association mapping ####
-fd_na <- apply(dataFD[,33:37], 1,  function(x) any(is.na(x)))
-dataFD <- dataFD[!fd_na, ]
-rownames(dataFD) <- dataFD[, 1]
+# Principal components of European ancestry via ancestry.smk
+pcs <- data.table::fread(args$pcs, data.table=FALSE, stringsAsFactors=FALSE)
 
+## FD measurements of interest for association mapping ####
 fd_measured <- dataFD[,32:37]
 colnames(fd_measured) <- c("Slices", "globalFD", "meanBasalFD", "meanApicalFD",
     "maxBasalFD", "maxApicalFD")
@@ -109,24 +120,23 @@ colnames(fd_slices)[1] <- "Slice1"
 colnames(fd_slices) <- gsub(" ", "", colnames(fd_slices))
 fd_slices <- fd_slices[!apply(fd_slices, 2, function(x) all(is.na(x)))]
 
-## grep columns with covariates sex, age, bmi and weight ####
+# grep columns with covariates sex, age, bmi and weight
 sex <- which(grepl("genetic_sex_", colnames(ukbb_fd)))
 age <- which(grepl("age_when_attended_assessment_centre",
     colnames(ukbb_fd)))
 bmi <- which(grepl("bmi_", colnames(ukbb_fd)))
 weight <- which(grepl("^weight_", colnames(ukbb_fd)))
 
-
 # manually check which columns are relevant and most complete
-sexNA <- is.na(ukbb_fd[,sex]) # length(which(sexNA)) -> 467
-allSex <- ukbb_fd[!sexNA,]
+sexNA <- is.na(ukbb_fd[,sex]) # length(which(sexNA)) -> 461
+allSex <- ukbb_fd[!sexNA,] #  nrow(allSex) -> 19235
 
 ageNA <- apply(ukbb_fd[!sexNA, age], 2, function(x)
-    length(which(is.na(x)))) #0,14343,1171
+    length(which(is.na(x)))) # 0,14298,1167
 weightNA <- apply(ukbb_fd[!sexNA, weight], 2, function(x)
-    length(which(is.na(x)))) #28,14303,441
+    length(which(is.na(x)))) # 28,14258,440
 bmiNA <- apply(ukbb_fd[!sexNA, bmi] , 2, function(x)
-    length(which(is.na(x)))) #32,14304,480
+    length(which(is.na(x)))) # 31,14259,479
 
 relevant <- c(sex, age[which.min(ageNA)], weight[which.min(weightNA)],
     bmi[which.min(bmiNA)])
@@ -141,11 +151,19 @@ rownames(covs_noNA) <- allSex$eid[index_noNA]
 covs_noNA$height_f21002_comp <-
     sqrt(covs_noNA$weight_f21002_0_0/covs_noNA$body_mass_index_bmi_f21001_0_0)
 
-## Merge FD measures and covariates to order by samples and save ####
-fd_all <- merge(fd_measured, covs_noNA[,-4], by=0)
+## Merge FD measures and covariates to order by samples ####
+fd_all <- merge(fd_measured, covs_noNA, by=0)
 fd_all$genetic_sex_f22001_0_0 <- as.factor(fd_all$genetic_sex_f22001_0_0)
-fd_pheno <- fd_all[,2:6]
-fd_cov <- fd_all[,7:10]
+fd_pheno <- fd_all[,3:7]
+fd_cov <- fd_all[,8:12]
+
+## Test association of covariates ####
+covs_all <- merge(covs_noNA, pcs[,-1], by.x=0, by.y=1)
+lm_fd_covs <- sapply(1:5, function(x) {
+    tmp <- lm(y ~ ., data=data.frame(y=fd_pheno[,x], fd_cov))
+    summary(tmp)$coefficient[,4]
+})
+colnames(lm_fd_covs) <- colnames(fd_pheno)
 
 write.table(fd_pheno, paste(args$outdir, "/FD_phenotypes.csv", sep=""),
             sep=",", row.names=fd_all$Row.names, col.names=NA, quote=FALSE)
@@ -154,14 +172,17 @@ write.table(fd_cov, paste(args$outdir, "/FD_covariates.csv", sep=""),
 
 
 ## Plot distribution of covariates ####
-p <- ggpairs(as.data.frame(fd_all[,-c(1,4,5)]),
+p <- ggpairs(as.data.frame(fd_all[,c(2,3,6,7,8,9,12,10,11)]),
              upper = list(continuous = wrap("density", col="#b30000",
                                             size=0.1)),
              diag = list(continuous = wrap("densityDiag", size=0.4)),
              lower = list(continuous = wrap("smooth", alpha=0.5,size=0.1,
-                                            pch=20)),
-             columnLabels = c(colnames(fd_measured)[-c(3,4)], "Sex [f/m]",
-                              "Age [years]", "Height [cm]", "Weight [kg]"),
+                                            pch=20),
+                          combo = wrap("facethist")),
+             columnLabels = c(colnames(fd_measured)[-c(3,4)], "Sex~(f/m)",
+                              "Age~(years)", "Height~(m)", "Weight~(kg)",
+                              "BMI~(kg/m^2)"),
+             labeller = 'label_parsed',
              axisLabels = "show") +
     theme_bw() +
     theme(panel.grid = element_blank(),
@@ -169,8 +190,10 @@ p <- ggpairs(as.data.frame(fd_all[,-c(1,4,5)]),
           axis.text.x = element_text(angle=90),
           strip.text = element_text(size=8),
           strip.background = element_rect(fill="white", colour=NA))
-ggsave(plot=p, file=paste(args$outdir, "/pairs_fdcovariates.pdf", sep=""),
-       height=6.5, width=6.5, units="in")
+p[6,5] <- p[6,5] + geom_histogram(binwidth=3)
+ggsave(plot=p, file=paste(args$outdir, "/pairs_fdcovariates.png", sep=""),
+       height=10, width=10, units="in")
+
 
 ## Plot distribution of fd measures ####
 # manually look at non-numerics in FD slices
@@ -182,7 +205,7 @@ fd_slices <- as.data.frame(apply(fd_slices, 2, function(x) {
     return(as.numeric(x))
 }))
 
-# plot distirbution of nas
+# plot distribution of nas
 all_nas <- apply(fd_slices, 2, function(x) length(which(is.na(x))))
 nans <- apply(fd_slices, 2, function(x) length(which(is.nan(x))))
 nas <- all_nas-nans
@@ -220,17 +243,35 @@ related2filter <- c(related_samples$related2filter,
 fd_norelated <- fd_all[!fd_all$Row.names %in% related2filter,]
 fd_europeans_norelated <- fd_norelated[fd_norelated$Row.names %in% europeans$ID,]
 
-write.table(fd_europeans_norelated[,3:7],
+## Test association with all covs and principal components ####
+fd_europeans_norelated <- merge(fd_europeans_norelated, pcs[,-1], by=1)
+lm_fd_pcs <- sapply(3:7, function(x) {
+    tmp <- lm(y ~ ., data=data.frame(y=fd_europeans_norelated[,x],
+                                     fd_europeans_norelated[,8:62]))
+    summary(tmp)$coefficient[,4]
+})
+colnames(lm_fd_pcs) <- colnames(fd_europeans_norelated)[3:7]
+rownames(lm_fd_pcs) <- c("intercept", colnames(fd_europeans_norelated)[8:62])
+sigAssociations <- which(apply(lm_fd_pcs, 1, function(x) any(x < 0.01)))
+
+fd_europeans_norelated <- fd_europeans_norelated[,c(1,3:7,
+    which(colnames(fd_europeans_norelated) %in% names(sigAssociations)))]
+
+write.table(lm_fd_pcs[sigAssociations,],
+            paste(args$outdir, "/FD_cov_associations.csv", sep=""), sep=",",
+            row.names=TRUE, col.names=NA, quote=FALSE)
+
+write.table(fd_europeans_norelated[,2:6],
             paste(args$outdir, "/FD_phenotypes_EUnorel.csv", sep=""), sep=",",
             row.names=fd_europeans_norelated$Row.names, col.names=NA,
             quote=FALSE)
-write.table(fd_europeans_norelated[,8:11],
+write.table(fd_europeans_norelated[,7:17],
             paste(args$outdir, "/FD_covariates_EUnorel.csv", sep=""), sep=",",
             row.names=fd_europeans_norelated$Row.names, col.names=NA,
             quote=FALSE)
 
 ## Format phenotypes and covariates for bgenie ####
-# Everything else has to be matched to order in sample file;excluded and missing
+# Everything has to be matched to order in sample file; excluded and missing
 # samples will have to be included in phenotypes and covariates and values set
 # to -999
 
@@ -239,10 +280,10 @@ fd_bgenie <- fd_bgenie[match(samples$ID_1, fd_bgenie$ID_1),]
 fd_bgenie$genetic_sex_f22001_0_0 <- as.numeric(fd_bgenie$genetic_sex_f22001_0_0)
 fd_bgenie[is.na(fd_bgenie)] <- -999
 
-write.table(fd_bgenie[,6:10],
+write.table(fd_bgenie[,5:10],
             paste(args$outdir, "/FD_phenotypes_bgenie.csv", sep=""), sep=" ",
             row.names=FALSE, col.names=TRUE, quote=FALSE)
-write.table(fd_bgenie[,11:14],
+write.table(fd_bgenie[,10:20],
             paste(args$outdir, "/FD_covariates_bgenie.csv", sep=""), sep=" ",
             row.names=FALSE, col.names=TRUE, quote=FALSE)
 
