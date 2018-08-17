@@ -11,21 +11,36 @@ Left ventricular trabeculation phenotypes were automatically extracted via fract
 from cardiac magnetic resonance images ([FD estimation](https://github.com/UK-Digital-Heart-Project/AutoFD)).
 This repository contains the work-flows for phenotype and genotype processing and the genetic analysis. 
 
-## preparePheno
-Processing of ukbb covariates and ukb-derived FD phenotypes obtained via ([FD estimation](https://github.com/UK-Digital-Heart-Project/AutoFD)).
+## Software requirements
+Data processing and analysis is embedded into different [snakemake](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) (v5.1.5) workflows.
+[genotypes.smk](https://github.com/HannahVMeyer/ukbb-fd/genotypes.smk) and [ancestry.smk](https://github.com/HannahVMeyer/ukbb-fd/ancestry.smk) require
+plink [v1.9](https://www.cog-genomics.org/plink2) and [v2](https://www.cog-genomics.org/plink/2.0/) as well as [flashpca](https://github.com/gabraham/flashpca).
+Data visualisation and processing is done in [R](https://www.r-project.org/), version 3.4.1.
+Genetic association testing requires [Bgenie](https://jmarchini.org/bgenie/) v1.3.
 
 
-## conversion.smk and config_conversion.yaml
+## genotypes.smk
 Work-flow for converting biobank genotype data in .bgen format to plink format, minor-allele frequency and ld-filtering
 of variants. Application-specific (18545) filtering of samples from 500k genotypes in first step to speed up computation.
-Parameters for filtering, file names and target directories are supplied in config_conversion.yaml.
+Parameters for filtering, file names and target directories are supplied in config/config_conversion.yaml.
 
-## ancestry.smk and config_ancestry.yaml
-Work-flow for estimating kinship and ancestry of sample cohort. Takes ld-pruned, maf-filtered files from conversion.smk.
+## ancestry.smk
+Work-flow for estimating kinship and ancestry of sample cohort. Takes ld-pruned, maf-filtered files from [genotypes.smk](https://github.com/HannahVMeyer/ukbb-fd/genotypes.smk).
 For ancestry estimation, cohort genotypes are fused with HapMap genotypes of known ancestry (processed as described in [HapMap processing](https://www.ncbi.nlm.nih.gov/pubmed/21085122)),
 principal components computed and cohort samples within 1.5 times the maximum Euclidean distance of European Hapmap samples
-to the center of the European Hapmap samples are selected as European via [selectPCA.R](https://github.com/HannahVMeyer/ukbb-fd/blob/master/selectPCA.R).
-Parameters for filtering, file names and target directories are supplied in config_ancestry.yaml.
+to the centre of the European Hapmap samples are selected as European via [selectPCA.R](https://github.com/HannahVMeyer/ukbb-fd/ancestry/selectPCA.R).
+Parameters for filtering, file names and target directories are supplied in config/config_ancestry.yaml. Scripts called by [ancestry.smk](https://github.com/HannahVMeyer/ukbb-fd/ancestry.smk) can be found
+in [ancestry](https://github.com/HannahVMeyer/ukbb-fd/ancestry).
 
-## cluster.json
-Config file for snakemake job submission to lsf cluster system with conversion.smk and ancestry.smk rule-specific requirements.
+## phenotypes.smk
+Processing of ukbb covariates and ukbb-derived FD phenotypes obtained via ([FD estimation](https://github.com/UK-Digital-Heart-Project/AutoFD)).
+UKBB covariates are downloaded, decrypted and converted to R-readable formats via ukbtools. [preparePheno.r](https://github.com/HannahVMeyer/ukbb-fd/phenotypes/preparePheno.r)
+uses ancestry and relatedness information generated via [ancestry.smk](https://github.com/HannahVMeyer/ukbb-fd/ancestry.smk) and filters FD phenotypes and covariates for unrelated samples of European ancestry. It tests covariates
+for association with the FD phenotypes and saves relevant data in bgenie format for associating testing via [association.smk](https://github.com/HannahVMeyer/ukbb-fd/association.smk).
+Scripts called by [phenotypes.smk](https://github.com/HannahVMeyer/ukbb-fd/phenotypes.smk) can be found in [phenotypes](https://github.com/HannahVMeyer/ukbb-fd/phenotypes).
+
+## association.smk
+Scripts called by [association.smk](https://github.com/HannahVMeyer/ukbb-fd/association) can be found in [association](https://github.com/HannahVMeyer/ukbb-fd/association).
+
+## config
+Config files for snakemake files job and config files for job submission to lsf cluster system with rule-specific requirements ([cluster.json](https://github.com/HannahVMeyer/ukbb-fd/config/cluster.json)).
