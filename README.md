@@ -19,12 +19,13 @@ Data visualisation and processing is done in [R](https://www.r-project.org/), ve
 Genetic association testing requires [Bgenie](https://jmarchini.org/bgenie/) v1.3.
 
 
-## genotypes.smk
+## Analysis steps
+### 1. genotypes.smk
 Work-flow for converting biobank genotype data in .bgen format to plink format, minor-allele frequency and ld-filtering
 of variants. Application-specific (18545) filtering of samples from 500k genotypes in first step to speed up computation.
 Parameters for filtering, file names and target directories are supplied in config/config_conversion.yaml.
 
-## ancestry.smk
+### 2. ancestry.smk
 Work-flow for estimating kinship and ancestry of sample cohort. Takes ld-pruned, maf-filtered files from [genotypes.smk](https://github.com/HannahVMeyer/ukbb-fd/genotypes.smk).
 For ancestry estimation, cohort genotypes are fused with HapMap genotypes of known ancestry (processed as described in [HapMap processing](https://www.ncbi.nlm.nih.gov/pubmed/21085122)),
 principal components computed and cohort samples within 1.5 times the maximum Euclidean distance of European Hapmap samples
@@ -32,14 +33,14 @@ to the centre of the European Hapmap samples are selected as European via [selec
 Parameters for filtering, file names and target directories are supplied in config/config_ancestry.yaml. Scripts called by [ancestry.smk](https://github.com/HannahVMeyer/ukbb-fd/ancestry.smk) can be found
 in [ancestry](https://github.com/HannahVMeyer/ukbb-fd/ancestry).
 
-## phenotypes.smk
-Processing of ukbb covariates and ukbb-derived FD phenotypes obtained via ([FD estimation](https://github.com/UK-Digital-Heart-Project/AutoFD)).
-UKBB covariates are downloaded, decrypted and converted to R-readable formats via ukbtools. [preparePheno.r](https://github.com/HannahVMeyer/ukbb-fd/phenotypes/preparePheno.r)
-uses ancestry and relatedness information generated via [ancestry.smk](https://github.com/HannahVMeyer/ukbb-fd/ancestry.smk) and filters FD phenotypes and covariates for unrelated samples of European ancestry. It tests covariates
+### 3. phenotypes.smk
+Work-flow for processing ukbb covariates and ukbb-derived FD phenotypes obtained via [FD estimation](https://github.com/UK-Digital-Heart-Project/AutoFD).
+UKBB covariates are downloaded, decrypted and converted to R-readable formats via ukbtools. It uses ancestry and relatedness information generated via [ancestry.smk](https://github.com/HannahVMeyer/ukbb-fd/ancestry.smk) 
+and filters FD phenotypes and covariates for unrelated samples of European ancestry (via [preparePheno.r](https://github.com/HannahVMeyer/ukbb-fd/phenotypes/preparePheno.r). It tests covariates
 for association with the FD phenotypes and saves relevant data in bgenie format for associating testing via [association.smk](https://github.com/HannahVMeyer/ukbb-fd/association.smk).
 Scripts called by [phenotypes.smk](https://github.com/HannahVMeyer/ukbb-fd/phenotypes.smk) can be found in [phenotypes](https://github.com/HannahVMeyer/ukbb-fd/phenotypes).
 
-## association.smk
+### 4. association.smk
 Scripts called by [association.smk](https://github.com/HannahVMeyer/ukbb-fd/association) can be found in [association](https://github.com/HannahVMeyer/ukbb-fd/association).
 
 ## config
