@@ -2,7 +2,7 @@
 # Tim Dawes May 2018
 
 fracDecimate<- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL,
-    interactive=FALSE) {
+    id.col.name="Folder", interactive=FALSE) {
     # Install stats package if not currently installed and then load
     if("stats" %in% rownames(installed.packages()) == FALSE) {
         install.packages("stats")
@@ -34,11 +34,11 @@ fracDecimate<- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL,
     }
     # Read in the FD data and pull out the columns to use for interpolation
     if (is.null(data)) {
-        data <- read.csv(file=filename, fill=TRUE)
+        data <- read.csv(file=filename, fill=TRUE, na.strings=c("NaN", "NA"))
     }
     #FR.all<- data[,10:29]
     FR.all <- data[, grepl("Slice \\d{1,2}", colnames(data))]
-    rownames(FR.all) <- data$Folder
+    rownames(FR.all) <- data[,colnames(data) == id.col.name]
 
     # Work out how many viable slices are present in each subject
     no.of.values <- colSums(apply(FR.all,1, is.this.an.FD.value))
@@ -74,6 +74,8 @@ fracDecimate<- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL,
             return(tmp$y)
        }
     }
+    cat(" Interpolate slices to ", interpNoSlices, "for each of the",
+        nrow(FR.all), "subjects\n")
     FRi <- t(apply(FR.all, 1, interpolateSlices, interpNoSlices=interpNoSlices))
     dimnames(FRi) <- list(rownames(FR.all), paste("Slice_", 1:10, sep=""))
 
