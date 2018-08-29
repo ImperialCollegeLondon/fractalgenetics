@@ -13,7 +13,7 @@ fracDecimate<- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL,
     is.this.an.FD.value <- function(vec) {
         nonFD <- c("NA","NaN","Meagre blood pool", "Sparse myocardium",
             "FD measure failed")
-        sapply(vec, function(x) !x %in% nonFD)
+        !(is.na(vec) | vec %in% nonFD)
     }
 
     # Error handling
@@ -26,7 +26,7 @@ fracDecimate<- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL,
     if (cut.off < 1 | cut.off > 20) {
         stop("\n Threshold for discarding subjects must be 1-20")
     }
-    if (!substr(filename, nchar(filename) - 3, nchar(filename)) == ".csv") {
+    if (!is.null(filename) && !substr(filename, nchar(filename) - 3, nchar(filename)) == ".csv") {
         stop("\n File must be a .csv file")
     }
     if (is.null(data) && is.null(filename)) {
@@ -37,15 +37,12 @@ fracDecimate<- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL,
         data <- read.csv(file=filename, fill=TRUE)
     }
     #FR.all<- data[,10:29]
-    FR.all <- data[, grepl("Slice \\d{1,2}", colnames(data)]
+    FR.all <- data[, grepl("Slice \\d{1,2}", colnames(data))]
     rownames(FR.all) <- data$Folder
 
-    # Work out how many viable slices are present in each subject (takes about a minute to run)
-    no.of.values <- rep(0, nrow(FR.all))
-    for (i in 1:nrow(FR.all)) {
-        if ((i/1000) == round(i/1000)) cat(",",i,sep="")
-        no.of.values[i] <- sum(is.this.an.FD.value(FR.all[i,]))
-    }
+    # Work out how many viable slices are present in each subject
+    no.of.values <- colSums(apply(FR.all,1, is.this.an.FD.value))
+
     if (interactive) {
         hist(no.of.values, col="blue", xlab="No.of.slices/subject",
              ylab="Frequency", main="Histogram of number of slices per subject")
@@ -57,7 +54,7 @@ fracDecimate<- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL,
     exclude <- round(100 * length(which(no.of.values < cut.off))/nrow(FR.all),1)
     cat("\n \n Excluding ", exclude, "% subjects because they have <", cut.off,
         " slices available. \n \n", sep="")
-    FR.all<- FR.all[which(no.of.values >= cut.off),]
+    FR.all <- FR.all[which(no.of.values >= cut.off),]
 
     # Set up the output matrix
     FRi <- matrix(0, nrow=nrow(FR.all), ncol=interpNoSlices,
@@ -65,33 +62,22 @@ fracDecimate<- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL,
                   paste("Slice_", 1:10, sep="")))
     if (interactive) head(FRi)
 
-    # Loop over each subject and interpolate to a set number of slices
-    # WARNING: loop takes about 55 seconds per 1,000 subjects
-
-    for (i in 1:nrow(FR.all)) {
-        if (round(i/100) == (i/100)) cat(",",i, sep="")
-        values <- is.this.an.FD.value(FR.all[i,])
-        xs.orig <- which(values==TRUE)
-        ys.orig <- as.numeric(as.character(unlist(FR.all[i, xs.orig])))
-
-        # Fit the data to a template of 10 ventricular levels
+    # interpolate to a set number of slices per subject
+    interpolateSlices <- function(slices, interpNoSlices) {
+        xs.orig <- which(is.this.an.FD.value(slices))
+        ys.orig <- as.numeric(as.character(slices[xs.orig]))
         tmp <- ksmooth(xs.orig, ys.orig, kernel="normal", bandwidth=1.5,
                        range.x=range(xs.orig), n.points=interpNoSlices)
-        if(sum(is.na(tmp$y))==0) {
-            FRi[i,] <- tmp$y
+        if(any(is.na(tmp$y))) {
+            return(rep(NA, interpNoSlices))
         } else {
-            FRi[i,]<- NA
-        }
-
-        # Comment this bit in to view a single iteration and how it was dealt with (will slow runtime significantly if left uncommented during loop)
-        #par(mfrow=c(2,1))
-        #r<- range(na.omit(ys.orig)); a<- "Longitudinal position in RV"; b<- "Fractal dimension"
-        #r2<- range(xs.orig)
-        #plot(xs.orig, ys.orig, lwd=4, col="red", type="b", ylim=r, xlim=r2, xlab=a, ylab=b, main="Original Data")
-        #plot(tmp$x, tmp$y, col="blue", type="b", lwd=4, xlim=r2, ylim=r, xlab=a, ylab=b, main="Interpolated Ten-Slice Model Data")
+            return(tmp$y)
+       }
     }
-    # Remove any subjects in which there were no points within the kernel width -> Nadaraya-Watson estimator to become 0/0 = NaN
-    FRi <- FRi[which(is.na(FRi[,1]) == FALSE),]
+    FRi <- t(apply(FR.all, 1, interpolateSlices, interpNoSlices=interpNoSlices))
+    dimnames(FRi) <- list(rownames(FR.all), paste("Slice_", 1:10, sep=""))
 
+    # Remove any subjects in which there were no points within the kernel width -> Nadaraya-Watson estimator to become 0/0 = NaN
+    FRi <- FRi[!is.na(FRi[,1]),]
     return(FRi)
 }
