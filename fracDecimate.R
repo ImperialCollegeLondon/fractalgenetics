@@ -1,9 +1,23 @@
 # Code to interpolate missing values and fit FDs to a set number of slices
 # Tim Dawes May 2018
 
-fracDecimate<- function (interpNoSlices, cut.off, filename) {
+fracDecimate<- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL,
+    interactive=FALSE) {
+    # Install stats package if not currently installed and then load
+    if("stats" %in% rownames(installed.packages()) == FALSE) {
+        install.packages("stats")
+    }
+    library(stats)
+
+    # private function
+    is.this.an.FD.value <- function(vec) {
+        nonFD <- c("NA","NaN","Meagre blood pool", "Sparse myocardium",
+            "FD measure failed")
+        sapply(vec, function(x) !x %in% nonFD)
+    }
+
     # Error handling
-    if ((interpNoSlices>3 && interpNoSlices<50) == FALSE) {
+    if ((interpNoSlices > 3 && interpNoSlices < 50) == FALSE) {
         stop("\n Interpolation template should be between 3 and 50 slices")
     }
     if (!is.numeric(interpNoSlices)) {
@@ -15,24 +29,16 @@ fracDecimate<- function (interpNoSlices, cut.off, filename) {
     if (!substr(filename, nchar(filename) - 3, nchar(filename)) == ".csv") {
         stop("\n File must be a .csv file")
     }
-
-    # Install stats package if not currently installed and then load
-    if("stats" %in% rownames(installed.packages()) == FALSE) {
-        install.packages("stats")
+    if (is.null(data) && is.null(filename)) {
+        stop("Either data or filename must be provided")
     }
-    library(stats)
-    is.this.an.FD.value <- function(vec) {
-        nonFD <- c("NA","NaN","Meagre blood pool", "Sparse myocardium",
-            "FD measure failed")
-        sapply(vec, function(x) !x %in% nonFD)
+    # Read in the FD data and pull out the columns to use for interpolation
+    if (is.null(data)) {
+        data <- read.csv(file=filename, fill=TRUE)
     }
-
-    # Read in the FD data
-    d <- read.csv(file=filename, fill=TRUE)
-
-    # Pull out the columns to use for interpolation
-    FR.all<- d[,10:29]
-    rownames(FR.all)<- d$Folder
+    #FR.all<- data[,10:29]
+    FR.all <- data[, grepl("Slice \\d{1,2}", colnames(data)]
+    rownames(FR.all) <- data$Folder
 
     # Work out how many viable slices are present in each subject (takes about a minute to run)
     no.of.values <- rep(0, nrow(FR.all))
@@ -40,9 +46,11 @@ fracDecimate<- function (interpNoSlices, cut.off, filename) {
         if ((i/1000) == round(i/1000)) cat(",",i,sep="")
         no.of.values[i] <- sum(is.this.an.FD.value(FR.all[i,]))
     }
-    hist(no.of.values, col="blue", xlab="No.of.slices/subject",
-         ylab="Frequency", main="Histogram of number of slices per subject")
-    abline(v=cut.off, col="red", lty=2, lwd=4)
+    if (interactive) {
+        hist(no.of.values, col="blue", xlab="No.of.slices/subject",
+             ylab="Frequency", main="Histogram of number of slices per subject")
+        abline(v=cut.off, col="red", lty=2, lwd=4)
+    }
 
     # Remove any subjects with fewer than a set number of FD values available for analysis
     # The threshold for this is set by the variable "cut-off"
@@ -61,10 +69,8 @@ fracDecimate<- function (interpNoSlices, cut.off, filename) {
     # WARNING: loop takes about 55 seconds per 1,000 subjects
 
     for (i in 1:nrow(FR.all)) {
-        if (round(i/100)==(i/100)) cat(",",i, sep="")
-        values<- is.this.an.FD.value(FR.all[i,])
-        o <- which(values==TRUE)
-
+        if (round(i/100) == (i/100)) cat(",",i, sep="")
+        values <- is.this.an.FD.value(FR.all[i,])
         xs.orig <- which(values==TRUE)
         ys.orig <- as.numeric(as.character(unlist(FR.all[i, xs.orig])))
 
@@ -87,7 +93,5 @@ fracDecimate<- function (interpNoSlices, cut.off, filename) {
     # Remove any subjects in which there were no points within the kernel width -> Nadaraya-Watson estimator to become 0/0 = NaN
     FRi <- FRi[which(is.na(FRi[,1]) == FALSE),]
 
-    # Return results as a text file
     return(FRi)
 }
-
