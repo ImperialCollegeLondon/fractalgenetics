@@ -59,14 +59,44 @@
         "output" : "log/{rule}.out",
         "error" : "log/{rule}.err"
     },
-    "bgenie" :
+    "summary_EDV" :
     {
         "memory" : "50000",
         "n" : "8",
         "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
         "queue" : "research-rh7",
         "name" : "{rule}.{wildcards.chr}",
-        "output" : "log/{rule}.out",
-        "error" : "log/{rule}.err"
+        "output" : "log/{rule}.{wildcards.chr}.out",
+        "error" : "log/{rule}.{wildcards.chr}.err"
+    },
+    "slices_EDV" :
+    {
+        "memory" : "50000",
+        "n" : "8",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}.{wildcards.chr}",
+        "output" : "log/{rule}.{wildcards.chr}.out",
+        "error" : "log/{rule}.{wildcards.chr}.err"
+    },
+    "summary" :
+    {
+        "memory" : "50000",
+        "n" : "8",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}.{wildcards.chr}",
+        "output" : "log/{rule}.{wildcards.chr}.out",
+        "error" : "log/{rule}.{wildcards.chr}.err"
+    },
+    "slices" :
+    {
+        "memory" : "50000",
+        "n" : "8",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}.{wildcards.chr}",
+        "output" : "log/{rule}.{wildcards.chr}.out",
+        "error" : "log/{rule}.{wildcards.chr}.err"
     }
 }

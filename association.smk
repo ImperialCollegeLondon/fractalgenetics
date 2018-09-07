@@ -5,8 +5,9 @@ configfile: "config/config_association.yaml"
 
 rule all:
     input:
-        expand("{ukb}/gwas/bgenie_lm_st_chr{chr}.gz",
+        expand("{ukb}/gwas/bgenie_{name}_lm_st_chr{chr}.gz",
             ukb=config["ukbdir"],
+            name=['summary_EDV', 'summary', 'slices_EDV', 'slices'],
             chr=range(1,23))
 
 rule generateSNPfiles:
@@ -17,7 +18,31 @@ rule generateSNPfiles:
     shell:
         "cut -f 2 {input.rsids} > {output}"
 
-rule bgenie:
+rule summary_EDV:
+    input:
+        geno=expand("{geno}/ukb_imp_chr{{chr}}_v3.bgen",
+            geno=config["genodir"]),
+        pheno=expand("{ukb}/phenotypes/FD_phenotypes_bgenie.txt",
+            ukb=config["ukbdir"]),
+        covs=expand("{ukb}/phenotypes/FD_covariates_EDV_bgenie.txt",
+            ukb=config["ukbdir"]),
+        rsids=expand("{ukb}/maf0.001/ukb_imp_chr{{chr}}_v3_maf0.001.rsid",
+                    ukb=config["ukbdir"])
+    params:
+        n=config["n"]
+    output:
+        "{dir}/gwas/bgenie_summary_EDV_lm_st_chr{chr}.gz"
+    shell:
+        "bgenie --bgen {input.geno} \
+            --pheno {input.pheno} \
+            --covar {input.covs} \
+            --include_rsids  {input.rsids} \
+            --pvals --exc_missing_inds \
+            --scale_phenotypes \
+            --thread {params.n} \
+            --out {wildcards.dir}/gwas/bgenie_summary_EDV_lm_st_chr{wildcards.chr}"
+
+rule summary:
     input:
         geno=expand("{geno}/ukb_imp_chr{{chr}}_v3.bgen",
             geno=config["genodir"]),
@@ -30,7 +55,7 @@ rule bgenie:
     params:
         n=config["n"]
     output:
-        "{dir}/gwas/bgenie_lm_st_chr{chr}.gz"
+        "{dir}/gwas/bgenie_summary_lm_st_chr{chr}.gz"
     shell:
         "bgenie --bgen {input.geno} \
             --pheno {input.pheno} \
@@ -39,4 +64,52 @@ rule bgenie:
             --pvals --exc_missing_inds \
             --scale_phenotypes \
             --thread {params.n} \
-            --out {wildcards.dir}/gwas/bgenie_lm_st_chr{wildcards.chr}"
+            --out {wildcards.dir}/gwas/bgenie_summary_lm_st_chr{wildcards.chr}"
+
+rule slices_EDV:
+    input:
+        geno=expand("{geno}/ukb_imp_chr{{chr}}_v3.bgen",
+            geno=config["genodir"]),
+        pheno=expand("{ukb}/phenotypes/FD_slices_bgenie.txt",
+            ukb=config["ukbdir"]),
+        covs=expand("{ukb}/phenotypes/FD_covariates_EDV_bgenie.txt",
+            ukb=config["ukbdir"]),
+        rsids=expand("{ukb}/maf0.001/ukb_imp_chr{{chr}}_v3_maf0.001.rsid",
+                    ukb=config["ukbdir"])
+    params:
+        n=config["n"]
+    output:
+        "{dir}/gwas/bgenie_slices_EDV_lm_st_chr{chr}.gz"
+    shell:
+        "bgenie --bgen {input.geno} \
+            --pheno {input.pheno} \
+            --covar {input.covs} \
+            --include_rsids  {input.rsids} \
+            --pvals --exc_missing_inds \
+            --scale_phenotypes \
+            --thread {params.n} \
+            --out {wildcards.dir}/gwas/bgenie_slices_EDV_lm_st_chr{wildcards.chr}"
+
+rule slices:
+    input:
+        geno=expand("{geno}/ukb_imp_chr{{chr}}_v3.bgen",
+            geno=config["genodir"]),
+        pheno=expand("{ukb}/phenotypes/FD_phenotypes_bgenie.txt",
+            ukb=config["ukbdir"]),
+        covs=expand("{ukb}/phenotypes/FD_covariates_bgenie.txt",
+            ukb=config["ukbdir"]),
+        rsids=expand("{ukb}/maf0.001/ukb_imp_chr{{chr}}_v3_maf0.001.rsid",
+                    ukb=config["ukbdir"])
+    params:
+        n=config["n"]
+    output:
+        "{dir}/gwas/bgenie_slices_lm_st_chr{chr}.gz"
+    shell:
+        "bgenie --bgen {input.geno} \
+            --pheno {input.pheno} \
+            --covar {input.covs} \
+            --include_rsids  {input.rsids} \
+            --pvals --exc_missing_inds \
+            --scale_phenotypes \
+            --thread {params.n} \
+            --out {wildcards.dir}/gwas/bgenie_slices_lm_st_chr{wildcards.chr}"
