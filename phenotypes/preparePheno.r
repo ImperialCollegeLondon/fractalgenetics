@@ -318,23 +318,23 @@ fd_bgenie[is.na(fd_bgenie)] <- -999
 
 write.table(dplyr::select(fd_bgenie, globalFD, meanBasalFD,
                           meanApicalFD, maxBasalFD, maxApicalFD),
-            paste(args$outdir, "/FD_phenotypes_bgenie.csv", sep=""), sep=" ",
+            paste(args$outdir, "/FD_phenotypes_bgenie.txt", sep=""), sep=" ",
             row.names=FALSE, col.names=TRUE, quote=FALSE)
 write.table(dplyr::select(fd_bgenie, Slice_1, Slice_2, Slice_3, Slice_4,
                           Slice_5, Slice_6, Slice_7, Slice_8, Slice_9,
                           Slice_10),
-            paste(args$outdir, "/FD_slices_bgenie.csv", sep=""), sep=" ",
+            paste(args$outdir, "/FD_slices_bgenie.txt", sep=""), sep=" ",
             row.names=FALSE, col.names=TRUE, quote=FALSE)
 write.table(dplyr::select(fd_bgenie, LVEDV, genetic_sex_f22001_0_0,
                           age_when_attended_assessment_centre_f21003_0_0,
                           weight_f21002_0_0, body_mass_index_bmi_f21001_0_0,
                           height_f21002_comp, PC1, PC2, PC7, PC14, PC24),
-            paste(args$outdir, "/FD_covariates_EDV_bgenie.csv", sep=""),
+            paste(args$outdir, "/FD_covariates_EDV_bgenie.txt", sep=""),
             sep=" ", row.names=FALSE, col.names=TRUE, quote=FALSE)
 write.table(dplyr::select(fd_bgenie, genetic_sex_f22001_0_0,
                           age_when_attended_assessment_centre_f21003_0_0,
                           weight_f21002_0_0, body_mass_index_bmi_f21001_0_0,
                           height_f21002_comp, PC1, PC2, PC7, PC14, PC24),
-            paste(args$outdir, "/FD_covariates_bgenie.csv", sep=""), sep=" ",
+            paste(args$outdir, "/FD_covariates_bgenie.txt", sep=""), sep=" ",
             row.names=FALSE, col.names=TRUE, quote=FALSE)
 
