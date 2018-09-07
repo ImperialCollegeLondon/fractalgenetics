@@ -45,7 +45,7 @@ fracDecimate <- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL
             stringsAsFactors=FALSE)
     }
     #FR.all<- data[,10:29]
-    FR.all <- data[, grepl("Slice[\\.\\d]{1,2}$", colnames(data), perl=TRUE)]
+    FR.all <- data[, grepl("Slice[ \\.\\d]{1,2}$", colnames(data), perl=TRUE)]
     rownames(FR.all) <- data[,colnames(data) == id.col.name]
 
     # Work out how many viable slices are present in each subject
