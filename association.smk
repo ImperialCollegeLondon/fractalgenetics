@@ -5,10 +5,9 @@ configfile: "config/config_association.yaml"
 
 rule all:
     input:
-        expand("{ukb}/gwas/bgenie_{name}_lm_st_chr{chr}.gz",
+        expand("{ukb}/gwas/bgenie_{name}_lm_pseudomt_qqplot.pdf",
             ukb=config["ukbdir"],
-            name=['summary_EDV', 'summary', 'slices_EDV', 'slices'],
-            chr=range(1,23))
+            name=['summary_EDV', 'summary', 'slices_EDV', 'slices'])
 
 rule generateSNPfiles:
     input:
@@ -113,3 +112,16 @@ rule slices:
             --scale_phenotypes \
             --thread {params.n} \
             --out {wildcards.dir}/gwas/bgenie_slices_lm_st_chr{wildcards.chr}"
+
+rule summaryResults:
+    input:
+        "{dir}/phenotypes/FD_phenotypes_EUnorel.csv"
+    output:
+        "{dir}/gwas/bgenie_{name}_lm_pseudomt_qqplot.pdf",
+        "{dir}/gwas/bgenie_{name}_lm_pseudomt_manhattanplot.pdf"
+    shell:
+        "Rscript association/association_results.R \
+            --pheno {input} \
+            --name {wildcards.name} \
+            --directory {wildcards.dir}/gwas \
+            --showProgress "
