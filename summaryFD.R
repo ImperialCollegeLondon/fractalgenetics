@@ -15,6 +15,7 @@
 summaryStatistics <- function(data, discard=FALSE,
                       NaN.val=c("Sparse myocardium", "Meagre blood pool",
                                 "FD measure failed")) {
+    data <- as.matrix(data)
     # index of last non-NA value
     n <- which(!is.na(data))[length(which(!is.na(data)))]
     q <- floor(n/2)
@@ -46,12 +47,16 @@ summaryStatistics <- function(data, discard=FALSE,
     BasalFD  <- data[LB:UB]
     ApicalFD <- data[LA:UA]
 
+    MeanGlobalFD <- ifelse(all(is.na(GlobalFD)), NA, mean(GlobalFD, na.rm=TRUE))
+    MeanApicalFD <- ifelse(all(is.na(ApicalFD)), NA, mean(ApicalFD, na.rm=TRUE))
+    MaxApicalFD <- ifelse(all(is.na(ApicalFD)), NA, max(ApicalFD, na.rm=TRUE))
+    MeanBasalFD <- ifelse(all(is.na(BasalFD)), NA, mean(BasalFD, na.rm=TRUE))
+    MaxBasalFD <- ifelse(all(is.na(BasalFD)), NA, max(BasalFD, na.rm=TRUE))
+
     # Calculate the statistics
-    Statistics <- c(SlicesUsed=SlicesUsed,
-                    MeanGlobalFD=mean(GlobalFD, na.rm=TRUE),
-                    MeanApicalFD=mean(ApicalFD, na.rm=TRUE),
-                    MaxApicalFD=max(ApicalFD, na.rm=TRUE),
-                    MeanBasalFD=mean(BasalFD, na.rm=TRUE),
-                    MaxBasalFD=max(BasalFD, na.rm=TRUE))
+    Statistics <- c(SlicesUsed=SlicesUsed, MeanGlobalFD=MeanGlobalFD,
+                    MeanApicalFD=MeanApicalFD, MaxApicalFD=MaxApicalFD,
+                    MeanBasalFD=MeanBasalFD, MaxBasalFD=MaxBasalFD)
+
     return(Statistics)
 }
