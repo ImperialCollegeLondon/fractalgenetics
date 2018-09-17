@@ -28,12 +28,14 @@ fracDecimate <- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL
         stop("\n Interpolation template should be between 3 and 50 slices")
     }
     if (!is.numeric(interpNoSlices)) {
-        stop("\n First parameter must be the number of slices to which the data are interpolated")
+        stop("\n Number of slices to which the data are interpolated is
+             not numeric")
     }
     if (cut.off < 1 | cut.off > 20) {
         stop("\n Threshold for discarding subjects must be 1-20")
     }
-    if (!is.null(filename) && !substr(filename, nchar(filename) - 3, nchar(filename)) == ".csv") {
+    if (!is.null(filename) && !substr(filename, nchar(filename) - 3,
+                                      nchar(filename)) == ".csv") {
         stop("\n File must be a .csv file")
     }
     if (is.null(data) && is.null(filename)) {
@@ -57,8 +59,8 @@ fracDecimate <- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL
         abline(v=cut.off, col="red", lty=2, lwd=4)
     }
 
-    # Remove any subjects with fewer than a set number of FD values available for analysis
-    # The threshold for this is set by the variable "cut-off"
+    # Remove any subjects with fewer than a set number of FD values available
+    # for analysis. The threshold for this is set by the variable "cut-off"
     exclude <- round(100 * length(which(no.of.values < cut.off))/nrow(FR.all),1)
     if (verbose) {
         message(" Excluding ", exclude, "% subjects because they have <",
@@ -72,9 +74,11 @@ fracDecimate <- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL
             nrow(FR.all), " subjects\n")
     }
     FRi <- t(apply(FR.all, 1, interpolateSlices, interpNoSlices=interpNoSlices))
-    dimnames(FRi) <- list(rownames(FR.all), paste("Slice_", 1:10, sep=""))
+    dimnames(FRi) <- list(rownames(FR.all), paste("Slice_", 1:interpNoSlices,
+                                                  sep=""))
 
-    # Remove any subjects in which there were no points within the kernel width -> Nadaraya-Watson estimator to become 0/0 = NaN
+    # Remove any subjects in which there were no points within the kernel width
+    # -> Nadaraya-Watson estimator to become 0/0 = NaN
     FRi <- FRi[!is.na(FRi[,1]),]
     return(FRi)
 }
