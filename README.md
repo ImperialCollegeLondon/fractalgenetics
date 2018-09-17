@@ -10,7 +10,7 @@ R code for post-processing of FD values output by
     function
     [FDstatististics](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/pft_JC_FDStatistics.m).
     The function has been tested for equivalent output in
-    [tests](https://github.com/UK-Digital-Heart-Project/AutoFD_interpolation/tests).
+    [tests](https://github.com/UK-Digital-Heart-Project/AutoFD_interpolation/tree/master/tests).
 
 ## Installation
  fracDecimate.R and summaryFD.R can simply be sourced to access the relevant
@@ -24,30 +24,30 @@ the function.
 
 ## Running the code
 ### fracDecimate
-output <- fracDecimate(interpNoSlices, cut.off, data, filename, id.col.name,
-   interactive, verbose) [Enter], where:
-
-    interpNoSlices = A number between 3 and 50 indicating the number of slices
+    output <- fracDecimate(interpNoSlices, cut.off, data, filename, id.col.name,
+    interactive, verbose) [Enter]
+with:
+interpNoSlices = A number between 3 and 50 indicating the number of slices
     you want the data interpolated to (default: 10)
 
-    cut.off = A number between 1 and 20 indicating the minimum number of
+cut.off = A number between 1 and 20 indicating the minimum number of
     datapoints per patient for that patient to be included in the analysis
     (default: 3)
 
-    filename = The filename of the FD data exported from AutoFD (default: FD.csv)
+filename = The filename of the FD data exported from AutoFD (default: FD.csv)
     or
-    data = [N x MaxNrSlices] data matrix with FD measurements per slice for all
+data = [N x MaxNrSlices] data matrix with FD measurements per slice for all
     MaxNrSlices across N individuals. Slice columns will be
     automatically extracted and need to contain "Slice" in their name.
 
-    id.col.name = column name of sample id column. If sample IDs are in input
+id.col.name = column name of sample id column. If sample IDs are in input
     rownames specify id.col.names = "rownames" (default: Folder)
 
-    interactive = If TRUE, histogram of FD is plotted (default: FALSE)
+interactive = If TRUE, histogram of FD is plotted (default: FALSE)
 
-    verbose = If TRUE, progress messages are printed (default: TRUE)
+verbose = If TRUE, progress messages are printed (default: TRUE)
 
-    eg `output <- fracDecimate(interpNoSlices=9, filename="FD.csv")`
+eg `output <- fracDecimate(interpNoSlices=9, filename="FD.csv")`
 
 The output is a [N x interpNoSlices] matrix with the interpolated data. Rownames
 are the subject IDs. Column names are: "Slice_x" where x is a number from 1 to
@@ -59,13 +59,14 @@ Notes to fracDecimate
 - Fitting is by a kernel regression estimate with a bandwidth of 1.5 slices
 
 ### summaryFD.R
-summaryStatistic(data, discard, NaN.val), with:
-    data = [N x NrSlices] matrix of FD value for N individuals and NrSlices
+    summaryStatistic(data, discard, NaN.val)
+with:
+data = [N x NrSlices] matrix of FD value for N individuals and NrSlices
 
-    discard = if TRUE, first and last slice are excluded for computing summary
+discard = if TRUE, first and last slice are excluded for computing summary
     statistics (default: FALSE).
 
-    NaN.val = vector with character strings of accepted NaN values (default:
+NaN.val = vector with character strings of accepted NaN values (default:
     c("Meagre blood pool", "Sparse myocardium" or "FD measure failed"))
 
 The output is a [N x 6] matrix with summary statistics for N individuals:
