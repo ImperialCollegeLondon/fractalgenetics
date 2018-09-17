@@ -3,7 +3,7 @@ R code for post-processing of FD values output by
 [AutoFD](https://github.com/UK-Digital-Heart-Project/AutoFD).
 
 1. fracDecimateFD.R (fracDecimate function)
-    Interpolated of FD values to a common number of slices across individuals.
+    Interpolation of FD values to a common number of slices across individuals.
 1. summaryFD.R (summaryStatistics function)
     Summary statistics of FD values per individual: mean global FD, mean and max
     Apical FD, mean and max Basal FD. This is an R version of the matlab
