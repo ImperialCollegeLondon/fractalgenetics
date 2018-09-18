@@ -46,7 +46,7 @@
         "memory" : "100000 -P bigmem",
         "resources" : "\"select[mem>80000] rusage[mem=80000] span[hosts=1]\"",
         "queue" : "research-rh7",
-        "name" : "{rule}.{wildcards}",
+        "name" : "{rule}_{wildcards}",
         "output" : "log/{rule}.out",
         "error" : "log/{rule}.err"
     },
@@ -55,7 +55,7 @@
         "memory" : "100000 -P bigmem",
         "resources" : "\"select[mem>80000] rusage[mem=80000] span[hosts=1]\"",
         "queue" : "research-rh7",
-        "name" : "{rule}.{wildcards}",
+        "name" : "{rule}_{wildcards}",
         "output" : "log/{rule}.out",
         "error" : "log/{rule}.err"
     },
@@ -65,9 +65,9 @@
         "n" : "8",
         "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
         "queue" : "research-rh7",
-        "name" : "{rule}.{wildcards.chr}",
-        "output" : "log/{rule}.{wildcards.chr}.out",
-        "error" : "log/{rule}.{wildcards.chr}.err"
+        "name" : "{rule}_{wildcards.chr}",
+        "output" : "log/{rule}_{wildcards.chr}.out",
+        "error" : "log/{rule}_{wildcards.chr}.err"
     },
     "slices_EDV" :
     {
@@ -75,9 +75,9 @@
         "n" : "8",
         "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
         "queue" : "research-rh7",
-        "name" : "{rule}.{wildcards.chr}",
-        "output" : "log/{rule}.{wildcards.chr}.out",
-        "error" : "log/{rule}.{wildcards.chr}.err"
+        "name" : "{rule}_{wildcards.chr}",
+        "output" : "log/{rule}_{wildcards.chr}.out",
+        "error" : "log/{rule}_{wildcards.chr}.err"
     },
     "summary" :
     {
@@ -85,9 +85,9 @@
         "n" : "8",
         "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
         "queue" : "research-rh7",
-        "name" : "{rule}.{wildcards.chr}",
-        "output" : "log/{rule}.{wildcards.chr}.out",
-        "error" : "log/{rule}.{wildcards.chr}.err"
+        "name" : "{rule}_{wildcards.chr}",
+        "output" : "log/{rule}_{wildcards.chr}.out",
+        "error" : "log/{rule}_{wildcards.chr}.err"
     },
     "slices" :
     {
@@ -95,8 +95,53 @@
         "n" : "8",
         "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
         "queue" : "research-rh7",
-        "name" : "{rule}.{wildcards.chr}",
-        "output" : "log/{rule}.{wildcards.chr}.out",
-        "error" : "log/{rule}.{wildcards.chr}.err"
+        "name" : "{rule}_{wildcards.chr}",
+        "output" : "log/{rule}_{wildcards.chr}.out",
+        "error" : "log/{rule}_{wildcards.chr}.err"
+    },
+    "summaryResults" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}_GWAS.out",
+        "error" : "log/{rule}_GWAS.err"
+    },
+    "summaryEDVResults" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
+    },
+    "slicesResults" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}_GWAS.out",
+        "error" : "log/{rule}.err"
+    },
+    "ldScoreFormating" :
+    {
+        "memory" : "8000",
+        "resources" : "\"select[mem>8000] rusage[mem=8000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}_{wildcards.type}.out",
+        "error" : "log/{rule}_{wildcards.type}.err"
+    },
+    "ldScoreRegression" :
+    {
+        "memory" : "20000",
+        "resources" : "\"select[mem>20000] rusage[mem=20000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}_{wildcards.type}.out",
+        "error" : "log/{rule}_{wildcards.type}.err"
     }
 }
