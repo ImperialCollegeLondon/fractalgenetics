@@ -1,0 +1,8 @@
+sample='~/data/ukbb/ukb-hrt/rawdata/ukb18545_imp_chr1_v3_s487378.sample'
+pheno='~/data/ukbb/ukb-hrt/phenotypes/FD_phenotypes.csv'
+cov='~/data/ukbb/ukb-hrt/phenotypes/FD_covariates.csv'
+gen='/nfs/research1/ukbb/500K_release_v3/imputed/EGAD00010001474/ukb_imp_chr22_v3.bgen'
+
+dataread = ReadData(verbose=True)
+dataread.getPhenotypes(file_pheno=pheno)
+dataread.getCovariates(file_covariates=cov)

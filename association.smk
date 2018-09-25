@@ -1,12 +1,13 @@
 # how to run fro ./:
-# snakemake -s association.smk --jobs 5000 --latency-wait 30 --cluster-config config/cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources} -M {cluster.memory}  -o {cluster.output}
-# -e  {cluster.error}' --keep-going --rerun-incomplete --use-conda
+# snakemake -s association.smk --jobs 5000 --latency-wait 30 --cluster-config config/cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources}
+# -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete --use-conda
 
 configfile: "config/config_association.yaml"
 
 def filesLDSC(wildcards):
     if wildcards.type == "summary":
-        fdlist = ['globalFD', 'meanBasalFD', 'meanApicalFD', 'maxBasalFD', 'maxApicalFD']
+        fdlist = ['MeanGlobalFD', 'MeanBasalFD', 'MeanApicalFD', 'MeanMidFD',
+        'MaxMidFD','MaxBasalFD', 'MaxApicalFD']
         ldfiles = ['{}/gwas/ldsc_summary_{}.sumstats.gz'.format(
             wildcards.dir, fd) for fd in fdlist]
     if wildcards.type == "slices":
@@ -21,13 +22,17 @@ rule all:
             ukb=config["ukbdir"],
             name=['summary', 'slices'],
             chr=range(1,23)),
-        expand("{ukb}/gwas/ldsc_{type}.sumstats.gz",
-            type=['summary_{}'.format(x) for x in ['globalFD', 'meanBasalFD',
-                'meanApicalFD', 'maxBasalFD', 'maxApicalFD']],
+        expand("{ukb}/gwas/sumstats_{type}_pseudomt.txt",
+            type=['summary', 'slices'],
             ukb=config["ukbdir"]),
-        expand("{ukb}/gwas/ldsc_{type}_fd.log",
-            type=['summary', 'slices', 'summary_pseudomt'],
-            ukb=config["ukbdir"])
+        #expand("{ukb}/gwas/ldsc_{type}.sumstats.gz",
+        #    type=['summary_{}'.format(x) for x in ['MeanGlobalFD',
+        #        'MeanBasalFD', 'MeanApicalFD', 'MeanMidFD', 'MaxMidFD',
+        #        'MaxBasalFD', 'MaxApicalFD']],
+        #    ukb=config["ukbdir"]),
+        #expand("{ukb}/gwas/ldsc_{type}_fd.log",
+        #    type=['summary', 'slices', 'summary_pseudomt'],
+        #    ukb=config["ukbdir"])
 
 rule generateSNPfiles:
     input:
@@ -92,7 +97,8 @@ rule summaryResults:
         "{dir}/phenotypes/FD_phenotypes_EUnorel.csv"
     output:
         "{dir}/gwas/bgenie_summary_lm_pseudomt_qqplot.pdf",
-        "{dir}/gwas/bgenie_summary_lm_pseudomt_manhattanplot.pdf"
+        "{dir}/gwas/bgenie_summary_lm_pseudomt_manhattanplot.pdf",
+        "{dir}/gwas/sumstats_summary_pseudomt.txt"
     shell:
         "Rscript association/association_results.R \
             --pheno {input} \
@@ -105,7 +111,8 @@ rule slicesResults:
         "{dir}/phenotypes/FD_slices_EUnorel.csv"
     output:
         "{dir}/gwas/bgenie_slices_lm_pseudomt_qqplot.pdf",
-        "{dir}/gwas/bgenie_slices_lm_pseudomt_manhattanplot.pdf"
+        "{dir}/gwas/bgenie_slices_lm_pseudomt_manhattanplot.pdf",
+        "{dir}/gwas/sumstats_slices_pseudomt.txt"
     shell:
         "Rscript association/association_results.R \
             --pheno {input} \
