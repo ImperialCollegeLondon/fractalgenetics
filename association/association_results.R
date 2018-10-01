@@ -10,6 +10,7 @@ prepGarfield <- modules::import("prepGarfield")
 bgenie <- modules::import("bgenieResults")
 plots <- modules::import("plots")
 meta <- modules::import("metaanalysis")
+ldfilter <- modules::import("LDfilter")
 
 stPlots <- function(trait_index, bgenie_result, directory, is.negLog=FALSE,
                          Meff=1, ymin=1, ymax="max", name=NULL) {
@@ -42,7 +43,10 @@ stPlots <- function(trait_index, bgenie_result, directory, is.negLog=FALSE,
                     sep=""))
 }
 
-garfieldAnalyses <- function(traitindex, bgenie, directory, garfielddir,
+garfieldAnalyses <- function(traitindex, bgenie, directory,
+                             garfielddir=paste("/nfs/research1/birney/",
+                                               "resources/human_reference/",
+                                               "GARFIELD/garfield-data", sep=""),
                              nperm=100000, chrs=1:22, is.NegLog10=TRUE){
     trait_name <- gsub("-log10p", "", colnames(bgenie)[traitindex])
     gwas <- bgenie[, c(1:3, traitindex)]
@@ -79,6 +83,7 @@ garfieldAnalyses <- function(traitindex, bgenie, directory, garfielddir,
 ## analysis ###
 ###############
 
+
 ## command line arguments ####
 option_list <- list(
     optparse$make_option(c("-d", "--directory"), action="store",
@@ -113,17 +118,21 @@ args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 if (FALSE) {
     args <- list()
     args$directory <-"/homes/hannah/data/ukbb/ukb-hrt/gwas"
-    args$name <-"summary"
+    args$name <-"slices"
     args$valueMeff <- NULL
     args$phenofile <- "/homes/hannah/data/ukbb/ukb-hrt/phenotypes/FD_slices_EUnorel.csv"
     args$verbose <- TRUE
     args$interpolate <- 9
 }
-
 directory <- args$directory
 name <- args$name
 phenofile <- args$phenofile
 verbose <- args$verbose
+tags_prefix <- "EUR.chr"
+tags_suffix <- paste(".phase3_shapeit2_mvncall_integrated_v5_extra_",
+                                 "anno.20130502.genotypes.500kb.r0.1.tags.",
+                                 "list.rsIDs", sep="")
+tags_dir <- "/nfs/research1/birney/resources/human_reference/1000Genomes/phase3/plink"
 
 genomewide <- lapply(1:22, bgenie$readBgenieOutput, directory=directory,
                      name=paste("bgenie_", name, "_lm_st_chr", sep=""),
@@ -153,6 +162,16 @@ write.table(multitrait,
             file=paste(directory, "/bgenie_", name, "_lm_pseudomt_all.csv",
                        sep=""),
             sep=",", quote=FALSE, col.names=TRUE, row.names=FALSE)
+
+if (verbose) message("Filter pseudo-multitrait association results for LD")
+multitrait_ld <- ldfilter$filterSigLoci4LD(gwas=cbind(multitrait[,1:3],
+                                                      genomewide[,4:7],
+                                                      P=multitrait$P),
+                                           tags_dir=tags_dir,
+                                           tags_prefix=tags_prefix,
+                                           tags_suffix=tags_suffix)
+ldfilter$writeSig(multitrait_ld, threshold=5*10^(-8), directory=directory,
+               name="Pseudomultitrait_Slices")
 
 if (verbose) message("Plot pseudo-multitrait association results")
 ymin <- 10^(-1)
@@ -226,46 +245,34 @@ plots_perTrait <- sapply(index_logp, stPlots, bgenie_result=genomewide, ymin=0.1
                          name=name,  ymax=ymax)
 
 ## Format single-trait association statistics for LD score regression ####
+ldshub_file <- "~/data/ukbb/ukb-hrt/ldc_hub/w_hm3.noMHC.snplist"
+ldshub_snps <- data.table::fread(ldshub_file, data.table=FALSE,
+                                 stringsAsFactors=FALSE)
+
 ldsc_single <- sapply(index_beta, function(x) {
                    columns <- c(1:7, x:(x+3))
                    nn <- paste(name, "_",
                                gsub("_beta", "", colnames(genomewide)[x]),
                                sep="")
                    tmp <- bgenie$bgenie2ldsc(genomewide[,columns],
-                                             sumstat="_beta")
+                                             sumstat="_beta",
+                                             ldshub_snps=ldshub_snps)
                    message("Write LDSC output for ", nn)
                    write.table(tmp, file=paste(directory, "/sumstats_", nn,
                                                ".txt", sep=""),
                                sep="\t", quote=FALSE, col.names=TRUE,
                                row.names=FALSE)
-                         }
+                   ## This way of zipping doesn't work with LDhub, need to find
+                   ## out how to do automatically. At the moment, manually via
+                   # zip mydata.zip mydata.txt
+                   #write.table(tmp, file=gzfile(paste(directory, "/sumstats_",
+                   #                                   nn, ".gz", sep="")),
+                   #            sep="\t", quote=FALSE, col.names=TRUE,
+                   #            row.names=FALSE)
+                }
 )
 
-multitrait_ldsc <-
-    bgenie$bgenie2ldsc(cbind(genomewide[,1:7], chi2=multitrait_res$chi2stats,
-                             "-log10p"=-log10(multitrait_res$multitrait_p)),
-                       sumstat="chi2")
-write.table(multitrait_ldsc, file=paste(directory, "/sumstats_", name,
-                                        "_pseudomt.txt", sep=""),
-                               sep="\t", quote=FALSE, col.names=TRUE,
-                               row.names=FALSE)
-
 ## GARFIELD analysis ####
-trait_name <- "meanBasalMidApicalFD"
-gdir <- "/homes/hannah/software/garfield-data"
-resdir <- paste(directory, "/", trait_name, sep="")
-nperm <- 100000
-
 perTraitGarfield <- sapply(index_logp[c(2,4,6)], garfieldAnalyses,
                            bgenie=genomewide, directory=directory,
                            garfielddir=gdir)
-
-
-
-
-    garfieldPrep <- prepGarfield$prepGarfield(gwas=multitrait_meanBasalMidApical,
-            trait_name="meanBasalMidApicalFD", directory=directory,
-            garfielddir=paste(gdir, "/pval", sep=""))
-
-
-
