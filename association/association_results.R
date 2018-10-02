@@ -6,6 +6,7 @@ options(bitmapType = 'cairo', device = 'pdf')
 
 optparse <- modules::import_package('optparse')
 garfield <- modules::import_package('garfield')
+zip <- modules::import_package('zip')
 prepGarfield <- modules::import("prepGarfield")
 bgenie <- modules::import("bgenieResults")
 plots <- modules::import("plots")
@@ -262,13 +263,9 @@ ldsc_single <- sapply(index_beta, function(x) {
                                                ".txt", sep=""),
                                sep="\t", quote=FALSE, col.names=TRUE,
                                row.names=FALSE)
-                   ## This way of zipping doesn't work with LDhub, need to find
-                   ## out how to do automatically. At the moment, manually via
-                   # zip mydata.zip mydata.txt
-                   #write.table(tmp, file=gzfile(paste(directory, "/sumstats_",
-                   #                                   nn, ".gz", sep="")),
-                   #            sep="\t", quote=FALSE, col.names=TRUE,
-                   #            row.names=FALSE)
+                   zip$zip(zipfile=paste(directory, "/sumstats_", nn,".gz",
+                                         sep=""),
+                       paste(directory, "/sumstats_", nn, ".txt", sep=""))
                 }
 )
 
