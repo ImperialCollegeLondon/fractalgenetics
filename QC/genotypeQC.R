@@ -6,7 +6,7 @@ options(import.path="/homes/hannah/RPackagesDevel/plinkQC")
 options(bitmapType = 'cairo', device = 'pdf')
 
 optparse <- modules::import_package('optparse')
-plinkqc <- modules::import_package('plinkqc')
+plinkqc <- modules::import_package('plinkQC')
 
 
 ################
@@ -57,7 +57,7 @@ option_list <- list(
                dest="externalSexSex",
                type="character", help="Column identifier for column containing
                sex information in externalSex [default: %default].",
-               default="IID"),
+               default="Sex"),
     optparse$make_option(c("--externalMale"), action="store", dest="externalMale",
                type="character", help="Identifier for 'male' in externalSexSex,
                e.g. 1 or 'male' [default: %default].", default='M'),
@@ -72,7 +72,7 @@ option_list <- list(
     optparse$make_option(c("--imissTh"), action="store", dest="imissTh",
                type="double", help="Threshold for acceptable missing genotype
                rate per individual [default: %default].", default=0.03),
-    optparse$make_option(c("--hetTh"), action="store", dest="hteTh",
+    optparse$make_option(c("--hetTh"), action="store", dest="hetTh",
                type="double", help="Threshold for acceptable heterozyosity rates;
                any sample outside het*standard deviation(heterozygosity) will
                be excluded [default: %default].", default=3),
@@ -129,7 +129,7 @@ option_list <- list(
     optparse$make_option(c("--refColorsPop"), action="store",
               dest="refColorsPop", type="character", help="Column name of
               reference sample population in --refColors [default:
-              %default].", default="Color"),
+              %default].", default="Pop"),
     optparse$make_option(c("--studyColor"), action="store",
               dest="studyColor", type="character", help="Colour to be used for
               study population if PCA plot [default: %default].",
@@ -165,24 +165,24 @@ option_list <- list(
 args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 
 if (FALSE) {
-    args <- list()
-    args$alg <- "gencall.sanger12"
-    args$qcdir <- "/homes/hannah/data/genotype/QC/sanger12"
-    args$maleTh <- 0.8
-    args$femaleTh <- 0.2
-    args$imissTh <- 0.03
-    args$lmissTh <- 0.01
-    args$hetTh <- 3
-    args$highIBDTh <- 0.1875
-    args$hweTh <- 1e-5
-    args$mac <- 20
-    args$verbose <- TRUE
-    args$plot <- TRUE
-    args$sample <- "~/data/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt"
-    args$refSamplesFile="~/data/hmeyer/HapMap/HapMap_ID2Pop.txt"
-    args$refColorsFile="~/data/hmeyer/HapMap/HapMap_PopColors.txt"
-    args$externalSexID="Bru.Number"
-    args$prefixMergedDataset="gencall.sanger12.HapMapIII"
+    # testing parser
+    args_vec <-
+        c("--name=gencall.sanger12",
+          "--directory=/homes/hannah/data/genotype/QC/sanger12",
+          "--check_sex", "--fixMixup",
+          "--maleTh=0.8","--femaleTh=0.2",
+          "--externalSex=/homes/hannah/data/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt",
+          "--externalSexSex=Sex",
+          "--externalSexID=Bru.Number",
+          "--check_het_and_miss", "--imissTh=0.03", "--hetTh=3",
+          "--check_relatednes", "--relatednessTh=0.1875",
+          "--prefixMerge=gencall.sanger12.HapMapIII",
+          "--refSamples=/homes/hannah/data/hmeyer/HapMap/HapMap_ID2Pop.txt",
+          "--refColors=/homes/hannah/data/hmeyer/HapMap/HapMap_PopColors.txt",
+          "--lmissTh=0.01", "--hweTh=1e-5", "--macTh=20",
+          "--plink=~/bin ", "--plot", "--showProgress", "--check_ancestry")
+    args <- optparse$parse_args(optparse$OptionParser(option_list=option_list),
+                                arg=args_vec)
 }
 
 
@@ -190,20 +190,20 @@ if (args$plot) pdf(paste(args$qcdir,"/", args$alg,".pdf",sep=""), width=10,
                    height=8)
 ## Per-individual QC ####
 if (args$verbose) message("per-individual QC")
-SampleID <- read.table(file=args$sample, sep="\t", header=TRUE, quote="",
-                           stringsAsFactors=FALSE, na.strings=c("NA",""))
+SampleID <- read.table(file=args$externalSexFile, sep="\t", header=TRUE,
+                       quote="", stringsAsFactors=FALSE, na.strings=c("NA",""))
 fail_individuals <-
     plinkqc$perSampleQC(qcdir=args$qcdir, alg=args$alg,
                         do.check_sex=args$do.check_sex,
                         maleTh=args$maleTh,
                         femaleTh=args$femaleTh,
                         externalSex=SampleID,
-                        fixMixUp=args$fixMixUp,
+                        fixMixup=args$fixMixup,
                         externalMale=args$externalMale,
                         externalFemale=args$externalFemale,
                         externalSexSex=args$externalSexSex,
                         externalSexID=args$externalSexID,
-                        do.check_heterozygosity_and_missingess=
+                        do.check_heterozygosity_and_missingness=
                             args$do.check_het_and_miss,
                         imissTh=args$imissTh,
                         hetTh=args$hetTh,
