@@ -16,7 +16,7 @@ if [[ ! -s $qcdir/${alg}.raw.fam ]]; then
     ### Reformat input files if parental information is encoded incorrectly:
     if [[ $center == *"singapore"* ]]; then
         echo "Reformating Singapore files..."
-        perl ~/GWAS/analysis/genotyping/parse_singapore_data.pl \
+        perl format/parse_singapore_data.pl \
             --inped $rawdir/$rawdata \
             --samples $rawdir/${rawdata}_sample_sex.txt \
             --outped $rawdir/$alg.raw \
@@ -70,8 +70,8 @@ if [[ -s $qcdir/$alg.duplicate.IDs ]]; then
     echo "Remove duplicate ID's..."
     plink --bfile $qcdir/$alg.raw --recode --out $qcdir/$alg.raw
     mv $qcdir/${alg}.raw.log $qcdir/plink_log/${alg}.raw.recode.log
-    egrep -v -f $qcdir/$alg.duplicate.IDs  $alg.raw.ped \
-        > $alg.raw.duplicate.remove.ped
+    awk  'FNR==NR {a[$1]; next} !($1 in a)' $qcdir/$alg.duplicate.IDs \
+        $qcdir/$alg.raw.ped  > $qcdir/$alg.raw.duplicate.remove.ped
     plink --ped $qcdir/$alg.raw.duplicate.remove.ped \
         --map $qcdir/$alg.raw.map --make-bed --out $qcdir/${alg}.raw
     mv $qcdir/${alg}.raw.log $qcdir/plink_log/${alg}.raw.duplicateremove.log
