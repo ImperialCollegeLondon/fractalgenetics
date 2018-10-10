@@ -1,0 +1,24 @@
+
+ensemblNotInUK10K1KG : "/homes/hannah/data/hmeyer/Supplementary/20160415_GRCh37p13_not_in_UK10K1KG.txt"
+highld : "/homes/hannah/data/hmeyer/HapMap/data_2010_NatureProtocols_Anderson_Suppl/high-LD-regions.txt"
+UK10K1KGdir : "/homes/hannah/data/hmeyer/UK10K1000Genomes"
+reference : "HapMapIII"
+hapmap : "HapMapIII_CGRCh37.good_pos"
+hapmapdir : "/homes/hannah/data/hmeyer/HapMap"
+dir : "/homes/hannah/data/genotype/QC"
+sample :
+    singapore12 : "/homes/hannah/data/genotype/omnix_NHCS_20160217/corrected_sample_id.txt"
+    singapore3 : "/homes/hannah/data/genotype/omnix_NHCS_20160217/corrected_sample_id.txt"
+    sanger12: "/homes/hannah/data/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt"
+center :
+    singapore12 : "singapore"
+    singapore3 : "singapore"
+    sanger12: "sanger"
+rawdir :
+    singapore12 : "/homes/hannah/data/genotype/omnix_NHCS_20160217"
+    singapore3 : "/homes/hannah/data/genotype/omnix_NHCS_20160217"
+    sanger12: "/homes/hannah/data/genotype/omnix_hhtmri_20141121"
+rawdata :
+    singapore12 : "Heart_StudyStuartCook_Omniexpress_08052015"
+    singapore3 : "Edmund_NHCS_Heart_Failure"
+    sanger12: "omnix_hhtmri_20141121.gencall.smajor"
