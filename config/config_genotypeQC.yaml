@@ -22,3 +22,20 @@ rawdata :
     singapore12 : "Heart_StudyStuartCook_Omniexpress_08052015"
     singapore3 : "Edmund_NHCS_Heart_Failure"
     sanger12: "omnix_hhtmri_20141121.gencall.smajor"
+
+externalSex: "/homes/hannah/data/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt"
+externalSexID : "Bru.Number"
+externalSexSex : "Sex"
+refSamples : "/homes/hannah/data/hmeyer/HapMap/HapMap_ID2Pop.txt"
+refColors : "/homes/hannah/data/hmeyer/HapMap/HapMap_PopColors.txt"
+path2plink : "~/bin"
+
+maleTh : 0.8
+femaleTh : 0.2
+imissTh : 0.03
+hetTh : 3
+highIBDTh : 0.1875
+lmissTh : 0.01
+hweTh : "1e-5"
+macTh : 20
+
