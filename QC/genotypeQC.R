@@ -186,8 +186,8 @@ if (FALSE) {
 }
 
 
-if (args$plot) pdf(paste(args$qcdir,"/", args$alg,".pdf",sep=""), width=10,
-                   height=8)
+if (args$plot) pdf(paste(args$qcdir,"/", args$alg,".pdf",sep=""), width=8.3,
+                   height=11.7, onefile=TRUE)
 ## Per-individual QC ####
 if (args$verbose) message("per-individual QC")
 SampleID <- read.table(file=args$externalSexFile, sep="\t", header=TRUE,
