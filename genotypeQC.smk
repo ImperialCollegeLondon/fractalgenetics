@@ -9,10 +9,21 @@ rule all:
         expand("{dir}/{alg}/{call}.{alg}.{suffix}",
             dir=config["dir"],
             call='gencall',
-            #alg=['sanger12', 'singapore12', 'singapore3'],
-            alg=['sanger12'],
-            #suffix=['failsex', 'lmiss', 'genome', 'het', 'HapMapIII.eigenvec'])
-            suffix=['clean.related.bim', 'clean.related.bed', 'clean.related.fam'])
+            alg=['sanger12', 'singapore12', 'singapore3'],
+            suffix=['failsex','clean.related.bim', 'clean.related.bed', 'clean.related.fam']),
+        expand("{dir}/{alg}/{call}.{alg}.{suffix}",
+            dir=config["dir"],
+            call='gencall',
+            alg=['sanger12', 'singapore12', 'singapore3'],
+            suffix=['HapMapIII.eigenvec', 'HapMapIII.eigenval']),
+        expand("{dir}/{alg}/{file}",
+            dir=config["dir"],
+            alg=['combined'],
+            file=['gencall.combined.clean.related.bim',
+                    'gencall.combined.clean.related.bed',
+                    'gencall.combined.clean.related.fam']),
+        expand("{dir}/European.HVOL.sanger12.singapore123.txt",
+            dir=config["dir"])
 
 rule format_raw_genotypes:
     input:
@@ -45,6 +56,9 @@ rule match_to_reference:
         "{qcdir}/{call}.{alg}.bim",
         "{qcdir}/{call}.{alg}.fam",
         "{qcdir}/{call}.{alg}.bed"
+    wildcard_constraints:
+        call="\w+",
+        alg="[\w\d]+"
     shell:
         """
         bash format/match2reference.sh {wildcards.call}.{wildcards.alg} \
@@ -92,7 +106,11 @@ rule filtering_and_plots:
     input:
         "{qcdir}/{alg}.bim",
         "{qcdir}/{alg}.fam",
-        "{qcdir}/{alg}.bed"
+        "{qcdir}/{alg}.bed",
+        "{qcdir}/{alg}.failsex",
+        "{qcdir}/{alg}.lmiss",
+        "{qcdir}/{alg}.het",
+        "{qcdir}/{alg}.genome"
     output:
         "{qcdir}/{alg}.clean.related.bim",
         "{qcdir}/{alg}.clean.related.fam",
@@ -142,5 +160,46 @@ rule filtering_and_plots:
             --showProgress
         """
 
+rule europeanSamples:
+    input:
+        sanger12="{dir}/sanger12/gencall.sanger12.clean.related.fam",
+        singapore12="{dir}/singapore12/gencall.singapore12.clean.related.fam",
+        singapore3="{dir}/singapore3/gencall.singapore3.clean.related.fam",
+    params:
+        diagnosis=config['diagnosis']
+    output:
+        all="{dir}/European.sanger12.singapore123.txt",
+        HVOL="{dir}/European.HVOL.sanger12.singapore123.txt"
+    shell:
+        """
+        cat {input.sanger12} {input.singapore12} {input.singapore3} > {output.all}
+        awk 'FNR==NR {{a[$1]; next}} ($2 in a && $6 == "HVOL")' {output.all} \
+            {params.diagnosis} > {output.HVOL}
+        """
 
-
+rule mergeDatasets:
+    input:
+        sanger12_bim="{dir}/sanger12/gencall.sanger12.clean.related.bim",
+        sanger12_bed="{dir}/sanger12/gencall.sanger12.clean.related.bed",
+        sanger12_fam="{dir}/sanger12/gencall.sanger12.clean.related.fam",
+        singapore12_bim="{dir}/singapore12/gencall.singapore12.clean.related.bim",
+        singapore12_bed="{dir}/singapore12/gencall.singapore12.clean.related.bed",
+        singapore12_fam="{dir}/singapore12/gencall.singapore12.clean.related.fam",
+        singapore3_bim="{dir}/singapore3/gencall.singapore3.clean.related.bim",
+        singapore3_bed="{dir}/singapore3/gencall.singapore3.clean.related.bed",
+        singapore3_fam="{dir}/singapore3/gencall.singapore3.clean.related.fam"
+    output:
+        all_bim="{dir}/combined/gencall.combined.clean.related.bim",
+        all_bed="{dir}/combined/gencall.combined.clean.related.bed",
+        all_fam="{dir}/combined/gencall.combined.clean.related.fam",
+        mergelist="{dir}/combined/gencall.combined.mergelist"
+    shell:
+        """
+        echo -e '{input.sanger12_bed} {input.sanger12_bim} {input.sanger12_fam}\n\
+                 {input.singapore12_bed} {input.singapore12_bim} {input.singapore12_fam}\n\
+                 {input.singapore3_bed} {input.singapore3_bim} {input.singapore3_fam}\n' \
+                 > {output.mergelist}
+        plink --merge-list {output.mergelist} \
+            --make-bed \
+            --out {wildcards.dir}/combined/gencall.combined.clean.related
+        """
