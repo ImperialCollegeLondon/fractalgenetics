@@ -39,3 +39,5 @@ lmissTh : 0.01
 hweTh : "1e-5"
 macTh : 20
 
+diagnosis : "/homes/hannah/data/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt"
+

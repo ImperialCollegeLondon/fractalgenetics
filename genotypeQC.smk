@@ -9,9 +9,10 @@ rule all:
         expand("{dir}/{alg}/{call}.{alg}.{suffix}",
             dir=config["dir"],
             call='gencall',
-            alg=['sanger12', 'singapore12', 'singapore3'],
-            suffix=['failsex', 'lmiss', 'genome', 'het', 'HapMapIII.eigenvec'])
-            #suffix=['bim', 'bed', 'fam'])
+            #alg=['sanger12', 'singapore12', 'singapore3'],
+            alg=['sanger12'],
+            #suffix=['failsex', 'lmiss', 'genome', 'het', 'HapMapIII.eigenvec'])
+            suffix=['clean.related.bim', 'clean.related.bed', 'clean.related.fam'])
 
 rule format_raw_genotypes:
     input:
@@ -89,24 +90,56 @@ rule ancestryCheck:
 
 rule filtering_and_plots:
     input:
-        sample="",
+        "{qcdir}/{alg}.bim",
+        "{qcdir}/{alg}.fam",
+        "{qcdir}/{alg}.bed"
     output:
-        "{qcdir}/"
+        "{qcdir}/{alg}.clean.related.bim",
+        "{qcdir}/{alg}.clean.related.fam",
+        "{qcdir}/{alg}.clean.related.bed"
+    params:
+        maleTh=config['maleTh'],
+        femaleTh=config['femaleTh'],
+        imissTh=config['imissTh'],
+        hetTh=config['hetTh'],
+        highIBDTh=config['highIBDTh'],
+        lmissTh=config['lmissTh'],
+        hweTh=config['hweTh'],
+        macTh=config['macTh'],
+        externalSex=config['externalSex'],
+        externalSexID=config['externalSexID'],
+        externalSexSex=config['externalSexSex'],
+        refSamples=config['refSamples'],
+        refColors=config['refColors'],
+        path2plink=config['path2plink'],
+        ref=config['reference']
     shell:
         """
-        Rscript QC/genotypeQC.R --vanilla \
-            --default-packages=R.utils \
-            --alg={wildcards.alg} \
-            --qcdir={wildcars.qcdir} \
+        Rscript QC/genotypeQC.R \
+            --name={wildcards.alg} \
+            --directory={wildcards.qcdir} \
+            --check_sex \
+            --fixMixup \
             --maleTh={params.maleTh} \
             --femaleTh={params.femaleTh} \
+            --externalSex={params.externalSex} \
+            --externalSexSex={params.externalSexSex} \
+            --externalSexID={params.externalSexID} \
+            --check_het_and_miss \
             --imissTh={params.imissTh} \
             --hetTh={params.hetTh}  \
-            --highIBDTh={params.highIBDTh} \
+            --check_relatedness \
+            --relatednessTh={params.highIBDTh} \
+            --check_ancestry \
+            --prefixMerge={wildcards.alg}.{params.ref} \
+            --refSamples={params.refSamples} \
+            --refColors={params.refColors} \
             --lmissTh={params.lmissTh} \
             --hweTh={params.hweTh} \
-            --mafTh={params.mafTh} \
-            --sample={input.sample}
+            --macTh={params.macTh} \
+            --plink={params.path2plink} \
+            --plot \
+            --showProgress
         """
 
 
