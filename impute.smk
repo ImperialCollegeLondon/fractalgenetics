@@ -2,6 +2,11 @@
 # snakemake -s impute.smk --jobs 5000 --latency-wait 30 --cluster-config config/cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources}
 # -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete --use-conda
 
+import numpy as np
+from functools import reduce
+from operator import add
+
+# input functions
 def createStringPlink(wildcards):
     if wildcards.chr == "X_PAR1":
         plink_str="--chr X --from-bp 60001 --to-bp 2699520"
@@ -36,13 +41,26 @@ def chunkSettings(wildcards):
                     return "{} {}".format(parts[2], parts[3])
         return False
 
-configfile: "config/config_impute.yaml"
-import numpy as np
-from functools import reduce
-from operator import add
+def chunkNumbers(wildcards):
+    if wildcards.chr == "X":
+        pos=22
+    else:
+        pos=int(wildcards.chr) - 1
+    return expand("{{dir}}/imputed/chr{{chr}}/{{name}}.chr{{chr}}.{chunk}.gen",
+                chunk=list(range(1, CHUNKS[pos] + 1)))
 
+# config file
+configfile: "config/config_impute.yaml"
+
+# global parameters
 CHUNKS=[83, 81, 65, 63, 60, 56, 53, 48, 47, 45, 44, 44, 32, 29, 27,
                 30, 27, 26, 19, 20, 12, 11, 50]
+
+qctool_missing_column = 19
+qctool_info_column = 17
+qctool_maf_column = 14
+qctool_hwe_column = 8
+qctool_rsid_column = 2
 
 rule all:
     input:
@@ -62,8 +80,11 @@ rule all:
                 suffix=['gen']),
             zip,
             chr=np.repeat(list(range(1,23)) + ["X"], CHUNKS),
-            chunk=reduce(add, [list(range(1,x+1)) for x in CHUNKS]))
-
+            chunk=reduce(add, [list(range(1,x+1)) for x in CHUNKS])),
+        expand("{dir}/genotypes/{name}.chr{chr}.qc.gen.gz",
+            dir=config["dir"],
+            name='gencall.combined.clean.related',
+            chr=range(1,23))
 
 rule splitChromosomes:
     input:
@@ -148,38 +169,66 @@ rule imputation:
                     -o {output.gen} {params.stringImpute}
          """
 
-rule infoQC_and_gzip:
+
+
+rule concatenateChunks:
     input:
-        gen="{dir}/imputed/chr{chr}/{name}.chr{chr}.{chunk}.gen"
+        chunkNumbers
     output:
-        gen="{dir}/imputed/chr{chr}/{name}.chr{chr}.{chunk}.{imputeTh}.gen"
+        chr="{dir}/genotypes/{name}.chr{chr}.gen"
     shell:
         """
-        awk 'FNR==NR ($5 <= {{wildcards.imputeTh}}) {a[$2]=1; next} !($2 in a)' \
-           {input.gen}_info {input.gen} |  gzip -f > {output.gen}
+        cat {wildcards.dir}/imputed/chr{wildcards.chr}/{wildcards.name}.chr{wildcards.chr}.*.gen > {output.chr}
         """
 
-rule concatenate:
+rule snpQC:
     input:
-        gen="{dir}/imputed/chr{chr}/{name}.chr{chr}.{chunk}.{imputeTh}.gen"
+        gen="{dir}/genotypes/{name}.chr{chr}.gen",
     output:
-        chr="{dir}/genotypes/{name}.chr{chr}.{imputeTh}.gen"
+        stats="{dir}/genotypes/{name}.chr{chr}.gen.stats",
+        infofail="{dir}/genotypes/{name}.chr{chr}.gen.infofail",
+        maffail="{dir}/genotypes/{name}.chr{chr}.gen.maffail",
+        hwefail="{dir}/genotypes/{name}.chr{chr}.gen.hwefail",
+        missingfail="{dir}/genotypes/{name}.chr{chr}.gen.missingfail",
+        fail="{dir}/genotypes/{name}.chr{chr}.gen.fail",
+        genqc="{dir}/genotypes/{name}.chr{chr}.qc.gen.gz",
+    params:
+        rsid=qctool_rsid_column,
+        info=qctool_info_column,
+        infoTh=config['infoTh'],
+        maf=qctool_maf_column,
+        mafTh=config['mafTh'],
+        hwe=qctool_hwe_column,
+        hweTh=config['hweTh'],
+        missing=qctool_missing_column,
+        missingTh=config['missingTh']
     shell:
         """
-        zcat {wildcards.dir}/imputed/chr{wildcards.chr}/{wildcards.name}.\
-            chr{wildcards.chr}.*.{wildcards.imputeTh}.gen.gz > \
-            {output.chr}
+        qctool -g {input.gen} -snp-stats -osnp {output.stats}
+        awk -F' ' '!/^#/ && (${params.info} < {params.infoTh}) \
+            {{print ${params.rsid}}}' {output.stats} > {output.infofail}
+        awk -F' ' '!/^#/ && (${params.maf} < {params.mafTh}) \
+            {{print ${params.rsid}}}' {output.stats} > {output.maffail}
+        awk -F' ' '!/^#/ && (${params.hwe} < {params.hweTh}) \
+            {{print ${params.rsid}}}' {output.stats} > {output.hwefail}
+        awk -F' ' '!/^#/ && (${params.missing} > {params.missingTh}) \
+            {{print ${params.rsid}}}' {output.stats} > {output.missingfail}
+        cat {output.infofail} {output.maffail} {output.missingfail} \
+            {output.hwefail} | sort | uniq > {output.fail}
+        qctool -g {input.gen} -og {output.genqc} -excl-snpids {output.fail}
         """
 
-rule mafQ_and_hweQC:
+rule convert:
     input:
-        chr="{dir}/genotypes/{name}.chr{chr}.{imputeTh}.gen"
+        genqc="{dir}/genotypes/{name}.chr{chr}.qc.gen.gz",
+        sample="{dir}/genotypes/{name}.chr{chr}.qc.sample"
     output:
-        chr="{dir}/genotypes/{name}.chr{chr}.{imputeTh}.maf{mafTh}.gen"
+        bgen="{dir}/bgen/{name}.chr{chr}.qc.bgen",
+        bimbam="{dir}/bimbam/{name}.chr{chr}.qc.dosage.gz"
     shell:
         """
-        #snptest -summary_stats_only -hwe -data $resultdir/chr${chr}.${imputeStr}gen.$id.gz $imputedir/snptest_samples.txt -o $resultdir/chr${chr}.gen.stats
-        #awk  -F' ' '!/^#/ &&  (\$19 < $MAFThr || \$21 < $HWEThr) {print NR-10,\$2,\$4, \$19,\$21}' $resultdir/chr${chr}.gen.stats > $resultdir/chr${chr}.gen.toFilter
-        awk 'FNR==NR{a[\$2\$3]++; next} !a[\$2\$3]'  $resultdir/chr${chr}.gen.toFilter $resultdir/chr${chr}.${imputeStr}gen.$id > $resultdir/chr$chr.${imputeStr}gen.snptest
-        gzip -f $resultdir/chr$chr.${imputeStr}gen.snptest"
+        qctool -g {wildcards.dir}/genotypes/{wildcards.name}.chr#.gen \
+            -og {output.bgen} -s {input.sample}
+        qctool -g {wildcards.dir}/genotypes/{wildcards.name}.chr#.gen \
+            -og {output.bimbam}
         """
