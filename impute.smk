@@ -6,7 +6,7 @@ import numpy as np
 from functools import reduce
 from operator import add
 
-# input functions
+# rule input functions
 def createStringPlink(wildcards):
     if wildcards.chr == "X_PAR1":
         plink_str="--chr X --from-bp 60001 --to-bp 2699520"
@@ -41,21 +41,62 @@ def chunkSettings(wildcards):
                     return "{} {}".format(parts[2], parts[3])
         return False
 
-def chunkNumbers(wildcards):
-    if wildcards.chr == "X":
-        pos=22
-    else:
-        pos=int(wildcards.chr) - 1
+def chunks2concatenate(wildcards):
     return expand("{{dir}}/imputed/chr{{chr}}/{{name}}.chr{{chr}}.{chunk}.gen",
-                chunk=list(range(1, CHUNKS[pos] + 1)))
+                chunk=chunksPerChromosome(chromosome=[wildcards.chr],
+                    dir=config['referencedir'],
+                    noSnpInInterval=noSnpInInterval)['chunks'])
+
+def chunks2check(wildcards):
+    warnings=expand("{{dir}}/imputed/chr{{chr}}/{{name}}.chr{{chr}}.{chunk}.gen_warnings",
+                chunk=chunksPerChromosome(chromosome=[wildcards.chr],
+                    dir=config['referencedir'],
+                    noSnpInInterval=noSnpInInterval)['chunks'])
+    return warnings
+
+# global parameters functions
+def chunksPerChromosome(chromosome, dir, noSnpInInterval=None):
+    if noSnpInInterval is not None:
+        exclude = dict(item.split(".") for item in noSnpInInterval)
+    else:
+        exclude = None
+
+    chunks_list = []
+    chr_list = []
+
+    for c in chromosome:
+        with open ("{}/chunkBoundariesChr{}.txt".format(dir, c)) as file:
+            content = file.readlines()
+            content = [x.strip() for x in content]
+            for line in content:
+                parts = line.split()
+                if len(parts) > 2:
+                    chr = parts[0]
+                    chunk = parts[1]
+                    if exclude is not None:
+                        if not(chr in exclude and exclude[chr] == chunk):
+                            chunks_list.append(chunk)
+                            chr_list.append(chr)
+                    else:
+                        chunks_list.append(chunk)
+                        chr_list.append(chr)
+    return {'chunks': chunks_list, 'chr': chr_list}
+
 
 # config file
 configfile: "config/config_impute.yaml"
 
 # global parameters
-CHUNKS=[83, 81, 65, 63, 60, 56, 53, 48, 47, 45, 44, 44, 32, 29, 27,
-                30, 27, 26, 19, 20, 12, 11, 50]
+## after first run manually extraacted from *no_chunks by combineCheckChunks
+noSnpInInterval = ['9.22', '1.48', '21.1']
+CHR = list(range(1,23)) + ["X"]
+AUTOSOMES = list(range(1,23))
+perChr = chunksPerChromosome(chromosome=CHR, dir=config['referencedir'],
+    noSnpInInterval=noSnpInInterval)
+CHRlist = perChr['chr']
+CHUNKlist = perChr['chunks']
 
+## QC columns in qctool -snp-stats output
 qctool_missing_column = 19
 qctool_info_column = 17
 qctool_maf_column = 14
@@ -64,27 +105,50 @@ qctool_rsid_column = 2
 
 rule all:
     input:
+        # rule splitChromosomes
         expand("{dir}/unphased/{name}.chr{chr}.{suffix}",
             dir=config["dir"],
             name='gencall.combined.clean.related',
             chr=range(1,23),
             suffix=['bim', 'bed', 'fam']),
+        # rule phasing
         expand("{dir}/phased/{name}.chr{chr}.{suffix}",
             dir=config["dir"],
             name='gencall.combined.clean.related',
             chr=range(1,23),
             suffix=['hap.gz', 'sample']),
+        # rule imputation
         expand(expand("{dir}/imputed/chr{{chr}}/{name}.chr{{chr}}.{{chunk}}.{suffix}",
                 dir=config["dir"],
                 name='gencall.combined.clean.related',
                 suffix=['gen']),
-            zip,
-            chr=np.repeat(list(range(1,23)) + ["X"], CHUNKS),
-            chunk=reduce(add, [list(range(1,x+1)) for x in CHUNKS])),
+            zip, chunk=CHUNKlist, chr=CHRlist),
+        # rule checkChunks
+        expand("{dir}/imputed/chr{chr}/{name}.chr{chr}.warnings_overview",
+            dir=config["dir"],
+            name='gencall.combined.clean.related',
+            chr=range(1,23)),
+        # rule combineCheckChunks
+        expand("{dir}/imputed/{name}.warnings_overview",
+            dir=config["dir"],
+            name='gencall.combined.clean.related'),
+        # rule concatenateChunks
+        expand("{dir}/genotypes/{name}.chr{chr}.{suffix}",
+            dir=config["dir"],
+            name='gencall.combined.clean.related',
+            chr=range(1,23),
+            suffix=['sample', 'gen']),
+        # rule snpQC
         expand("{dir}/genotypes/{name}.chr{chr}.qc.gen.gz",
             dir=config["dir"],
             name='gencall.combined.clean.related',
-            chr=range(1,23))
+            chr=range(1,23)),
+        # rule combine_and_convert
+        expand(expand("{dir}/{{format}}/{name}.genome.qc.{{suffix}}",
+                dir=config["dir"],
+                name='gencall.combined.clean.related'),
+            zip, format=['bgen', 'bimbam'], suffix=['bgen', 'dosage.gz'])
+
 
 rule splitChromosomes:
     input:
@@ -122,7 +186,8 @@ rule phasing:
         phasethreads=config['threads'],
         window=config['window'],
         states=config['states'],
-        map=lambda wildcards: config['map'].format(wildcards.chr),
+        map=lambda wildcards: "{}/genetic_map_chr{}_combined_b37.txt".format(
+            config['referencedir'], wildcards.chr),
         stringPhasing=lambda wildcards: "--chrX" if wildcards.chr =="X" else ""
     shell:
         """
@@ -169,16 +234,70 @@ rule imputation:
                     -o {output.gen} {params.stringImpute}
          """
 
+rule checkChunks:
+    input:
+        chunks2check
+    params:
+        chunks=lambda wildcards: chunksPerChromosome(chromosome=[wildcards.chr],
+            dir=config['referencedir'],
+            noSnpInInterval=noSnpInInterval)['chunks']
+    output:
+        warnings="{dir}/imputed/chr{chr}/{name}.chr{chr}.warnings_overview"
+    shell:
+        """
+        dir={wildcards.dir}/imputed/chr{wildcards.chr}
+        for chunk in {params.chunks}; do
+            summary={wildcards.name}.chr{wildcards.chr}.$chunk.gen_summary
+            warnings={wildcards.name}.chr{wildcards.chr}.$chunk.gen_warnings
+            if grep -q 'no SNPs in the imputation' $dir/$summary; then \
+                echo "{wildcards.chr}\t$chunk" >> \
+                    $dir/{wildcards.name}.chr{wildcards.chr}.nochunks
+            elif grep -q 'ERROR' $dir/$summary; then
+                echo "{wildcards.chr}\t$chunk" >> \
+                    $dir/{wildcards.name}.chr{wildcards.chr}.errors_overview
+            fi
+            echo "{wildcards.chr}\t$chunk" >> {output.warnings}
+            cat $dir/$warnings >> {output.warnings}
+        done
+        """
 
+rule combineCheckChunks:
+    input:
+        warnings=expand("{{dir}}/imputed/chr{chr}/{{name}}.chr{chr}.warnings_overview",
+            chr=AUTOSOMES)
+    output:
+        warnings="{dir}/imputed/{name}.warnings_overview"
+    wildcard_constraints:
+        name="[\.\w]*"
+    shell:
+        """
+        for chr in `seq 1 22`; do
+            dir={wildcards.dir}/imputed/chr$chr
+            if [ -f $dir/{wildcards.name}.chr$chr.nochunks ]; then
+                cat $dir/{wildcards.name}.chr$chr.nochunks >> \
+                    {wildcards.dir}/imputed/{wildcards.name}.nochunks
+            fi
+            if [ -f $dir/{wildcards.name}.chr$chr.errors_overview ] ; then
+                cat  $dir/{wildcards.name}.chr$chr.errors_overview  >> \
+                    {wildcards.dir}/imputed/{wildcards.name}.errors_overview
+            fi
+            cat {input.warnings} >> {output.warnings}
+        done
+        """
 
 rule concatenateChunks:
     input:
-        chunkNumbers
+        chunks2concatenate
     output:
-        chr="{dir}/genotypes/{name}.chr{chr}.gen"
+        chr="{dir}/genotypes/{name}.chr{chr}.gen",
+        sample="{dir}/genotypes/{name}.chr{chr}.sample"
     shell:
         """
-        cat {wildcards.dir}/imputed/chr{wildcards.chr}/{wildcards.name}.chr{wildcards.chr}.*.gen > {output.chr}
+        impute={wildcards.dir}/imputed/chr{wildcards.chr}
+        phase={wildcards.dir}/phased
+        cat $impute/{wildcards.name}.chr{wildcards.chr}.*.gen > {output.chr}
+        awk 'NR==2 {$7="P"} {print $0}' \
+            $phased/{wildcards.name}.chr{wildcards.chr}.sample > {output.sample}
         """
 
 rule snpQC:
@@ -215,16 +334,18 @@ rule snpQC:
             {{print ${params.rsid}}}' {output.stats} > {output.missingfail}
         cat {output.infofail} {output.maffail} {output.missingfail} \
             {output.hwefail} | sort | uniq > {output.fail}
-        qctool -g {input.gen} -og {output.genqc} -excl-snpids {output.fail}
+        qctool -g {input.gen} -og {output.genqc} -excl-rsids {output.fail}
         """
 
-rule convert:
+rule combine_and_convert:
     input:
-        genqc="{dir}/genotypes/{name}.chr{chr}.qc.gen.gz",
-        sample="{dir}/genotypes/{name}.chr{chr}.qc.sample"
+        genqc=expand("{{dir}}/genotypes/{{name}}.chr{chr}.qc.gen.gz",
+            chr=AUTOSOMES),
+        sample=expand("{{dir}}/genotypes/{{name}}.chr{chr}.sample",
+            chr=AUTOSOMES)
     output:
-        bgen="{dir}/bgen/{name}.chr{chr}.qc.bgen",
-        bimbam="{dir}/bimbam/{name}.chr{chr}.qc.dosage.gz"
+        bgen="{dir}/bgen/{name}.genome.qc.bgen",
+        bimbam="{dir}/bimbam/{name}.genome.qc.dosage.gz"
     shell:
         """
         qctool -g {wildcards.dir}/genotypes/{wildcards.name}.chr#.gen \
