@@ -89,6 +89,8 @@ configfile: "config/config_impute.yaml"
 # global parameters
 ## after first run manually extraacted from *no_chunks by combineCheckChunks
 noSnpInInterval = ['9.22', '1.48', '21.1']
+noSnpInIntervalString = '9.22,1.48,21.1'
+
 CHR = list(range(1,23)) + ["X"]
 AUTOSOMES = list(range(1,23))
 perChr = chunksPerChromosome(chromosome=CHR, dir=config['referencedir'],
@@ -249,7 +251,7 @@ rule checkChunks:
         for chunk in {params.chunks}; do
             summary={wildcards.name}.chr{wildcards.chr}.$chunk.gen_summary
             warnings={wildcards.name}.chr{wildcards.chr}.$chunk.gen_warnings
-            if grep -q 'no SNPs in the imputation' $dir/$summary; then \
+            if grep -q 'ERROR: There are no' $dir/$summary; then \
                 echo "{wildcards.chr}\t$chunk" >> \
                     $dir/{wildcards.name}.chr{wildcards.chr}.nochunks
             elif grep -q 'ERROR' $dir/$summary; then
@@ -337,12 +339,30 @@ rule snpQC:
         qctool -g {input.gen} -og {output.genqc} -excl-rsids {output.fail}
         """
 
+rule genotypeCounts:
+    input:
+        chunksPerChr=chunks2concatenate,
+        chr="{dir}/genotypes/{name}.chr{chr}.gen",
+        chrQC="{dir}/genotypes/{name}.chr{chr}.qc.gen.gz",
+    output:
+        chr="{dir}/counts/chr{chr}SNPsPerChunk.txt"
+    params:
+        refdir=config['referencedir']
+    shell:
+        """
+        perl PhasingAndImputation/imputeQC.pl --indir {wildcards.dir} \
+            --outdir {wildcards.dir}/counts \
+            --refdir {params.refdir} \
+            --noSnps noSnpInIntervalString \
+            --verbose
+        """
+
 rule combine_and_convert:
     input:
         genqc=expand("{{dir}}/genotypes/{{name}}.chr{chr}.qc.gen.gz",
             chr=AUTOSOMES),
         sample=expand("{{dir}}/genotypes/{{name}}.chr{chr}.sample",
-            chr=AUTOSOMES)
+            chr=1)
     output:
         bgen="{dir}/bgen/{name}.genome.qc.bgen",
         bimbam="{dir}/bimbam/{name}.genome.qc.dosage.gz"
