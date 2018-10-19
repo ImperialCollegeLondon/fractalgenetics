@@ -98,8 +98,6 @@ foreach  my $chr (1..22, "X") {
         print OUT_DATA @data;
         close (INFILE);
     }
-}
-__END__
     # 2. SNP counts per chromosome: genotyped, imputation, QC
     print "Marker counts for chr"."$chr\n" if $verbose;
     open (OUT_COUNTSCHR, ">$outdir/chr$chr".".SNPsPerChunk.txt") or die "Can't write to filehandle $outdir/chr$chr".".SNPsPerChunk.txt, reason: $!";

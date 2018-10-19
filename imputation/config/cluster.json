@@ -1,0 +1,67 @@
+{
+    "__default__" :
+    {
+        "memory" : "5000",
+        "n" : "1",
+        "resources" : "\"select[mem>5000] rusage[mem=5000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}.{wildcards}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
+    },
+    "phasing" :
+    {
+        "n" : "8",
+        "memory" : "5000",
+        "resources" : "\"select[mem>5000] rusage[mem=5000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}.{wildcards.chr}",
+        "output" : "log/{rule}.{wildcards.chr}.out",
+        "error" : "log/{rule}.{wildcards.chr}.err"
+    },
+    "imputation" :
+    {
+        "memory" : "30000",
+        "resources" : "\"select[mem>30000] rusage[mem=30000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}.{wildcards.chr}",
+        "output" : "log/{rule}.{wildcards.chr}.{wildcards.chunk}.out",
+        "error" : "log/{rule}.{wildcards.chr}.{wildcards.chunk}.err"
+    },
+    "checkChunks" :
+    {
+        "memory" : "500",
+        "resources" : "\"select[mem>500] rusage[mem=500] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}.{wildcards.chr}",
+        "output" : "log/{rule}.{wildcards.chr}.out",
+        "error" : "log/{rule}.{wildcards.chr}.err"
+    },
+    "concatenateChunks" :
+    {
+        "memory" : "500",
+        "resources" : "\"select[mem>500] rusage[mem=500] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}.{wildcards.chr}",
+        "output" : "log/{rule}.{wildcards.chr}.out",
+        "error" : "log/{rule}.{wildcards.chr}.err"
+    },
+    "snpQC" :
+    {
+        "memory" : "5000",
+        "resources" : "\"select[mem>5000] rusage[mem=5000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}.{wildcards.chr}",
+        "output" : "log/{rule}.{wildcards.chr}.out",
+        "error" : "log/{rule}.{wildcards.chr}.err"
+    },
+    "combined_and_convert" :
+    {
+        "memory" : "5000",
+        "resources" : "\"select[mem>5000] rusage[mem=5000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}.{wildcards.chr}",
+        "output" : "log/{rule}.{wildcards.chr}.out",
+        "error" : "log/{rule}.{wildcards.chr}.err"
+    }
+}
