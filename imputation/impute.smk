@@ -44,49 +44,52 @@ perChr = chunksPerChromosome(chromosome=chromosomes, dir=config['referencedir'],
 ##### target rules #####
 rule all:
     input:
-        # rule splitChromosomes
+        # rules/prepare.smk
         expand("{dir}/unphased/{name}.chr{chr}.{suffix}",
             dir=config["dir"],
             name='gencall.combined.clean.related',
             chr=range(1,23),
             suffix=['bim', 'bed', 'fam']),
-        # rule phasing
+        # rules/phase.smk
         expand("{dir}/phased/{name}.chr{chr}.{suffix}",
             dir=config["dir"],
             name='gencall.combined.clean.related',
             chr=range(1,23),
             suffix=['hap.gz', 'sample']),
-        # rule imputation
+        # rules/impute.smk
         expand(expand("{dir}/imputed/chr{{chr}}/{name}.chr{{chr}}.{{chunk}}.{suffix}",
                 dir=config["dir"],
                 name='gencall.combined.clean.related',
                 suffix=['gen']),
             zip, chunk=perChr['chunks'], chr=perChr['chr']),
-        # rule checkChunks
+        # rules/check.smk
         expand("{dir}/imputed/chr{chr}/{name}.chr{chr}.warnings_overview",
             dir=config["dir"],
             name='gencall.combined.clean.related',
             chr=range(1,23)),
-        # rule combineCheckChunks
         expand("{dir}/imputed/{name}.warnings_overview",
             dir=config["dir"],
             name='gencall.combined.clean.related'),
-        # rule concatenateChunks
         expand("{dir}/genotypes/{name}.chr{chr}.{suffix}",
             dir=config["dir"],
             name='gencall.combined.clean.related',
             chr=range(1,23),
             suffix=['sample', 'gen']),
-        # rule snpQC
+        # rules/qc.smk
         expand("{dir}/genotypes/{name}.chr{chr}.qc.gen.gz",
             dir=config["dir"],
             name='gencall.combined.clean.related',
             chr=range(1,23)),
-        # rule combine_and_convert
-        expand(expand("{dir}/{{format}}/{name}.genome.qc.{{suffix}}",
-                dir=config["dir"],
-                name='gencall.combined.clean.related'),
-            zip, format=['bgen', 'bimbam'], suffix=['bgen', 'dosage.gz'])
+        # rule/combine.smk
+        expand("{dir}/formated/{name}.genome.qc.{{suffix}}",
+            dir=config["dir"],
+            name='gencall.combined.clean.related',
+            suffix=['bgen', 'dosage.gz'])
+        # rules/counts.smk
+        expand("{dir}/counts/SNPsPerChr.{{suffix}}",
+            dir=config["dir"],
+            name='gencall.combined.clean.related',
+            suffix=['txt', 'pdf'])
 
 ##### load rules #####
 include: "rules/prepare.smk"

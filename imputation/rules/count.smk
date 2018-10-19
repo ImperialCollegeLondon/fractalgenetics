@@ -38,14 +38,16 @@ rule genotypeCounts:
         chr="{dir}/genotypes/{name}.chr{chr}.gen",
         chrQC="{dir}/genotypes/{name}.chr{chr}.qc.gen.gz",
     output:
-        chr="{dir}/counts/chr{chr}SNPsPerChunk.txt"
+        txt="{dir}/counts/SNPsPerChr.txt"
+        pdf="{dir}/counts/SNPsPerChr.pdf"
     params:
         refdir=config['referencedir']
     shell:
         """
-        perl PhasingAndImputation/imputeQC.pl --indir {wildcards.dir} \
+        perl scripts/imputeQC.pl --indir {wildcards.dir} \
             --outdir {wildcards.dir}/counts \
             --refdir {params.refdir} \
             --noSnps noSnpInIntervalString \
             --verbose
+        Rscript scripts/imputeQC.R --directory {wildcards.dir}/counts
         """
