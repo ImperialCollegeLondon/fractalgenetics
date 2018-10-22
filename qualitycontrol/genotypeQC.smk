@@ -75,8 +75,10 @@ rule filtering_and_plots:
         "{qcdir}/{alg}/{call}.{alg}.lmiss",
         "{qcdir}/{alg}/{call}.{alg}.het",
         "{qcdir}/{alg}/{call}.{alg}.genome",
-        "{qcdir}/{alg}/{call}.{alg}.{ref}.eigenvec",
-        "{qcdir}/{alg}/{call}.{alg}.{ref}.eigenval"
+        expand("{{qcdir}}/{{alg}}/{{call}}.{{alg}}.{ref}.eigenvec",
+            ref=config['reference']),
+        expand("{{qcdir}}/{{alg}}/{{call}}.{{alg}}.{ref}.eigenval",
+            ref=config['reference'])
     output:
         "{qcdir}/{alg}/{call}.{alg}.clean.related.bim",
         "{qcdir}/{alg}/{call}.{alg}.clean.related.fam",
@@ -99,15 +101,14 @@ rule filtering_and_plots:
         ref=config['reference']
     shell:
         """
-        Rscript QC/genotypeQC.R \
+        Rscript scripts/genotypeQC.R \
             --name={wildcards.call}.{wildcards.alg} \
-            --directory={wildcards.qcdir} \
+            --directory={wildcards.qcdir}/{wildcards.alg} \
             --check_sex \
             --fixMixup \
             --maleTh={params.maleTh} \
             --femaleTh={params.femaleTh} \
             --externalSex={params.externalSex} \
-            --externalSexSex={params.externalSexSex} \
             --externalSexID={params.externalSexID} \
             --check_het_and_miss \
             --imissTh={params.imissTh} \
