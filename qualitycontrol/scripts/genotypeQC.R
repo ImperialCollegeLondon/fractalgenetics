@@ -167,8 +167,8 @@ args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 if (FALSE) {
     # testing parser
     args_vec <-
-        c("--name=gencall.sanger12",
-          "--directory=/homes/hannah/data/genotype/QC/sanger12",
+        c("--name=gencall.combined",
+          "--directory=/homes/hannah/data/genotype/QC/combined",
           "--check_sex", "--fixMixup",
           "--maleTh=0.8","--femaleTh=0.2",
           "--externalSex=/homes/hannah/data/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt",
@@ -190,8 +190,9 @@ if (args$plot) pdf(paste(args$qcdir,"/", args$alg,".pdf",sep=""), width=8.3,
                    height=11.7, onefile=TRUE)
 ## Per-individual QC ####
 if (args$verbose) message("per-individual QC")
-SampleID <- read.table(file=args$externalSexFile, sep="\t", header=TRUE,
-                       quote="", stringsAsFactors=FALSE, na.strings=c("NA",""))
+SampleID <- data.table::fread(file=args$externalSexFile, header=TRUE,
+                       quote="", stringsAsFactors=FALSE, na.strings=c("NA",""),
+                       data.table=FALSE, fill=TRUE)
 fail_individuals <-
     plinkqc$perSampleQC(qcdir=args$qcdir, alg=args$alg,
                         do.check_sex=args$do.check_sex,
