@@ -81,12 +81,17 @@ rule all:
             name='gencall.combined.clean.related',
             chr=range(1,23)),
         # rule/combine.smk
-        expand("{dir}/formated/{name}.genome.qc.{{suffix}}",
+        expand("{dir}/formated/{name}.chr{chr}.qc.{suffix}",
             dir=config["dir"],
             name='gencall.combined.clean.related',
-            suffix=['bgen', 'dosage.gz'])
+            chr=range(1,23),
+            suffix=['bgen', 'dosage.gz']),
+        expand("{dir}/formated/{name}.genome.qc.{suffix}",
+            dir=config["dir"],
+            name='gencall.combined.clean.related',
+            suffix=['bgen', 'dosage.gz']),
         # rules/counts.smk
-        expand("{dir}/counts/SNPsPerChr.{{suffix}}",
+        expand("{dir}/counts/{name}.SNPsPerChr.{suffix}",
             dir=config["dir"],
             name='gencall.combined.clean.related',
             suffix=['txt', 'pdf'])
