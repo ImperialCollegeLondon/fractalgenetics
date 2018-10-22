@@ -16,7 +16,7 @@ use Getopt::Long;
 
 my ($indir, $refdir, $outdir, $name, $nosnp, $verbose, $concordance_flag,
     $analysis_flag, $SNP_ref, $SNP_ref_sample, $SNP_sample, $SNP_total,
-    $concordance, $concordance_overall, $chrStr);
+    $concordance, $concordance_overall);
 my (@data);
 
 ############################
@@ -31,14 +31,17 @@ my (@data);
 GetOptions ("indir=s" => \$indir, "refdir=s" => \$refdir, "outdir=s" => \$outdir,
             "nosnp=s" => \$nosnp, "name=s" => \$name, "verbose" => \$verbose);
 
-
-open (OUT_COUNTSALL, ">$outdir/SNPsPerChr.txt") or die "Can't write to filehandle $outdir/SNPsPerChr.txt, reason: $!";
-print OUT_COUNTSALL "Chr\tgenotyped\timputed\timputed QC\n";
+if (defined $name) {
+    $name = $name."."
+} else {
+    $name=""
+}
+#open (OUT_COUNTSALL, ">$outdir/$name"."SNPsPerChr.txt") or die "Can't write to filehandle $outdir/$name"."SNPsPerChr.txt, reason: $!";
+#print OUT_COUNTSALL "Chr\tgenotyped\timputed\timputed QC\n";
 foreach  my $chr (1..22, "X") {
     #foreach  my $chr (1..22, "X_PAR1", "X_PAR2", "X") {
-    $chrStr = (length($chr) == 1 && $chr ne "X") ? "0$chr" : $chr;
-    open (OUT_NUMBERS, ">$outdir/chr$chrStr".".chunkStats.txt") or die "Can't write to filehandle $outdir/chr$chrStr"."_numbers.txt, reason: $!";
-    open (OUT_DATA, ">$outdir/chr$chrStr".".chunkConcordance.txt") or die "Can't write to filehandle $outdir/chr$chrStr"."_data.txt, reason: $!";
+    open (OUT_NUMBERS, ">$outdir/$name"."chr$chr".".chunkStats.txt") or die "Can't write to filehandle $outdir/$name"."chr$chr"."_numbers.txt, reason: $!";
+    open (OUT_DATA, ">$outdir/$name"."chr$chr".".chunkConcordance.txt") or die "Can't write to filehandle $outdir/$name"."chr$chr"."_data.txt, reason: $!";
     print  OUT_NUMBERS "Chr\tChunk\tSNP_total\tSNP_ref\tSNP_sample\tSNP_ref_sample\tconcordance_overall\n";
     print  OUT_DATA "Chr\tChunk\tStart\tEnd\tGenotypes\tConcordance\n";
 
@@ -62,7 +65,7 @@ foreach  my $chr (1..22, "X") {
     # 1. Imputation quality per chunk
     print "Imputation quality for chr"."$chr\n" if $verbose;
     foreach my $chunk (@chunk_num) {
-        my $file = "$indir/imputed/chr$chr/$name.chr$chr.$chunk.gen_summary";
+        my $file = "$indir/imputed/chr$chr/$name"."chr$chr.$chunk.gen_summary";
         open (INFILE, "$file") or die "Can't open filehandle $file, reason $!\n";
         ($analysis_flag, $SNP_ref, $SNP_sample, $SNP_ref_sample, $SNP_total, $concordance_flag, $concordance, $concordance_overall) = (0,0,0,0,0,0,0,0);
         @data =();
@@ -100,7 +103,7 @@ foreach  my $chr (1..22, "X") {
     }
     # 2. SNP counts per chromosome: genotyped, imputation, QC
     print "Marker counts for chr"."$chr\n" if $verbose;
-    open (OUT_COUNTSCHR, ">$outdir/chr$chr".".SNPsPerChunk.txt") or die "Can't write to filehandle $outdir/chr$chr".".SNPsPerChunk.txt, reason: $!";
+    open (OUT_COUNTSCHR, ">$outdir/$name"."chr$chr".".SNPsPerChunk.txt") or die "Can't write to filehandle $outdir/$name"."chr$chr".".SNPsPerChunk.txt, reason: $!";
     print OUT_COUNTSCHR "Chunk\timputed\n";
     my $perChrImpute = 0;
     foreach my $chunk  (@chunk_num) {

@@ -14,9 +14,16 @@ option_list <- list(
     optparse$make_option(c("-d", "--directory"), action="store",
                         dest="directory", type="character",
                         help="Path to directory with imputation QC results
-                        [default: %default].", default=NULL))
+                        [default: %default].", default=NULL),
+    optparse$make_option(c("-n", "--name"), action="store",
+                        dest="name", type="character",
+                        help="Name of dataset [default: %default].",
+                        default=NULL))
 args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 directory <- args$directory
+name <- args$name
+if (!is.null(name)) name <- paste(name, ".", sep="")
+
 #directory <- "/Users/hannah/data/genotype/imputation/combined/counts"
 
 ## Display maximum posterior probability of imputation per chunk per chr ####
@@ -25,7 +32,8 @@ concordance_files = dir(directory, pattern=".chunkConcordance",
 stats_files = dir(directory, pattern=".chunkStats", full.names=TRUE,
                   ignore.case=TRUE)
 
-pdf(paste(directory, "/imputeQC.perChrMPP.pdf", sep=""), width = 12, height = 6)
+pdf(paste(directory, "/", name, "imputeQC.perChrMPP.pdf", sep=""), width = 12,
+    height = 6)
 concordance <- lapply(seq_along(stats_files), function(chr) {
     concordance <- read.table(concordance_files[chr], header=TRUE, sep="\t",
                               stringsAsFactors=FALSE)
@@ -62,18 +70,21 @@ concordance <- lapply(seq_along(stats_files), function(chr) {
 dev.off()
 
 ## overview of SNP counts after each genotyping and imputation step ####
-overview <- read.table(paste(directory, "/SNPsPerChr.txt", sep=""), sep="\t",
-                       header=TRUE,stringsAsFactors=FALSE)
+overview <- read.table(paste(directory, "/", name, "SNPsPerChr.txt", sep=""),
+                       sep="\t", header=TRUE,stringsAsFactors=FALSE)
+chromosomes <- unique(overview$Chr)
+overview$Chr[overview$Chr == "X"] <- 23
+overview$Chr <- as.numeric(overview$Chr)
 overview <- reshape2::melt(overview, id.vars="Chr", variable.name="type",
                            value.name="SNP")
 
 
-pdf(paste(directory, "/SNPsperChr.pdf", sep=""), onefile = TRUE, paper = "a4r",
-    width = 14, height = 6)
-p <- ggplot(data=overview, aes_string(x="Chr", y="SNP", fill="type"),
-            stat="identity", position="dodge")
-p + geom_bar() +
-    scale_x_continuous(labels=paste("chr", unique(overview$Chr), sep="")) +
+pdf(paste(directory, "/", name, "SNPsPerChr.pdf", sep=""), onefile = TRUE,
+    paper = "a4r", width = 14, height = 6)
+p <- ggplot(data=overview, aes_string(x="Chr", y="SNP", fill="type"))
+p + geom_bar(stat="identity", position="dodge") +
+    scale_x_continuous(breaks=unique(overview$Chr),
+                       labels=paste("chr", chromosomes, sep="")) +
     scale_fill_manual(values=c('#41b6c4','#2c7fb8','#253494')) +
     xlab("Chromosomes") +
     ylab("Number of SNPs") +
