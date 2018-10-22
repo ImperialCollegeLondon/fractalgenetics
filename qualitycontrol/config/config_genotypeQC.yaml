@@ -1,0 +1,25 @@
+
+highld : "/homes/hannah/data/hmeyer/HapMap/data_2010_NatureProtocols_Anderson_Suppl/high-LD-regions.txt"
+reference : "HapMapIII"
+hapmap : "HapMapIII_CGRCh37.good_pos"
+hapmapdir : "/homes/hannah/data/hmeyer/HapMap"
+dir : "/homes/hannah/data/genotype/QC"
+
+externalSex: "/homes/hannah/data/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt"
+externalSexID : "Bru.Number"
+externalSexSex : "Sex"
+refSamples : "/homes/hannah/data/hmeyer/HapMap/HapMap_ID2Pop.txt"
+refColors : "/homes/hannah/data/hmeyer/HapMap/HapMap_PopColors.txt"
+path2plink : "~/bin"
+
+maleTh : 0.8
+femaleTh : 0.2
+imissTh : 0.03
+hetTh : 3
+highIBDTh : 0.1875
+lmissTh : 0.01
+hweTh : "1e-5"
+macTh : 20
+
+diagnosis : "/homes/hannah/data/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt"
+

@@ -23,6 +23,11 @@ rawdata :
     singapore3 : "Edmund_NHCS_Heart_Failure"
     sanger12: "omnix_hhtmri_20141121.gencall.smajor"
 
+probes :
+    singapore12: "/homes/hannah/data/genotype/omnix_NHCS_20160217/Manifests/HumanOmniExpress-24v1-0/humanomniexpress-24v1-0_a.csv"
+    singapore3 : "/homes/hannah/data/genotype/omnix_NHCS_20160217/Manifests/HumanOmniExpress-24v1-1_A/humanomniexpress-24-v1-1-a.csv"
+    sanger12 : "/homes/hannah/data/genotype/omnix_hhtmri_20141121/HumanOmniExpress-12v1-1_A.csv"
+
 externalSex: "/homes/hannah/data/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt"
 externalSexID : "Bru.Number"
 externalSexSex : "Sex"

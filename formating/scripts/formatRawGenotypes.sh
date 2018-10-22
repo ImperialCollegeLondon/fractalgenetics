@@ -16,7 +16,7 @@ if [[ ! -s $qcdir/${alg}.raw.fam ]]; then
     ### Reformat input files if parental information is encoded incorrectly:
     if [[ $center == *"singapore"* ]]; then
         echo "Reformating Singapore files..."
-        perl format/parse_singapore_data.pl \
+        perl scripts/parse_singapore_data.pl \
             --inped $rawdir/$rawdata \
             --samples $rawdir/${rawdata}_sample_sex.txt \
             --outped $rawdir/$alg.raw \
