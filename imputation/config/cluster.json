@@ -55,7 +55,7 @@
         "output" : "log/{rule}.{wildcards.chr}.out",
         "error" : "log/{rule}.{wildcards.chr}.err"
     },
-    "combined_and_convert" :
+    "convert" :
     {
         "memory" : "5000",
         "resources" : "\"select[mem>5000] rusage[mem=5000] span[hosts=1]\"",
@@ -63,5 +63,14 @@
         "name" : "{rule}.{wildcards.chr}",
         "output" : "log/{rule}.{wildcards.chr}.out",
         "error" : "log/{rule}.{wildcards.chr}.err"
+    },
+    "combine_and_convert" :
+    {
+        "memory" : "5000",
+        "resources" : "\"select[mem>5000] rusage[mem=5000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
     }
 }
