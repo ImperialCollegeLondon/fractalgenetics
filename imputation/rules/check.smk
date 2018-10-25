@@ -99,8 +99,8 @@ rule concatenateChunks:
     shell:
         """
         impute={wildcards.dir}/imputed/chr{wildcards.chr}
-        phase={wildcards.dir}/phased
+        phased={wildcards.dir}/phased
         cat $impute/{wildcards.name}.chr{wildcards.chr}.*.gen > {output.chr}
-        awk 'NR==2 {$7="P"} {print $0}' \
+        awk 'NR==2 {{$7="P"}} {{print $0}}' \
             $phased/{wildcards.name}.chr{wildcards.chr}.sample > {output.sample}
         """

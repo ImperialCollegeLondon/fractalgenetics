@@ -15,7 +15,7 @@ rule genotypeCounts:
         perl scripts/imputeQC.pl --indir {wildcards.dir} \
             --outdir {wildcards.dir}/counts \
             --refdir {params.refdir} \
-            --noSnps {params.nosnp} \
+            --nosnp {params.nosnp} \
             --name {wildcards.name} \
             --verbose
         Rscript scripts/imputeQC.R \
