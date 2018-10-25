@@ -26,7 +26,11 @@ rule imputation:
         hap="{dir}/phased/{name}.chr{chr}.hap.gz",
         sample="{dir}/phased/{name}.chr{chr}.sample"
     output:
-        gen="{dir}/imputed/chr{chr}/{name}.chr{chr}.{chunk}.gen"
+        gen="{dir}/imputed/chr{chr}/{name}.chr{chr}.{chunk}.gen",
+        warnings="{dir}/imputed/chr{chr}/{name}.chr{chr}.{chunk}.gen_warnings",
+        summary="{dir}/imputed/chr{chr}/{name}.chr{chr}.{chunk}.gen_summary",
+        samples="{dir}/imputed/chr{chr}/{name}.chr{chr}.{chunk}.gen_samples",
+        info="{dir}/imputed/chr{chr}/{name}.chr{chr}.{chunk}.gen_info"
     params:
         buffer=config['buffer_size'],
         k_hap=config['k_hap'],
