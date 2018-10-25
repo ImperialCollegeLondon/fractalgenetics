@@ -1,0 +1,5 @@
+controldir : "/homes/hannah/data/genotype/control"
+imputedir : "/homes/hannah/data/genotype/imputation/combined/formated"
+genodir : "/homes/hannah/data/genotype/QC/combined"
+name : "gencall.combined.clean.related"
+n : 8
