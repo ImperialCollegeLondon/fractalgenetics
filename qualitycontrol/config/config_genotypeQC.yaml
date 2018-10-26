@@ -3,9 +3,9 @@ highld : "/homes/hannah/data/hmeyer/HapMap/data_2010_NatureProtocols_Anderson_Su
 reference : "HapMapIII"
 hapmap : "HapMapIII_CGRCh37.good_pos"
 hapmapdir : "/homes/hannah/data/hmeyer/HapMap"
-dir : "/homes/hannah/data/genotype/QC"
+dir : "/homes/hannah/data/digital-heart/genotype/QC"
 
-externalSex: "/homes/hannah/data/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt"
+externalSex: "/homes/hannah/data/digital-heart/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt"
 externalSexID : "Bru.Number"
 externalSexSex : "Sex"
 refSamples : "/homes/hannah/data/hmeyer/HapMap/HapMap_ID2Pop.txt"
@@ -21,5 +21,5 @@ lmissTh : 0.01
 hweTh : "1e-5"
 macTh : 20
 
-diagnosis : "/homes/hannah/data/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt"
+diagnosis : "/homes/hannah/data/digital-heart/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt"
 

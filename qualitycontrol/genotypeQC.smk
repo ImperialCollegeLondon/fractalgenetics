@@ -19,7 +19,14 @@ rule all:
         expand("{dir}/{alg}/European.HVOL.{call}.{alg}.txt",
             call='gencall',
             alg='combined',
-            dir=config["dir"])
+            dir=config["dir"]),
+        expand("{dir}/{alg}/HVOL.{call}.{alg}.{suffix}",
+            dir=config["dir"],
+            call='gencall',
+            alg='combined',
+            suffix=['clean.related.bim', 'clean.related.bed',
+                'clean.related.fam', 'clean.related.eigenvec',
+                'clean.related.eigenval'])
 
 rule genotypeQC:
     input:
@@ -133,9 +140,34 @@ rule HVOLsamples:
     params:
         diagnosis=config['diagnosis']
     output:
-        HVOL="{dir}/{alg}/European.HVOL.{call}.{alg}.txt",
+        overview="{dir}/{alg}/European.HVOL.{call}.{alg}.txt",
+        id="{dir}/{alg}/European.HVOL.{call}.{alg}.IDs",
+        fam="{dir}/{alg}/HVOL.{call}.{alg}.clean.related.fam",
+        bim="{dir}/{alg}/HVOL.{call}.{alg}.clean.related.bim",
+        bed="{dir}/{alg}/HVOL.{call}.{alg}.clean.related.bed",
     shell:
         """
         awk 'FNR==NR {{a[$1]; next}} ($2 in a && $6 == "HVOL")' {input} \
-            {params.diagnosis} > {output.HVOL}
+            {params.diagnosis} > {output.overview}
+        awk 'FNR==NR {{a[$1]; next}} ($2 in a && $6 == "HVOL") {{print $2,$2}}' \
+            {input} {params.diagnosis} > {output.id}
+        plink --bfile {wildcards.dir}/{wildcards.alg}/{wildcards.call}.{wildcards.alg}.clean.related \
+            --keep {output.id} \
+            --make-bed \
+            --out {wildcards.dir}/{wildcards.alg}/HVOL.{wildcards.call}.{wildcards.alg}.clean.related
+        """
+
+rule pcaHVOLsamples:
+    input:
+        fam="{dir}/{alg}/HVOL.{call}.{alg}.clean.related.fam",
+        bim="{dir}/{alg}/HVOL.{call}.{alg}.clean.related.bim",
+        bed="{dir}/{alg}/HVOL.{call}.{alg}.clean.related.bed",
+    output:
+        eigenvec="{dir}/{alg}/HVOL.{call}.{alg}.clean.related.eigenvec",
+        eigenval="{dir}/{alg}/HVOL.{call}.{alg}.clean.related.eigenval",
+    shell:
+        """
+        plink --bfile {wildcards.dir}/{wildcards.alg}/HVOL.{wildcards.call}.{wildcards.alg}.clean.related \
+            --pca 50 \
+            --out {wildcards.dir}/{wildcards.alg}/HVOL.{wildcards.call}.{wildcards.alg}.clean.related
         """
