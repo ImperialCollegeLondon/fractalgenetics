@@ -78,7 +78,8 @@ ukb <- cbind(beta, logp=logp$logp)
 ukb <- ukb[ukb$rsid %in% slices_dh$rsid, ]
 ukb_sig_slices <- dplyr::filter(ukb, logp  > -log10(5e-8))
 
-slices2sample <- as.data.frame(table(ukb_sig_slices$variable))
+slices2sample <- as.data.frame(table(ukb_sig_slices$variable),
+                               stringsAsFactors=FALSE)
 colnames(slices2sample) <- c("slice", "freq")
 slices2sample <- slices2sample[slices2sample$freq != 0,]
 
@@ -88,55 +89,68 @@ observedBetas <- ukb_sig_slices$beta
 dh_beta <- slices_dh[,c(2, which(grepl('beta', colnames(slices_dh))))]
 colnames(dh_beta) <- gsub("_beta", "", colnames(dh_beta))
 dh_logp <- slices_dh[,c(2, which(grepl('log10p', colnames(slices_dh))))]
-colnames(dh_logp <- gsub("\\.log10p", "", colnames(dh_logp))
+colnames(dh_logp) <- gsub("-log10p", "", colnames(dh_logp))
 
-dh_sig_slices <- apply(ukb_sig_slices, 1, function(x) {
-    beta_tmp <- dh_beta[dh_beta$rsid %in%  x[1], colnames(dh_beta) %in% x[2]]
-    logp_tmp <- dh_logp[dh_logp$rsid %in%  x[1], colnames(dh_logp) %in% x[2]]
-    return(cbind(beta_tmp, logp_tmp))
-})
+dh_sig_slices <- data.frame(t(apply(ukb_sig_slices, 1, function(x) {
+    pos <- which(dh_beta$rsid %in%  x[1])
+    beta_tmp <- dh_beta[pos, colnames(dh_beta) %in% x[2]]
+    logp_tmp <- dh_logp[pos, colnames(dh_logp) %in% x[2]]
+    return(rbind(beta_tmp, logp_tmp))
+})))
+colnames(dh_sig_slices) <- c("beta", "logp")
 dh_sig_slices$rsid <- ukb_sig_slices$rsid
 
 ## concordance of effect sizes of significant snps betwenn ukb and digital-heart
-observedConcordance <- sum(sign(dh_sig_slices * observedBetas))
+observedConcordance <- sum(sign(dh_sig_slices$beta * observedBetas))
 
 ## Empirical concordance: matched for number of sig snps and slices
 nrsig <- nrow(ukb_sig_slices)
 nrtotal <- nrow(slices_dh)
-draws <- 10000
-seed <- 10
+draws <- 100000
+seed <- 101
 
 set.seed(seed)
 testConcordance <- sapply(1:draws, function(dummy) {
-           randomSnps <- dh_beta[sample(nrtotal, nrsig),
-                                 colnames(dh_beta) %in% slices2sample$slice]
-           randomBetas <- unlist(sapply(1:nrow(slices2sample), function(x) {
-                                    sample(randomSnps[,x],
-                                           slices2sample$slice[x])
-                            }))
-           return(sum(sign(randomBetas * observedBetas)))
-        })
+    randomSnps <- dh_beta[sample(nrtotal, nrsig),
+                          colnames(dh_beta) %in% slices2sample$slice]
+    pos <- colnames(randomSnps) ==slices2sample$slice[x]
+    randomBetas <- unlist(sapply(1:nrow(slices2sample), function(x) {
+        sample(randomSnps[,pos], slices2sample$freq[x])
+    }))
+    return(sum(sign(randomBetas * observedBetas)))
+})
 
 empiricalConcordance <-
     length(which(testConcordance >= observedConcordance))/draws
 
 ## plot beta concordance ukb and digital heart ####
-slices <- merge(ukb_sig_slices, dg_sig_slices, by='rsid')
-colnames(slices) <- c('rsid', 'ukbb', 'dh', 'dh_logp')
-slices$concordance <- as.factor(sign(slices$ukbb * slices$dh))
+slices <- cbind(ukb_sig_slices, dh_sig_slices[, -3])
+colnames(slices) <- c('rsid', 'slices', 'ukbb_beta', 'ukbb_logp', 'dh_beta',
+                      'dh_logp')
+slices$sig <- factor(as.numeric(slices$dh_logp > -log10(0.005)),
+                        labels=c(expression(p >= 0.005), expression(p < 0.005)))
+slices$concordance <- factor(sign(slices$ukbb_beta * slices$dh_beta),
+                             labels=c('yes', 'no'))
 
+limit <- max(abs(c(slices$ukbb_beta, slices$dh_beta)))
 p <- ggplot(data=slices)
-p + geom_point(aes(x=ukb, y=dh, color=concordance)) +
-    xlim(c(-0.1, 0.1)) +
+p <- p + geom_point(aes(x=ukbb_beta, y=dh_beta, color=concordance, shape=sig)) +
+    xlim(c(-limit, limit)) +
+    ylim(c(-limit, limit)) +
     geom_hline(yintercept = 0) +
     geom_vline(xintercept = 0) +
-    scale_color_manual(values=c('#969696', 'black')) +
+    xlab(expression(hat(beta)[ukbb])) +
+    ylab(expression(hat(beta)[Digital-Heart])) +
+    scale_color_manual(values=c('#969696', 'black'), guide=FALSE) +
+    scale_shape_manual(values=c(20, 17), name='Digital-Heart',
+                       labels=c(expression(p >= 0.005), expression(p < 0.005))) +
     theme_bw()
+ggsave(plot=p, paste(directory, "/Slices_concordance.pdf", sep=""),
+       height=5, width=6.5)
 
 
-
-
-
+write.table(slices, paste(directory, "/Slices_concordance.txt", sep=""),
+            quote=FALSE, col.names=TRUE, row.names=FALSE)
 
 
 
