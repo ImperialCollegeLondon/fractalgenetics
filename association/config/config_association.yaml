@@ -1,0 +1,5 @@
+gwasdir: "/homes/hannah/data/digital-heart/association/FD"
+genodir: "/homes/hannah/data/digital-heart/genotype/imputation/combined/formated"
+phenodir: "/homes/hannah/data/digital-heart/phenotype/FD"
+name: "gencall.combined.clean.related"
+n : "8"
