@@ -16,9 +16,10 @@ rule all:
             call='gencall',
             alg='combined',
             suffix=['HapMapIII.eigenvec', 'HapMapIII.eigenval']),
-        expand("{dir}/{alg}/European.HVOL.{call}.{alg}.txt",
+        expand("{dir}/{alg}/European.{diagnosis}.{call}.{alg}.txt",
             call='gencall',
             alg='combined',
+            diagnosis=['HVOL', 'DCM'],
             dir=config["dir"]),
         expand("{dir}/{alg}/HVOL.{call}.{alg}.{suffix}",
             dir=config["dir"],
@@ -134,6 +135,29 @@ rule filtering_and_plots:
             --showProgress
         """
 
+rule DCMsamples:
+    input:
+        "{dir}/{alg}/{call}.{alg}.clean.related.fam",
+    params:
+        diagnosis=config['diagnosis']
+    output:
+        overview="{dir}/{alg}/European.DCM.{call}.{alg}.txt",
+        id="{dir}/{alg}/European.DCM.{call}.{alg}.IDs",
+        fam="{dir}/{alg}/DCM.{call}.{alg}.clean.related.fam",
+        bim="{dir}/{alg}/DCM.{call}.{alg}.clean.related.bim",
+        bed="{dir}/{alg}/DCM.{call}.{alg}.clean.related.bed",
+    shell:
+        """
+        awk 'FNR==NR {{a[$1]; next}} ($2 in a && $6 == "DCM")' {input} \
+            {params.diagnosis} > {output.overview}
+        awk 'FNR==NR {{a[$1]; next}} ($2 in a && $6 == "DCM") {{print $2,$2}}' \
+            {input} {params.diagnosis} > {output.id}
+        plink --bfile {wildcards.dir}/{wildcards.alg}/{wildcards.call}.{wildcards.alg}.clean.related \
+            --keep {output.id} \
+            --make-bed \
+            --out {wildcards.dir}/{wildcards.alg}/DCM.{wildcards.call}.{wildcards.alg}.clean.related
+        """
+
 rule HVOLsamples:
     input:
         "{dir}/{alg}/{call}.{alg}.clean.related.fam",
@@ -156,7 +180,6 @@ rule HVOLsamples:
             --make-bed \
             --out {wildcards.dir}/{wildcards.alg}/HVOL.{wildcards.call}.{wildcards.alg}.clean.related
         """
-
 rule pcaHVOLsamples:
     input:
         fam="{dir}/{alg}/HVOL.{call}.{alg}.clean.related.fam",
