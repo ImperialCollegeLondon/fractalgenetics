@@ -79,6 +79,16 @@
         "output" : "log/{rule}_{wildcards.chr}.out",
         "error" : "log/{rule}_{wildcards.chr}.err"
     },
+    "bp" :
+    {
+        "memory" : "10000",
+        "n" : "8",
+        "resources" : "\"select[mem>10000] rusage[mem=10000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}_{wildcards.chr}",
+        "output" : "log/{rule}_{wildcards.chr}.out",
+        "error" : "log/{rule}_{wildcards.chr}.err"
+    },
     "summary" :
     {
         "memory" : "50000",
@@ -98,6 +108,24 @@
         "name" : "{rule}_{wildcards.chr}",
         "output" : "log/{rule}_{wildcards.chr}.out",
         "error" : "log/{rule}_{wildcards.chr}.err"
+    },
+    "covariatesResults" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}_GWAS.out",
+        "error" : "log/{rule}_GWAS.err"
+    },
+    "bpResults" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}_GWAS.out",
+        "error" : "log/{rule}_GWAS.err"
     },
     "summaryResults" :
     {
@@ -143,5 +171,14 @@
         "name" : "{rule}",
         "output" : "log/{rule}_{wildcards.type}.out",
         "error" : "log/{rule}_{wildcards.type}.err"
-    }
+    },
+    "generateLDtags" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}_{wildcards.chr}",
+        "output" : "log/{rule}_{wildcards.chr}.out",
+        "error" : "log/{rule}_{wildcards.chr}.err"
+    },
 }
