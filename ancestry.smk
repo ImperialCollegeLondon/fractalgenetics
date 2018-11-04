@@ -246,7 +246,7 @@ rule findMismatches:
         cut -f 2 {output.same} {output.flippedAlleles} > {output.keep}
         """
 
-rule filterAndFlipUKB:
+rule filterUKB:
     input:
         ukb_bed=expand("{ukb}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.intersection.nomissnp.bed",
             maf=config["maf"],
