@@ -185,6 +185,10 @@ covariates$age <- dob2age(covariates$dob, covariates$mridate)
 rownames(covariates) <- covs$Bru.Number
 covariates <- dplyr::select(covariates, sex, age, weight, height, bmi)
 
+write.table(data.frame(bru=covs$Bru.Number, covariates),
+            paste(args$outdir, "/Covariates_all_BRU", ".csv", sep=""),
+            sep=",", row.names=FALSE, col.names=TRUE, quote=FALSE)
+
 ## Merge FD measures and covariates to order by samples ####
 fd_all <- merge(summaryFDi[,-1], FDi, by=0)
 fd_all <- merge(fd_all, covariates, by.x=1, by.y=0)
