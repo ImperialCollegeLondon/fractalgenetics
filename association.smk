@@ -6,32 +6,34 @@ configfile: "config/config_association.yaml"
 
 def filesLDSC(wildcards):
     if wildcards.type == "summary":
-        fdlist = ['MeanGlobalFD', 'MeanBasalFD', 'MeanApicalFD', 'MeanMidFD',
-        'MaxMidFD','MaxBasalFD', 'MaxApicalFD']
+        fdlist = ['MeanBasalFD', 'MeanApicalFD', 'MeanMidFD'],
         ldfiles = ['{}/gwas/ldsc_summary_{}.sumstats.gz'.format(
             wildcards.dir, fd) for fd in fdlist]
     if wildcards.type == "slices":
         ldfiles = ['{}/gwas/ldsc_slices_Slice_{}.sumstats.gz'.format(
-            wildcards.dir, n) for n in range(1,11)]
+            wildcards.dir, n) for n in range(1,10)]
     return ldfiles
 
 
 rule all:
     input:
-        #expand("{ukb}/gwas/bgenie_{name}_lm_st_chr{chr}.gz",
-        #    ukb=config["ukbdir"],
-            #name=['summary', 'slices', 'covariates'],
-       #     name=['covariates', 'bp'],
-       #     chr=range(1,23)),
-        expand("{ukb}/gwas/sumstats_{name}_pseudomt.txt",
-            name=['summary', 'slices', 'covariates', 'bp'],
-            ukb=config["ukbdir"]),
+        expand("{ukb}/gwas/bgenie_{analysis}_lm_st_chr{chr}.gz",
+            ukb=config["ukbdir"],
+            #analysis=['summary', 'slices', 'bp', 'volumes'],
+            analysis=['volumes'],
+            chr=range(1,23)),
+        expand("{ukb}/bgenie_{analysis}_lm_pseudomt_{plot}.pdf",
+           analysis=['summary', 'slices', 'covariates', 'bp'],
+           plot=['qqplot', 'manhattanplot'],
+           ukb=config["ukbdir"]),
         expand("{ukb}/tags/European_ukb_imp_chr{chr}_v3_maf{maf}_{kb}kb_r{r2}.tags.list",
             ukb=config["ukbdir"],
             maf=config['maf'],
             kb=config['kbwindow'],
             r2=config['r2'],
-            chr=range(1,23))
+            chr=range(1,23)),
+        #expand("{ukb}/gwas/Pseudomultitrait_slices_sig5e08_genotypes.dosage.gz",
+        #    ukb=config["ukbdir"]),
         #expand("{ukb}/gwas/ldsc_{type}.sumstats.gz",
         #    type=['summary_{}'.format(x) for x in ['MeanGlobalFD',
         #        'MeanBasalFD', 'MeanApicalFD', 'MeanMidFD', 'MaxMidFD',
@@ -71,11 +73,11 @@ rule generateLDtags:
             --tag-r2 {params.r2} --tag-kb {params.kb} \
             --out {wildcards.dir}/tags/European_ukb_imp_chr{wildcards.chr}_v3_maf{wildcards.maf}_{params.kb}kb_r{params.r2}"
 
-rule summary:
+rule association:
     input:
         geno=expand("{geno}/ukb_imp_chr{{chr}}_v3.bgen",
             geno=config["genodir"]),
-        pheno=expand("{ukb}/phenotypes/FD_phenotypes_bgenie.txt",
+        pheno=expand("{ukb}/phenotypes/FD_{{analysis}}_bgenie.txt",
             ukb=config["ukbdir"]),
         covs=expand("{ukb}/phenotypes/FD_covariates_bgenie.txt",
             ukb=config["ukbdir"]),
@@ -84,7 +86,7 @@ rule summary:
     params:
         n=config["n"]
     output:
-        "{dir}/gwas/bgenie_summary_lm_st_chr{chr}.gz"
+        "{dir}/gwas/bgenie_{analysis}_lm_st_chr{chr}.gz"
     shell:
         "bgenie --bgen {input.geno} \
             --pheno {input.pheno} \
@@ -93,32 +95,9 @@ rule summary:
             --pvals --exc_missing_inds \
             --scale_phenotypes \
             --thread {params.n} \
-            --out {wildcards.dir}/gwas/bgenie_summary_lm_st_chr{wildcards.chr}"
+            --out {wildcards.dir}/gwas/bgenie_{wildcards.analysis}_lm_st_chr{wildcards.chr}"
 
 
-rule slices:
-    input:
-        geno=expand("{geno}/ukb_imp_chr{{chr}}_v3.bgen",
-            geno=config["genodir"]),
-        pheno=expand("{ukb}/phenotypes/FD_slices_bgenie.txt",
-            ukb=config["ukbdir"]),
-        covs=expand("{ukb}/phenotypes/FD_covariates_bgenie.txt",
-            ukb=config["ukbdir"]),
-        rsids=expand("{ukb}/maf0.001/ukb_imp_chr{{chr}}_v3_maf0.001.rsid",
-                    ukb=config["ukbdir"])
-    params:
-        n=config["n"]
-    output:
-        "{dir}/gwas/bgenie_slices_lm_st_chr{chr}.gz"
-    shell:
-        "bgenie --bgen {input.geno} \
-            --pheno {input.pheno} \
-            --covar {input.covs} \
-            --include_rsids  {input.rsids} \
-            --pvals --exc_missing_inds \
-            --scale_phenotypes \
-            --thread {params.n} \
-            --out {wildcards.dir}/gwas/bgenie_slices_lm_st_chr{wildcards.chr}"
 
 rule covariates:
     input:
@@ -178,7 +157,6 @@ rule covariatesResults:
     output:
         "{dir}/gwas/bgenie_covariates_lm_pseudomt_qqplot.pdf",
         "{dir}/gwas/bgenie_covariates_lm_pseudomt_manhattanplot.pdf",
-        "{dir}/gwas/sumstats_covariates_pseudomt.txt"
     shell:
         "Rscript association/association_results.R \
             --pheno {input.pheno} \
@@ -199,7 +177,6 @@ rule bpResults:
     output:
         "{dir}/gwas/bgenie_bp_lm_pseudomt_qqplot.pdf",
         "{dir}/gwas/bgenie_bp_lm_pseudomt_manhattanplot.pdf",
-        "{dir}/gwas/sumstats_bp_pseudomt.txt"
     shell:
         "Rscript association/association_results.R \
             --pheno {input.pheno} \
@@ -207,20 +184,19 @@ rule bpResults:
             --directory {wildcards.dir}/gwas \
             --showProgress "
 
-rule summaryResults:
+rule results:
     input:
         tags=expand("{{dir}}/tags/European_ukb_imp_chr{chr}_v3_maf{maf}_{kb}kb_r{r2}.tags.list",
             maf=config['maf'],
             r2=config['r2'],
             kb=config['kbwindow'],
             chr=range(1,23)),
-        gwas=expand("{{dir}}/gwas/bgenie_summary_lm_st_chr{chr}.gz",
+        gwas=expand("{{dir}}/gwas/bgenie_{{analysis}}_lm_st_chr{chr}.gz",
             chr=range(1,23)),
-        pheno="{dir}/phenotypes/FD_phenotypes_EUnorel.csv"
+        pheno="{dir}/phenotypes/FD_{analysis}_EUnorel.csv"
     output:
-        "{dir}/gwas/bgenie_summary_lm_pseudomt_qqplot.pdf",
-        "{dir}/gwas/bgenie_summary_lm_pseudomt_manhattanplot.pdf",
-        "{dir}/gwas/sumstats_summary_pseudomt.txt"
+        "{dir}/gwas/bgenie_{analysis}_lm_pseudomt_qqplot.pdf",
+        "{dir}/gwas/bgenie_{analysis}_lm_pseudomt_manhattanplot.pdf",
     shell:
         "Rscript association/association_results.R \
             --pheno {input.pheno} \
@@ -228,27 +204,31 @@ rule summaryResults:
             --directory {wildcards.dir}/gwas \
             --showProgress "
 
-rule slicesResults:
-    input:
-        tags=expand("{{dir}}/tags/European_ukb_imp_chr{chr}_v3_maf{maf}_{kb}kb_r{r2}.tags.list",
-            maf=config['maf'],
-            r2=config['r2'],
-            kb=config['kbwindow'],
-            chr=range(1,23)),
-        gwas=expand("{{dir}}/gwas/bgenie_slices_lm_st_chr{chr}.gz",
-            chr=range(1,23)),
-        pheno="{dir}/phenotypes/FD_slices_EUnorel.csv"
-    output:
-        "{dir}/gwas/bgenie_slices_lm_pseudomt_qqplot.pdf",
-        "{dir}/gwas/bgenie_slices_lm_pseudomt_manhattanplot.pdf",
-        "{dir}/gwas/sumstats_slices_pseudomt.txt"
-    shell:
-        "Rscript association/association_results.R \
-            --pheno {input.pheno} \
-            --name slices \
-            --directory {wildcards.dir}/gwas \
-            --showProgress "
 
+rule extractSigGenotypes:
+    input:
+        geno=expand("{geno}/ukb_imp_chr{chr}_v3.bgen",
+            chr=range(1,23),
+            geno=config["genodir"]),
+        samples="{dir}/rawdata/ukb18545_imp_chr1_v3_s487378.sample",
+        fdsamples="{dir}/phenotypes/FD_slices_EUnorel.csv",
+        sig="{dir}/gwas/Pseudomultitrait_slices_sig5e08.txt"
+    output:
+        bimbam="{dir}/gwas/Pseudomultitrait_slices_sig5e08_genotypes.dosage.gz",
+        rsids="{dir}/gwas/Pseudomultitrait_slices_sig5e08_qctool.IDs",
+        toupdate="{dir}/gwas/Pseudomultitrait_slices_sig5e08_qctool.toUpdate",
+        sampleids="{dir}/phenotypes/FD_samples_qctool.IDs",
+    params:
+        genodir=config["genodir"]
+    shell:
+        """
+        cut -d " " -f 2 {input.sig} | tail -n +2 |tr '\n' ' ' > {output.rsids}
+        cut -d " " -f 1,2 {input.sig} > {output.toupdate}
+        cut -d "," -f 1 {input.fdsamples} | tr '\n' ' ' > {output.sampleids}
+        qctool -g {params.genodir}/ukb_imp_chr#_v3.bgen \
+            -incl-rsids {output.rsids} -incl-samples {output.sampleids} \
+            -og {output.bimbam} -s {input.samples}
+        """
 
 rule ldScoreFormating:
     input:
