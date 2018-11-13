@@ -130,9 +130,11 @@ name <- args$name
 phenofile <- args$phenofile
 verbose <- args$verbose
 tags_prefix <- "European_ukb_imp_chr"
-tags_suffix <- "_v3_maf0.001_500kb_r0.6.tags.list"
+tags_suffix <- "_v3_maf0.001_250kb_r0.6.tags.list"
 tags_dir <- "~/data/ukbb/ukb-hrt/tags"
 
+## Read results ####
+if (verbose) message("Read files with genome-wide association results")
 genomewide <- lapply(1:22, bgenie$readBgenieOutput, directory=directory,
                      name=paste("bgenie_", name, "_lm_st_chr", sep=""),
                      maf=0.001, biallelicOnly=FALSE)
@@ -143,7 +145,7 @@ index_logp <- which(grepl("log10p", colnames(genomewide)))
 index_beta <- which(grepl("beta", colnames(genomewide)))
 index_t <- which(grepl("_t", colnames(genomewide)))
 
-## write results ####
+## Write combined results ####
 if (verbose) message("Write file with genome-wide association results")
 write.table(genomewide,
             file=paste(directory, "/bgenie_", name, "_lm_st_genomewide.csv",
@@ -151,7 +153,7 @@ write.table(genomewide,
             sep=",",quote=FALSE, col.names=TRUE, row.names=FALSE)
 
 ## Meta-analysis single-trait summary statistics ####
-if (name == 'slices') {
+if (name %in% c('summary', 'slices')) {
     if (verbose) message("Estimate pseudo-multitrait association results")
     multitrait_res <- meta$pseudoMultitrait(genomewide[, index_t])
     multitrait <- cbind(genomewide[,index_snp], multitrait_res$multitrait_p)
@@ -162,27 +164,12 @@ if (name == 'slices') {
                 file=paste(directory, "/bgenie_", name, "_lm_pseudomt_all.csv",
                            sep=""),
                 sep=",", quote=FALSE, col.names=TRUE, row.names=FALSE)
-    title="Pseudomulti-trait all FD slices"
-}
-if (name == 'summary'){
-    if (verbose) message("Estimate pseudo-multitrait association results for
-                          mean basal, mean mid and mean apical FD")
-    multitrait <- meta$pseudoMultitrait(genomewide[, index_t][,c(2,4,6)])
-    multitrait <- cbind(genomewide[,index_snp], multitrait$multitrait_p)
-    colnames(multitrait) <- c("CHR", "SNP","BP", "P")
-    if (verbose) message("Write pseudo-multitrait association results for
-                          max basal and max apical FD")
-    write.table(multitrait,
-                file=paste(directory, "/bgenie_", name,
-                           "_lm_pseudomt.csv", sep=""),
-                sep=",", quote=FALSE, col.names=TRUE, row.names=FALSE)
-    title="Pseudomulti-trait mean basal, mid and apical FD"
+    if (name == 'slices') {
+        title="Pseudomulti-trait all FD slices"
+    } else {
+        title="Pseudomulti-trait mean basal, mid and apical FD"
+    }
 
-    ## GARFIELD analysis ####
-    perTraitGarfield <- sapply(index_logp[c(2,4,6)], garfieldAnalyses,
-                               bgenie=genomewide, directory=directory)
-}
-if (name %in% c('summary', 'slices')) {
     if (verbose) message("Plot pseudo-multitrait association results")
     ymin <- 10^(-1)
     ymax <- max(c(-log10(min(multitrait$P)), max(genomewide[,index_logp])))
@@ -200,6 +187,7 @@ if (name %in% c('summary', 'slices')) {
     ggplot2::ggsave(plot=p_qq_mt, height=7, width=7,
            file=paste(directory,"/bgenie_", name,
                       "_lm_pseudomt_qqplot.pdf", sep=""))
+
     if (verbose) message("Filter pseudo-multitrait association results for LD")
     multitrait_ld <-
         ldfilter$filterSigLoci4LD(gwas=cbind(multitrait[,1:3], P=multitrait$P,
@@ -215,8 +203,13 @@ if (name %in% c('summary', 'slices')) {
     write.table(sig, paste(directory, "/", name, "_sig5e08_ldFiltered.txt",
                                   sep=""),
                 col.names=TRUE, row.names=FALSE, quote=FALSE)
-}
 
+    if (name == 'summary') {
+        ## GARFIELD analysis ####
+        perTraitGarfield <- sapply(index_logp, garfieldAnalyses,
+                                   bgenie=genomewide, directory=directory)
+    }
+}
 ## per trait qq and manhattan plots ####
 # effective number of tests to adjust single-trait assocation p-values by
 if (!is.null(phenofile)) {
@@ -236,7 +229,8 @@ plots_perTrait <- sapply(index_logp, stPlots, bgenie_result=genomewide, ymin=0.1
                          name=name,  ymax=ymax)
 
 ## Format single-trait association statistics for LD score regression ####
-ldshub_file <- "~/data/ukbb/ukb-hrt/gwas/ldc_hub/w_hm3.noMHC.snplist"
+if (verbose) message("Format results for LD score regression")
+ldshub_file <- "~/data/ukbb/ukb-hrt/gwas/ldc_hub/w_hm4.noMHC.snplist"
 ldshub_snps <- data.table::fread(ldshub_file, data.table=FALSE,
                                  stringsAsFactors=FALSE)
 
