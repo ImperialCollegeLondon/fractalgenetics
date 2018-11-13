@@ -128,10 +128,18 @@ ggsave(plot=p_fd, file=paste(args$outdir, "/FDAlongHeart_slices",
        height=4, width=4, units="in")
 
 
-# LV volume measurements
+## LV volume measurements ####
 lvv <- data.table::fread(args$cov, data.table=FALSE,
                             stringsAsFactors=FALSE, na.strings=c("NA", "NaN"))
+hr <- data.table::fread(paste(args$rawdir, "/20181124_HR_from_CMR.csv", sep=""),
+                        data.table=FALSE, stringsAsFactors=FALSE)
+
+lvv <- merge(hr, lvv, by="ID")
+lvv$SV <- lvv$LVEDV - lvv$LVESV
+lvv$CO <- lvv$SV * lvv$HR
 rownames(lvv) <- lvv[, 1]
+
+lvv <- dplyr::select(lvv, ID, LVEDV, LVM, SV, CO)
 
 ## ukbb bulk data ####
 # ukbb phenotypes
@@ -193,13 +201,13 @@ covs_noNA$height_f21002_comp <-
 
 
 ## Merge FD measures and covariates to order by samples ####
-fd_all <- merge(summaryFDi[,-1], FDi, by=0)
+fd_all <- merge(dplyr::select(summaryFDi, MeanBasalFD, MeanMidFD, MeanApicalFD),
+                FDi, by=0)
 fd_all <- merge(fd_all, lvv, by=1)
 fd_all <- merge(fd_all, covs_noNA, by.x=1, by.y=0)
 fd_all$genetic_sex_f22001_0_0 <- as.factor(fd_all$genetic_sex_f22001_0_0)
 
-fd_pheno <- dplyr::select(fd_all, MeanBasalFD, MeanMidFD, MeanApicalFD,
-                          MaxBasalFD, MaxMidFD, MaxApicalFD)
+fd_pheno <- dplyr::select(fd_all, MeanBasalFD, MeanMidFD, MeanApicalFD)
 
 fd_cov <- dplyr::select(fd_all, LVEDV, genetic_sex_f22001_0_0,
     age_when_attended_assessment_centre_f21003_0_0, weight_f21002_0_0,
@@ -207,6 +215,8 @@ fd_cov <- dplyr::select(fd_all, LVEDV, genetic_sex_f22001_0_0,
 
 slices <- paste("Slice_", 1:args$interpolate, sep="")
 fd_slices <- dplyr::select(fd_all, slices)
+
+fd_lvv <- dplyr::select(fd_all, LVEDV, LVM, SV, CO)
 
 write.table(fd_all, paste(args$outdir, "/FD_all_slices", args$interpolate,
                           ".csv", sep=""),
@@ -216,10 +226,12 @@ write.table(fd_pheno, paste(args$outdir, "/FD_phenotypes_slices",
             sep=",", row.names=fd_all$Row.names, col.names=NA, quote=FALSE)
 write.table(fd_cov, paste(args$outdir, "/FD_covariates.csv", sep=""),
             sep=",", row.names=fd_all$Row.names, col.names=NA, quote=FALSE)
+write.table(fd_lvv, paste(args$outdir, "/FD_LVV.csv", sep=""),
+            sep=",", row.names=fd_all$Row.names, col.names=NA, quote=FALSE)
 
 
 ## Plot distribution of covariates ####
-df <- dplyr::select(fd_all, MeanBasalFD, MeanMidFD, MeanApicalFD, LVEDV,
+df <- dplyr::select(fd_all, MeanBasalFD, MeanMidFD, MeanApicalFD, LVEDV, SV, CO,
                     genetic_sex_f22001_0_0,
                     age_when_attended_assessment_centre_f21003_0_0,
                     weight_f21002_0_0,
@@ -231,9 +243,9 @@ p <- ggpairs(df,
              lower = list(continuous = wrap("smooth", alpha=0.5,size=0.1,
                                             pch=20),
                           combo = wrap("facethist")),
-             columnLabels = c("meanBasalFD", "meanMidFD",
-                              "meanApicalFD", "EDV~(ml)",
-                              "Sex~(f/m)", "Age~(years)", "Height~(m)",
+             columnLabels = c("meanBasalFD", "meanMidFD", "meanApicalFD",
+                              "EDV~(ml)", "SV~(ml)", "CO~(ml/min)", "Sex~(f/m)",
+                              "Age~(years)", "Height~(m)",
                               "Weight~(kg)", "BMI~(kg/m^2)"),
              labeller = 'label_parsed',
              axisLabels = "show") +
@@ -243,7 +255,7 @@ p <- ggpairs(df,
           axis.text.x = element_text(angle=90),
           strip.text = element_text(size=8),
           strip.background = element_rect(fill="white", colour=NA))
-p[6,5] <- p[6,5] + geom_histogram(binwidth=3)
+p[6,5] <- p[6,5] + geom_histogram(binwidth=3
 ggsave(plot=p, file=paste(args$outdir, "/pairs_fdcovariates.png", sep=""),
        height=12, width=12, units="in")
 
@@ -261,7 +273,8 @@ rownames(fd_europeans_norelated) <- fd_europeans_norelated[,1]
 fd_europeans_norelated <- merge(fd_europeans_norelated, pcs[,-1], by=1)
 index_pheno <- which(grepl("FD", colnames(fd_europeans_norelated)))
 index_slices <- which(grepl("Slice_", colnames(fd_europeans_norelated)))
-index_cov <- c(20,27:ncol(fd_europeans_norelated))
+index_volumes <- 14:17
+index_cov <- 18:ncol(fd_europeans_norelated)
 
 lm_fd_pcs <- sapply(index_pheno, function(x) {
     tmp <- lm(y ~ ., data=data.frame(y=fd_europeans_norelated[,x],
@@ -274,6 +287,7 @@ rownames(lm_fd_pcs) <- c("intercept",
 sigAssociations <- which(apply(lm_fd_pcs, 1, function(x) any(x < 0.01)))
 
 fd_europeans_norelated <- fd_europeans_norelated[,c(1,index_pheno, index_slices,
+    index_volumes,
     which(colnames(fd_europeans_norelated) %in% names(sigAssociations)))]
 
 write.table(lm_fd_pcs[sigAssociations,],
@@ -285,16 +299,16 @@ write.table(fd_europeans_norelated[,index_pheno],
             sep=",",
             row.names=fd_europeans_norelated$Row.names, col.names=NA,
             quote=FALSE)
-write.table(fd_europeans_norelated[,-c(1, index_pheno, index_slices)],
-            paste(args$outdir, "/FD_covariates_EDV_EUnorel.csv", sep=""),
-            sep=",", row.names=fd_europeans_norelated$Row.names, col.names=NA,
-            quote=FALSE)
 write.table(fd_europeans_norelated[,-c(1, index_pheno, index_slices, 18)],
             paste(args$outdir, "/FD_covariates_EUnorel.csv", sep=""), sep=",",
             row.names=fd_europeans_norelated$Row.names, col.names=NA,
             quote=FALSE)
 write.table(fd_europeans_norelated[, index_slices],
             paste(args$outdir, "/FD_slices_EUnorel.csv", sep=""), sep=",",
+            row.names=fd_europeans_norelated$Row.names, col.names=NA,
+            quote=FALSE)
+write.table(fd_europeans_norelated[, index_volumes],
+            paste(args$outdir, "/FD_volumes_EUnorel.csv", sep=""), sep=",",
             row.names=fd_europeans_norelated$Row.names, col.names=NA,
             quote=FALSE)
 
@@ -314,11 +328,12 @@ write.table(fd_bgenie[, (index_pheno + 3)],
 write.table(fd_bgenie[, (index_slices + 3)],
             paste(args$outdir, "/FD_slices_bgenie.txt", sep=""), sep=" ",
             row.names=FALSE, col.names=TRUE, quote=FALSE)
-write.table(fd_bgenie[,-c(1:4, index_pheno + 3, index_slices + 3)],
-            paste(args$outdir, "/FD_covariates_EDV_bgenie.txt", sep=""),
-            sep=" ", row.names=FALSE, col.names=TRUE, quote=FALSE)
-write.table(fd_bgenie[,-c(1:4, index_pheno + 3, index_slices + 3, 18 + 3)],
+write.table(fd_bgenie[,-c(1:4, index_pheno + 3, index_slices + 3,
+                          index_volumes + 3)],
             paste(args$outdir, "/FD_covariates_bgenie.txt", sep=""), sep=" ",
+            row.names=FALSE, col.names=TRUE, quote=FALSE)
+write.table(fd_bgenie[,(index_volumes + 3)],
+            paste(args$outdir, "/FD_volumes_bgenie.txt", sep=""), sep=" ",
             row.names=FALSE, col.names=TRUE, quote=FALSE)
 
 ## Blood pressure phenotypes ####
@@ -335,6 +350,65 @@ rownames(bp_noNA) <- allSex$eid[bpIndex_noNA]
 
 ## Filter blood pressure phenotypes for ethnicity and relatedness ####
 bp_europeans_norelated <- merge(bp_noNA, fd_europeans_norelated[,-c(1:26)], by=0)
+
+index_bp <- which(grepl("blood_pressure", colnames(bp_europeans_norelated)))
+index_cov <-
+    which(!grepl("blood_pressure", colnames(bp_europeans_norelated)))[-1]
+
+lm_bp <- sapply(index_bp, function(x) {
+    tmp <- lm(y ~ ., data=data.frame(y=bp_europeans_norelated[,x],
+                                     bp_europeans_norelated[,index_cov]))
+    summary(tmp)$coefficient[,4]
+    })
+
+colnames(lm_bp) <- colnames(bp_europeans_norelated)[index_bp]
+rownames(lm_bp) <- c("intercept", colnames(bp_europeans_norelated)[index_cov])
+sigAssociations_bp <- which(apply(lm_bp, 1, function(x) any(x < 0.01)))
+
+bp_europeans_norelated <-
+    bp_europeans_norelated[,c(1, index_bp,
+                              which(colnames(bp_europeans_norelated) %in%
+                                     names(sigAssociations_bp)))]
+
+write.table(lm_bp[sigAssociations_bp,],
+            paste(args$outdir, "/BP_cov_associations.csv", sep=""), sep=",",
+            row.names=TRUE, col.names=NA, quote=FALSE)
+
+write.table(bp_europeans_norelated[,index_bp],
+            paste(args$outdir, "/BP_phenotypes_EUnorel.csv", sep=""),
+            sep=",", row.names=bp_europeans_norelated$Row.names, col.names=NA,
+            quote=FALSE)
+write.table(bp_europeans_norelated[,-c(1, index_bp)],
+            paste(args$outdir, "/BP_covariates_EUnorel.csv", sep=""), sep=",",
+            row.names=bp_europeans_norelated$Row.names, col.names=NA,
+            quote=FALSE)
+
+## Format bp phenotypes and covariates for bgenie ####
+bp_bgenie <- merge(samples, bp_europeans_norelated, by=1, all.x=TRUE, sort=FALSE)
+bp_bgenie <- bp_bgenie[match(samples$ID_1, bp_bgenie$ID_1),]
+bp_bgenie$genetic_sex_f22001_0_0 <- as.numeric(bp_bgenie$genetic_sex_f22001_0_0)
+bp_bgenie[is.na(bp_bgenie)] <- -999
+
+write.table(bp_bgenie[, (index_bp + 3)],
+            paste(args$outdir, "/BP_phenotypes_bgenie.txt", sep=""), sep=" ",
+            row.names=FALSE, col.names=TRUE, quote=FALSE)
+write.table(bp_bgenie[,-c(1:4, index_bp + 3)],
+            paste(args$outdir, "/BP_covariates_bgenie.txt", sep=""), sep=" ",
+            row.names=FALSE, col.names=TRUE, quote=FALSE)
+
+## Cardiac volume phenotypes ####
+hr <- data.table::fread(paste(args$rawdir, "/20181124_HR_from_CMR.csv", sep=""),
+                        data.table=FALSE, stringsAsFactors=FALSE)
+
+lvv <- data.table::fread(paste(args$rawdir, "/VentricularVolumes.csv", sep=""),
+                        data.table=FALSE, stringsAsFactors=FALSE)
+
+lvv.hr <- merge(hr, lvv, by="ID")
+lvv.hr$SV <- lvv.hr$LVEDV - lvv.hr$LVESV
+lvv.hr$CO <- lvv.hr$SV * lvv.hr$HR
+
+## Filter cardiac volume for ethnicity and relatedness ####
+vv_europeans_norelated <- merge(lvv.hr, fd_europeans_norelated[,-c(1:26)], by=0)
 
 index_bp <- which(grepl("blood_pressure", colnames(bp_europeans_norelated)))
 index_cov <-
