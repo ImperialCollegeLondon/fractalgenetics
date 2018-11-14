@@ -139,7 +139,7 @@ lvv$SV <- lvv$LVEDV - lvv$LVESV
 lvv$CO <- lvv$SV * lvv$HR
 rownames(lvv) <- lvv[, 1]
 
-lvv <- dplyr::select(lvv, ID, LVEDV, LVM, SV, CO)
+lvv <- dplyr::select(lvv, ID, LVEDV, LVESV, LVM, SV, CO, HR)
 
 ## ukbb bulk data ####
 # ukbb phenotypes
@@ -209,14 +209,14 @@ fd_all$genetic_sex_f22001_0_0 <- as.factor(fd_all$genetic_sex_f22001_0_0)
 
 fd_pheno <- dplyr::select(fd_all, MeanBasalFD, MeanMidFD, MeanApicalFD)
 
-fd_cov <- dplyr::select(fd_all, LVEDV, genetic_sex_f22001_0_0,
+fd_cov <- dplyr::select(fd_all, genetic_sex_f22001_0_0,
     age_when_attended_assessment_centre_f21003_0_0, weight_f21002_0_0,
     body_mass_index_bmi_f21001_0_0, height_f21002_comp)
 
 slices <- paste("Slice_", 1:args$interpolate, sep="")
 fd_slices <- dplyr::select(fd_all, slices)
 
-fd_lvv <- dplyr::select(fd_all, LVEDV, LVM, SV, CO)
+fd_lvv <- dplyr::select(fd_all, LVEDV, LVESV, LVM, SV, CO, HR)
 
 write.table(fd_all, paste(args$outdir, "/FD_all_slices", args$interpolate,
                           ".csv", sep=""),
@@ -273,8 +273,8 @@ rownames(fd_europeans_norelated) <- fd_europeans_norelated[,1]
 fd_europeans_norelated <- merge(fd_europeans_norelated, pcs[,-1], by=1)
 index_pheno <- which(grepl("FD", colnames(fd_europeans_norelated)))
 index_slices <- which(grepl("Slice_", colnames(fd_europeans_norelated)))
-index_volumes <- 14:17
-index_cov <- 18:ncol(fd_europeans_norelated)
+index_volumes <- 14:19
+index_cov <- 20:ncol(fd_europeans_norelated)
 
 lm_fd_pcs <- sapply(index_pheno, function(x) {
     tmp <- lm(y ~ ., data=data.frame(y=fd_europeans_norelated[,x],
@@ -299,7 +299,8 @@ write.table(fd_europeans_norelated[,index_pheno],
             sep=",",
             row.names=fd_europeans_norelated$Row.names, col.names=NA,
             quote=FALSE)
-write.table(fd_europeans_norelated[,-c(1, index_pheno, index_slices, 18)],
+write.table(fd_europeans_norelated[,-c(1, index_pheno, index_slices,
+                                       index_volumes)],
             paste(args$outdir, "/FD_covariates_EUnorel.csv", sep=""), sep=",",
             row.names=fd_europeans_norelated$Row.names, col.names=NA,
             quote=FALSE)
