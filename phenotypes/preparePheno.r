@@ -65,7 +65,7 @@ args <- optparse$parse_args(OptionParser(option_list=option_list))
 if (FALSE) {
     args <- list()
     args$outdir <- "~/data/digital-heart/phenotype/FD"
-    args$pheno <- "~/data/digital-heart/phenotype/FD/20181025_HVOLSegmentations_FD.csv"
+    args$pheno <- "~/data/digital-heart/phenotype/FD/20181116_HVOLSegmentations_FD.csv"
     args$interpolate <- 9
     args$cov <- "~/data/digital-heart/phenotype/2Dphenotype/20160705_GenScan.txt"
     args$samples <- "~/data/digital-heart/genotype/imputation/combined/genotypes/gencall.combined.clean.related.chr1.sample"
@@ -85,7 +85,7 @@ if (FALSE) {
 european_hvol <- data.table::fread(args$europeans, data.table=FALSE,
                             stringsAsFactors=FALSE)
 
-related <- plinkqc$check_relatedness(qcdir=args$genodir, alg=args$plinkprefix,
+related <- plinkqc$check_relatedness(indir=args$genodir, name=args$plinkprefix,
                                      interactive=FALSE, verbose=TRUE,
                                      path2plink=args$path2plink)
 
@@ -190,12 +190,11 @@ write.table(data.frame(bru=covs$Bru.Number, covariates),
             sep=",", row.names=FALSE, col.names=TRUE, quote=FALSE)
 
 ## Merge FD measures and covariates to order by samples ####
-fd_all <- merge(summaryFDi[,-1], FDi, by=0)
+fd_all <- merge(summaryFDi[,-c(1,2,4,6,8)], FDi, by=0)
 fd_all <- merge(fd_all, covariates, by.x=1, by.y=0)
 fd_all$sex <- as.factor(fd_all$sex)
 
-fd_pheno <- dplyr::select(fd_all, MeanBasalFD, MeanMidFD, MeanApicalFD,
-                          MaxBasalFD, MaxMidFD, MaxApicalFD)
+fd_pheno <- dplyr::select(fd_all, MeanBasalFD, MeanMidFD, MeanApicalFD)
 
 fd_cov <- dplyr::select(fd_all, sex, age, weight, bmi, height)
 
@@ -242,7 +241,8 @@ ggsave(plot=p, file=paste(args$outdir, "/pairs_fdcovariates.png", sep=""),
 fd_all <- merge(fd_all, pcs[,-1], by=1)
 index_pheno <- which(grepl("FD", colnames(fd_all)))
 index_slices <- which(grepl("Slice_", colnames(fd_all)))
-index_cov <- c(18:ncol(fd_all))
+index_antro <- 14:18
+index_cov <- c(19:ncol(fd_all))
 
 lm_fd_pcs <- sapply(index_pheno, function(x) {
     tmp <- lm(y ~ ., data=data.frame(y=fd_all[,x], fd_all[,index_cov]))
@@ -250,9 +250,9 @@ lm_fd_pcs <- sapply(index_pheno, function(x) {
 })
 colnames(lm_fd_pcs) <- colnames(fd_all)[index_pheno]
 rownames(lm_fd_pcs) <- c("intercept", colnames(fd_all)[index_cov])
-sigAssociations <- which(apply(lm_fd_pcs, 1, function(x) any(x < 0.01)))
+sigAssociations <- which(apply(lm_fd_pcs, 1, function(x) any(x < 0.05)))
 
-fd_all <- fd_all[,c(1,index_pheno, index_slices,
+fd_all <- fd_all[,c(1,index_pheno, index_slices, index_antro,
     which(colnames(fd_all) %in% names(sigAssociations)))]
 
 write.table(lm_fd_pcs[sigAssociations,],
