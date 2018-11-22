@@ -1,3 +1,16 @@
+## Example of running radial registration on a
+## set of target images for testIID. 
+## Target images needed are images containing non-LV tissue
+## to determine center of background pixels for rotation, 
+## binary mask images of myocard region of interest (for outline),
+## and trabeculation edges. 
+## 
+## The different steps of the analyses are visualised
+## as radial plots of the original, transformed,
+## rotated and rotated+tranformed images.
+## 
+## Test data can be found in AutoFD_interpolation/tests/radial-registration/data
+
 ###############################
 ## libraries and functions ####
 ###############################
@@ -37,12 +50,16 @@ processed <- rr$processSlices(IID=ID, directory=directory, sliceInfo=slices,
 names(processed) <- lapply(processed, function(x)
     unique(x$registered$perimeter$slice))
 
+# Find slice corresponing to maximum background slice (for direct comparison of
+# rotation)
 pos <- which(names(processed) == max_bg_slice)
 perimeter.reg <- processed[[pos]]$registered$perimeter
 perimeter <- processed[[pos]]$original$perimeter
 edges.reg <- processed[[pos]]$registered$edges
 edges <- processed[[pos]]$original$edges
 
+# Depict image of background slice and myocardial and trabeculation outlines
+# before and after step registration, including intermediate steps.
 layout(matrix(c(1, 2, 3, 4, 5, 1, 6, 7, 8, 9), 2, 5, byrow = TRUE))
 image(background.matrix)
 radial.plot(perimeter.reg$r, radial.pos=perimeter.reg$theta, labels="",
