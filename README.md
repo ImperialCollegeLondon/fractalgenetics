@@ -11,10 +11,14 @@ R code for post-processing of FD values output by
     [FDstatististics](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/pft_JC_FDStatistics.m).
     The function has been tested for equivalent output in
     [tests](https://github.com/UK-Digital-Heart-Project/AutoFD_interpolation/tree/master/tests).
+1. radial-registration.R
+    Collection of functions for co-registration of myocardial and trabeculation
+    outline to closest enclosing circle. Functions include transformation of
+    images to polar coordinates and interpolation of image data in polar space.
 
 ## Installation
- fracDecimate.R and summaryFD.R can simply be sourced to access the relevant
- functions, fracDecimate and summaryStatistics respectively. Alternatively,
+ fracDecimate.R, summaryFD.R and radial-registration.R can simply be sourced to access
+ the relevant functions. Alternatively,
  the [modules package](https://github.com/klmr/modules) offers flexible and tidy
  integration of R source files. Application of both functions via modules in
  [ukbb-fd](https://github.com/HannahVMeyer/ukbb-fd/blob/master/phenotypes/preparePheno.r).
@@ -72,3 +76,9 @@ NaN.val = vector with character strings of accepted NaN values (default:
 The output is a [N x 6] matrix with summary statistics for N individuals:
 NrSlices used for computation, mean global FD, mean and max Apical FD, mean and
 max Basal FD
+
+### radial-registration.R
+A detailed example of how to run radial co-registration of myocard and
+trabeculation outline based on intermediate files generated in
+[AutoFD](https://github.com/UK-Digital-Heart-Project/AutoFD) can be found
+[here](https://github.com/UK-Digital-Heart-Project/AutoFD_interpolation/tests/radial-registration/test-registration.R).
