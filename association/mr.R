@@ -1,11 +1,11 @@
 ###############################
 ### Libraries and functions ###
 ###############################
-options(import.path="/homes/hannah/projects/GWAS")
 options(bitmapType = 'cairo', device = 'pdf')
 
+optparse <- modules::import_package('dplyr', attach=TRUE)
 optparse <- modules::import_package('optparse')
-bgenie <- modules::import("bgenieResults")
+rmr <- modules::import_package('RadialMR')
 
 ###############
 ## analysis ###
@@ -34,22 +34,20 @@ args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 
 if (FALSE) {
     args <- list()
-    args$directory <- "~/data/digital-hea"
-    args$ukbdir <- "~/data/ukbb/ukb-hrt/gwas"
+    args$directory <- "~/data/ukbb/ukb-hrt/gwas"
     args$name <- 'volumes'
     args$verbose <- TRUE
 }
 directory <- args$directory
-ukbdir <- args$ukbdir
 name <- args$name
 verbose <- args$verbose
 
 ## genome-wide association results volumes ####
-lvv <- data.table::fread(paste(ukbdir, "/bgenie_", name, "_lm_st_genomewide.csv",
+lvv <- data.table::fread(paste(directory, "/bgenie_", name, "_lm_st_genomewide.csv",
                                sep=""), data.table=FALSE, stringsAsFactors=FALSE)
 
 ## ld-filtered, significant genome-wide association results ukb ####
-slices_sig <- read.table(paste(ukbdir, "/Slices_sig5e08_ldFiltered.txt", sep=""),
+slices_sig <- read.table(paste(directory, "/Slices_sig5e08_ldFiltered.txt", sep=""),
                          sep=",", stringsAsFactors=FALSE, header=TRUE)
 
 ## format slice betas and p-values per slice ####
@@ -98,37 +96,141 @@ lvv_sig <- do.call(rbind, apply(sig_per_slice, 1, function(x) {
     return(tmp)
 }))
 
-## plot betas slices and volumes ####
+## analyse betas slices and volumes ####
 combined <- cbind(sig_per_slice, lvv_sig)
-colnames(slices)[1:5] <- c('rsid', 'slices', 'slices_beta', 'slices_logp',
+colnames(combined)[1:5] <- c('rsid', 'slices', 'slices_beta', 'slices_logp',
                            'slices_se')
 
+base <- as.character(combined$slices) %in% c('Slice_1', 'Slice_2', 'Slice_3')
+mid <- as.character(combined$slices) %in% c('Slice_4', 'Slice_5', 'Slice_6')
+combined$area <- "apical"
+combined$area[base] <- 'basal' 
+combined$area[mid] <- 'mid' 
+combined$area <- factor(combined$area, levels=c('basal', 'mid', 'apical'))
 
-p <- ggplot(data=combined)
-p <- p + geom_point(aes(x=slices_beta, y=CO_beta)) +
+combined_per_area <- split(combined, f=combined$area)
+names(combined_per_area) <- levels(combined$area)
+
+mr_area <- lapply(seq_along(combined_per_area), function(test_area) {
+    area <- combined_per_area[[test_area]]
+    tmp <- lapply(c('CO', 'SV', 'HR'), function(x){
+        if (x == 'CO') {
+            BYG=area$CO_beta
+            seBYG=area$CO_se
+        }
+        if (x == 'SV') {
+            BYG=area$SV_beta
+            seBYG=area$SV_se
+        }
+        if (x == 'HR') {
+            BYG=area$HR_beta
+            seBYG=area$HR_se
+        }
+        formated <- rmr$format_radial(BXG=area$slices_beta, BYG=BYG,
+                                  seBXG=area$slices_se,
+                                  seBYG=seBYG, RSID=area$rsid)
+        ivw <- rmr$ivw_radial(r_input=formated, alpha=0.05, weights=1)
+        egger <- rmr$egger_radial(r_input=formated, alpha=0.05, weights=1)
+        if (any(!ivw$outliers %in% "No significant outliers")) {
+            formated_wo_outliers <- formated[!as.character(formated$SNP) %in%
+                                                as.character(ivw$outliers$SNP),]
+            ivw <- rmr$ivw_radial(r_input=formated_wo_outliers, alpha=0.05,
+                                  weights=1)
+            egger <- rmr$egger_radial(r_input=formated_wo_outliers, alpha=0.05,
+                                  weights=1)
+        }
+        ivw$data$area <- names(combined_per_area)[test_area]
+        ivw$data$type <- x
+        egger$data$area <- names(combined_per_area)[test_area]
+        egger$data$type <- x
+        return(list(ivw=ivw, egger=egger))
+    })
+    names(tmp) <- c('CO', 'SV', 'HR')
+    return(tmp)
+})
+names(mr_area) <- names(combined_per_area)
+
+summaryMR <- lapply(seq_along(mr_area), function(test_area) {
+    area <- mr_area[[test_area]]
+    perX <- lapply(seq_along(area), function(test_x) {
+        x <- area[[test_x]]
+        ivw_tmp <- data.frame(x$ivw$coef)
+        ivw_tmp$df <- x$ivw$df
+        ivw_tmp$Q <- x$ivw$qstatistic
+        ivw_tmp$p_q <- pchisq(ivw_tmp$Q, ivw_tmp$df, lower.tail=FALSE)
+        rownames(ivw_tmp) <- c("beta_ivw")
+        ivw_tmp$test <- c("beta_ivw")
+        egger_tmp <- data.frame(x$egger$coef)
+        egger_tmp$df <- x$egger$df
+        egger_tmp$Q <- x$egger$qstatistic
+        egger_tmp$p_q <- pchisq(egger_tmp$Q, egger_tmp$df, lower.tail=FALSE)
+        rownames(egger_tmp) <- c("beta_1E", "beta1E")
+        egger_tmp$test <- c("beta_1E", "beta1E")
+        tmp <- rbind(ivw_tmp, egger_tmp)
+        colnames(tmp)[1:4] <- c("Estimate", "se", "t.value", 'p.value')
+        tmp$type <- names(area)[test_x]
+        return(tmp)
+    })
+    tmp <- do.call(rbind, perX)
+    tmp$area <- names(mr_area)[test_area]
+    return(tmp)
+})
+
+summaryMR <- do.call(rbind, summaryMR)
+summaryMR$p.adjust <- p.adjust(summaryMR$p.value)
+MRsig <- summaryMR[summaryMR$p.adjust < 0.05,]
+
+p_CO_mid <- rmr$plot_radial(r_object=mr_area$mid$CO$ivw,
+                            show_outliers=FALSE, radial_scale = TRUE) +
+    ggtitle("CO in mid region") + xlim(c(0, 12))
+
+p_CO_apical <- rmr$plot_radial(r_object=mr_area$apical$CO$ivw,
+                            show_outliers=TRUE, radial_scale = TRUE) +
+    ggtitle("CO in apical region") + xlim(c(0, 12)) + ylim(c(-1,5))
+
+p_SV_basal <- rmr$plot_radial(r_object=mr_area$basal$SV$ivw,
+                               show_outliers=FALSE, radial_scale = TRUE) +
+    ggtitle("SV in basal region") + xlim(c(0, 12)) 
+
+p_HR_apical <- rmr$plot_radial(r_object=mr_area$apical$HR$ivw,
+                              show_outliers=FALSE, radial_scale = TRUE) +
+    ggtitle("HR in apical region") + xlim(c(0, 12)) + ylim(c(-0.5,5))
+
+
+
+pvl <- select(combined, rsid, slices, slices_beta, slices_se,
+                     HR_beta, HR_se, SV_beta, SV_se, CO_beta, CO_se, area)
+pvl <- reshape2::melt(pvl, id.vars=c('rsid', 'slices', 'slices_se','slices_beta',
+                                     'area', 'HR_beta', 'SV_beta', 'CO_beta'),
+                      value.name='se', variable.name='type_se')
+pvl <- reshape2::melt(pvl, id.vars=c('rsid', 'slices', 'slices_se',
+                                     'slices_beta', 'area',
+                                     'type_se', 'se'),
+                      value.name='beta', variable.name='type_beta')
+pvl$type_beta <- factor(gsub("_beta", "",as.character(pvl$type_beta)),
+                        levels=c("SV", "CO", "HR"))
+
+#reverse <- pvl$slices_beta < 0
+#pvl$slices_beta[reverse] <- -pvl$slices_beta[reverse] 
+#pvl$beta[reverse] <- -pvl$beta[reverse] 
+
+p_pvl <- ggplot(data=pvl)
+p_pvl <- p_pvl + geom_point(aes(x=slices_beta, y=beta, color=slices)) +
     geom_hline(yintercept = 0) +
     geom_vline(xintercept = 0) +
+    scale_color_manual(name="Slices",
+                       values=c('#8c96c6','#810f7c', '#7bccc4','#43a2ca',
+                                '#0868ac', '#fdbb84','#fc8d59')) +
     xlab(expression(hat(beta)[slices])) +
-    ylab(expression(hat(beta)[CO])) +
-    geom_errorbar(aes(ymin=CO_beta - CO_se, ymax=CO_beta + CO_se, x=slices_beta)) +
+    ylab(expression(hat(beta)[pheno])) +
+    geom_errorbar(aes(ymin=beta - se, ymax=beta + se, x=slices_beta,
+                      color=slices)) +
     geom_errorbarh(aes(xmin=slices_beta-slices_se, xmax=slices_beta + slices_se,
-                       y=CO_beta)) +
-    facet_wrap(~slices) +
-    theme_bw()
-ggsave(plot=p, paste(directory, "/", name, "_MR_CO.pdf", sep=""),
-       height=5, width=6.5)
+                       y=beta, color=slices)) +
+    facet_grid(type_beta~area) +
+    theme_bw() +
+    theme(strip.background = element_rect(fill='white', colour = 'white'))
+print(p_pvl)
 
-p <- ggplot(data=combined)
-p <- p + geom_point(aes(x=slices_beta, y=SV_beta)) +
-    geom_hline(yintercept = 0) +
-    geom_vline(xintercept = 0) +
-    xlab(expression(hat(beta)[slices])) +
-    ylab(expression(hat(beta)[SV])) +
-    geom_errorbar(aes(ymin=SV_beta - SV_se, ymax=SV_beta + SV_se, x=slices_beta)) +
-    geom_errorbarh(aes(xmin=slices_beta-slices_se, xmax=slices_beta + slices_se,
-                       y=SV_beta)) +
-    facet_wrap(~slices) +
-    theme_bw()
-ggsave(plot=p, paste(directory, "/", name, "_MR_SV.pdf", sep=""),
-       height=5, width=6.5)
-
+ggsave(plot=p_pvl, paste(directory, "/MR_PVL.pdf", sep=""),
+       height=6.5, width=8)
