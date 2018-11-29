@@ -76,9 +76,16 @@ tissues_color <- c("tomato", "skyblue3", "yellow", "brown2", "lightgreen",
                    "darkgreen")
 toi <- c("fetal_heart", "heart", 'fetal_muscle', 'muscle',
          "blood", "blood_vessel", 'epithelium')
-toi_color <- c( '#e31a1c', '#fb9a99', '#08519c', '#1f78b4',
-                   '#984ea3', '#ff7f00','#ffff33', '#666666')
+toi_color <- c( '#542788', '#8073ac', '#4575b4', '#74add1',
+                '#e6f598' ,'#abdda4', '#66c2a5', '#666666')
 section_color <- c('#fdcc8a','#fc8d59','#e34a33')
+
+
+#toi <- c("fetal_heart", "heart", 'fetal_muscle', 'muscle', 'myometrium',
+#         "blood", "blood_vessel", 'epithelium',   'blastula')
+#tissue_color <- c( '#e31a1c', '#fb9a99', '#08519c', '#1f78b4', '#a6cee3',
+#                  '#984ea3', '#ff7f00','#ffff33','#a65628', '#666666')
+
 
 ###############
 ## analysis ###
@@ -90,12 +97,6 @@ basal <- prepData(input=basalFD, link=annotation_link, name='Basal')
 
 combined <- rbind(basal, mid, apical)
 combined$Name <- factor(combined$Name, levels=c("Basal", "Mid", "Apical"))
-
-#toi <- c("fetal_heart", "heart", 'fetal_muscle', 'muscle', 'myometrium',
-#         "blood", "blood_vessel", 'epithelium',   'blastula')
-#tissue_color <- c( '#e31a1c', '#fb9a99', '#08519c', '#1f78b4', '#a6cee3',
- #                  '#984ea3', '#ff7f00','#ffff33','#a65628', '#666666')
-
 
 selected <- combined
 selected$Tissue[!selected$Tissue %in% toi] <- 'other'
@@ -112,6 +113,7 @@ p_selected <- p_selected +
     theme_bw() +
     theme(legend.position='bottom',
           strip.background=element_rect(fill='white'),
+          #panel.border=element_blank(),
           axis.title.x=element_blank(),
           axis.text.x=element_blank(),
           axis.ticks.x=element_blank()
