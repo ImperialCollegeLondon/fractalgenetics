@@ -13,20 +13,20 @@ prepData <- function(input, name, link, filterTh=10, num_perm=100000,
     input$FE[which(input$FE == -1)] <-  0
     input$EmpPval[which(input$EmpPval == 0)] <- 1/num_perm
     input$EmpPval[which(input$EmpPval == -1)] <- NA
-    
+
     thresholdsP <- sort(unique(input$PThresh[which(!is.na(input$EmpPval))]))
     annotations <- unique(as.character(input$Index))
     tissues <- as.character(input$Tissue[match(annotations, input$Index)])
-    
+
     enrichment <- matrix(NA, nrow=length(thresholdsP) + 1,
                          ncol=length(annotations))
     empPvalues <- matrix(NA, nrow=length(thresholdsP) + 1,
                          ncol=length(annotations))
     for (j in 1:length(annotations)) {
         for (i in 1:length(thresholdsP)) {
-            enrichment[i,j] <- input$FE[which(input$Index == annotations[j] & 
+            enrichment[i,j] <- input$FE[which(input$Index == annotations[j] &
                                                input$PThresh == thresholdsP[i])]
-            empPvalues[i,j] <- input$EmpPval[which(input$Index == annotations[j] & 
+            empPvalues[i,j] <- input$EmpPval[which(input$Index == annotations[j] &
                                                    input$PThresh == thresholdsP[i])]
         }
     }
@@ -37,18 +37,18 @@ prepData <- function(input, name, link, filterTh=10, num_perm=100000,
     rownames(empPvalues) <- c(thresholdsP, 1)
     colnames(enrichment) <- annotations
     colnames(empPvalues) <- annotations
-    
+
     empPvalues_long <- reshape2::melt(empPvalues, value.name='empP')
     colnames(empPvalues_long)[1:2] <- c('Threshold', 'Index')
-    
+
     enrichment_long <- reshape2::melt(enrichment, value.name='FE')
     colnames(enrichment_long)[1:2] <- c('Threshold', 'Index')
     enrichment_long$empP <- empPvalues_long$empP
-    
+
     enrichment_long <- merge(enrichment_long, link, by='Index')
     enrichment_long$Tissue <- as.character(enrichment_long$Tissue)
     enrichment_long$Name <- name
-    
+
     return(enrichment_long)
 }
 
@@ -59,7 +59,7 @@ directory <- '~/data/ukbb/ukb-hrt/gwas'
 
 annotation_link <- data.table::fread('~/data/GARFIELD/garfield-data/annotation/link_file.txt',
                                  data.table=FALSE, stringsAsFactors=FALSE)
-midFD <- data.table::fread(paste(directory, '/MeanMidFD/garfield_results.perm', 
+midFD <- data.table::fread(paste(directory, '/MeanMidFD/garfield_results.perm',
                                  sep=""), data.table=FALSE,
                            stringsAsFactors=FALSE)
 apicalFD <- data.table::fread(paste(directory,
@@ -76,8 +76,8 @@ tissues_color <- c("tomato", "skyblue3", "yellow", "brown2", "lightgreen",
                    "darkgreen")
 toi <- c("fetal_heart", "heart", 'fetal_muscle', 'muscle',
          "blood", "blood_vessel", 'epithelium')
-toi_color <- c( '#542788', '#8073ac', '#4575b4', '#74add1',
-                '#e6f598' ,'#abdda4', '#66c2a5', '#666666')
+toi_color <- c( '#542788', '#8073ac', '#35978f', '#80cdc1','#e6ab02',
+                '#a6761d', '#d95f02', '#666666')
 section_color <- c('#fdcc8a','#fc8d59','#e34a33')
 
 
@@ -92,8 +92,8 @@ section_color <- c('#fdcc8a','#fc8d59','#e34a33')
 ###############
 
 mid <- prepData(input=midFD, link=annotation_link, name='Mid')
-apical <- prepData(input=apicalFD, link=annotation_link, name='Apical')               
-basal <- prepData(input=basalFD, link=annotation_link, name='Basal')   
+apical <- prepData(input=apicalFD, link=annotation_link, name='Apical')
+basal <- prepData(input=basalFD, link=annotation_link, name='Basal')
 
 combined <- rbind(basal, mid, apical)
 combined$Name <- factor(combined$Name, levels=c("Basal", "Mid", "Apical"))
@@ -103,7 +103,7 @@ selected$Tissue[!selected$Tissue %in% toi] <- 'other'
 selected$Tissue <- factor(selected$Tissue, levels=c(toi, 'other'),
                           labels=c(gsub("_", " ", as.character(toi)),
                                           'other tissues'))
-selected_red <- dplyr::filter(selected, Threshold == 1e-6, empP > -log10(1e-3))
+selected_red <- dplyr::filter(selected, Threshold == 1e-6, empP > -log10(5e-5))
 
 p_selected <- ggplot(selected_red, aes(x=Tissue, y=FE, fill=Tissue))
 p_selected <- p_selected +
@@ -132,7 +132,7 @@ grid.draw(g_selected)
 ggsave(plot=g_selected,
        filename=paste(directory, '/annotation/Funtional_enrichment.pdf', sep=""),
        height=5, width=8)
-    
+
 all_red <- dplyr::filter(combined, Threshold == 1e-6, empP > -log10(1e-3))
 
 p_all <- ggplot(all_red, aes(x=Tissue, y=FE, fill=Tissue))
