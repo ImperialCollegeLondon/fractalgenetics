@@ -1,9 +1,14 @@
 ###############################
 ### Libraries and functions ###
 ###############################
-options(import.path="/homes/hannah/projects/GWAS")
+options(import.path=c("/homes/hannah/projects/GWAS",
+                      "/homes/hannah/GWAS/analysis/fd",
+                      "/homes/hannah/projects"))
 options(bitmapType = 'cairo', device = 'pdf')
 
+
+modules::import_package('ggplot2', attach=TRUE)
+smooth <- modules::import('utils/smoothAddR2')
 optparse <- modules::import_package('optparse')
 bgenie <- modules::import("bgenieResults")
 
@@ -15,15 +20,19 @@ bgenie <- modules::import("bgenieResults")
 option_list <- list(
     optparse$make_option(c("-d", "--directory"), action="store",
                dest="directory",
-               type="character", help="Path to directory with bgenie association
-               results [default: %default].", default=NULL),
+               type="character", help="Path to directory with digital-heart
+               bgenie association results [default: %default].", default=NULL),
+    optparse$make_option(c("-ukb", "--ukbdir"), action="store",
+               dest="ukbdir",
+               type="character", help="Path to directory with ukbb significant
+               association results [default: %default].", default=NULL),
     optparse$make_option(c("-n", "--name"), action="store", dest="name",
                type="character", help="Name of analysis; has to be the same as
                in naming bgenie files [default: %default].", default=NULL),
     optparse$make_option(c("--showProgress"), action="store_true",
                dest="verbose",
                default=FALSE, type="logical", help="If set, progress messages
-               about analyses are printed to standard out [default: %default]."),
+               about analyses are printed to standard out [default: %default].")
 )
 
 args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
@@ -31,10 +40,12 @@ args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 if (FALSE) {
     args <- list()
     args$directory <- "~/data/digital-heart/association/FD"
-    args$dirukb <- "~/data/ukbb/ukb-hrt/gwas/"
+    args$ukbdir <- "~/data/ukbb/ukb-hrt/gwas"
+    args$name <- 'slices'
     args$verbose <- TRUE
 }
 directory <- args$directory
+ukbdir <- args$ukbdir
 name <- args$name
 verbose <- args$verbose
 
@@ -53,7 +64,7 @@ write.table(slices_dh,
 
 
 ## ld-filtered, significant genome-wide association results ukb ####
-slices_ukb <- read.table(paste(dirukb, "/Slices_sig5e08_ldFiltered.txt", sep=""),
+slices_ukb <- read.table(paste(ukbdir, "/Slices_sig5e08_ldFiltered.txt", sep=""),
                          sep=",", stringsAsFactors=FALSE, header=TRUE)
 
 ## format ukb betas and p-values per slice ####
@@ -70,6 +81,7 @@ logp <- reshape2::melt(slices_ukb_logp, id.var='rsid', value.name='logp',
                        variable.name='slice')
 
 ukb <- cbind(beta, logp=logp$logp)
+ukb$rsid <- as.character(ukb$rsid)
 
 ## ukb significant slice pvalues and betas ####
 ukb <- ukb[ukb$rsid %in% slices_dh$rsid, ]
@@ -97,6 +109,8 @@ dh_sig_slices <- data.frame(t(apply(ukb_sig_slices, 1, function(x) {
 colnames(dh_sig_slices) <- c("slice", "beta", "logp")
 dh_sig_slices$rsid <- ukb_sig_slices$rsid
 dh_sig_slices <- dplyr::select(dh_sig_slices, rsid, slice, beta, logp)
+dh_sig_slices$beta <- as.numeric(dh_sig_slices$beta)
+dh_sig_slices$logp <- as.numeric(dh_sig_slices$logp)
 
 ## concordance of effect sizes ####
 observedConcordance <- sum(sign(dh_sig_slices$beta * observedBetas))
@@ -111,8 +125,8 @@ set.seed(seed)
 testConcordance <- sapply(1:draws, function(dummy) {
     randomSnps <- dh_beta[sample(nrtotal, nrsig),
                           colnames(dh_beta) %in% slices2sample$slice]
-    pos <- colnames(randomSnps) ==slices2sample$slice[x]
     randomBetas <- unlist(sapply(1:nrow(slices2sample), function(x) {
+        pos <- colnames(randomSnps) == slices2sample$slice[x]
         sample(randomSnps[,pos], slices2sample$freq[x])
     }))
     return(sum(sign(randomBetas * observedBetas)))
@@ -120,6 +134,9 @@ testConcordance <- sapply(1:draws, function(dummy) {
 
 empiricalConcordance <-
     length(which(testConcordance >= observedConcordance))/draws
+write.table(empiricalConcordance,
+            paste(directory, "/", name, "_empiricalConcordance.txt", sep=""),
+            quote=FALSE, col.names=FALSE, row.names=FALSE)
 
 ## plot beta concordance ukb and digital heart ####
 slices <- cbind(ukb_sig_slices, dh_sig_slices[,3:4])
@@ -130,25 +147,30 @@ slices$sig <- factor(as.numeric(slices$dh_logp > -log10(0.005)),
 slices$concordance <- factor(sign(slices$ukbb_beta * slices$dh_beta),
                              labels=c('yes', 'no'))
 
+write.table(slices, paste(directory, "/", name, "_concordance.txt",
+                          sep=""),
+            quote=FALSE, col.names=TRUE, row.names=FALSE)
+
 limit <- max(abs(c(slices$ukbb_beta, slices$dh_beta)))
-p <- ggplot(data=slices)
-p <- p + geom_point(aes(x=ukbb_beta, y=dh_beta, color=concordance, shape=sig)) +
-    xlim(c(-limit, limit)) +
-    ylim(c(-limit, limit)) +
-    geom_hline(yintercept = 0) +
-    geom_vline(xintercept = 0) +
-    xlab(expression(hat(beta)[ukbb])) +
-    ylab(expression(hat(beta)[Digital-Heart])) +
-    scale_color_manual(values=c('#969696', 'black'), guide=FALSE) +
-    scale_shape_manual(values=c(20, 17), name='Digital-Heart',
-                       labels=c(expression(p >= 0.005), expression(p < 0.005))) +
-    theme_bw()
-ggsave(plot=p, paste(directory, "/Slices_concordance.pdf", sep=""),
+p <- ggplot(data=slices, aes(x=ukbb_beta, y=dh_beta))
+p <- p + geom_point(aes(color=concordance, shape=sig)) +
+        smooth$stat_smooth_func(geom="text", method="lm", hjust=0, parse=TRUE,
+                                xpos=0.1, ypos=0.15, vjust=0, color="black") +
+        xlim(c(-limit, limit)) +
+        ylim(c(-limit, limit)) +
+        geom_hline(yintercept = 0) +
+        geom_vline(xintercept = 0) +
+        xlab(expression(hat(beta)[ukbb])) +
+        ylab(expression(hat(beta)[Digital-Heart])) +
+        scale_color_manual(values=c('#969696', 'black'), guide=FALSE) +
+        scale_shape_manual(values=c(20, 17), name='Digital-Heart',
+                           labels=c(expression(p >= 0.005),
+                                    expression(p < 0.005))) +
+        theme_bw()
+ggsave(plot=p, paste(directory, "/", name, "_concordance.pdf", sep=""),
        height=5, width=6.5)
 
 
-write.table(slices, paste(directory, "/Slices_concordance.txt", sep=""),
-            quote=FALSE, col.names=TRUE, row.names=FALSE)
 
 
 
