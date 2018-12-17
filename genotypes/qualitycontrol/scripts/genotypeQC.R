@@ -168,19 +168,19 @@ if (FALSE) {
     # testing parser
     args_vec <-
         c("--name=gencall.combined",
-          "--directory=/homes/hannah/data/genotype/QC/combined",
+          "--directory=/homes/hannah/data/digital-heart/genotype/QC/combined",
           "--check_sex", "--fixMixup",
           "--maleTh=0.8","--femaleTh=0.2",
-          "--externalSex=/homes/hannah/data/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt",
+          "--externalSex=/homes/hannah/data/digital-heart/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt",
           "--externalSexSex=Sex",
           "--externalSexID=Bru.Number",
           "--check_het_and_miss", "--imissTh=0.03", "--hetTh=3",
           "--check_relatednes", "--relatednessTh=0.1875",
-          "--prefixMerge=gencall.sanger12.HapMapIII",
+          "--prefixMerge=gencall.combined.HapMapIII",
           "--refSamples=/homes/hannah/data/hmeyer/HapMap/HapMap_ID2Pop.txt",
           "--refColors=/homes/hannah/data/hmeyer/HapMap/HapMap_PopColors.txt",
           "--lmissTh=0.01", "--hweTh=1e-5", "--macTh=20",
-          "--plink=~/bin ", "--plot", "--showProgress", "--check_ancestry")
+          "--plink=/homes/hannah/bin/plink", "--plot", "--showProgress", "--check_ancestry")
     args <- optparse$parse_args(optparse$OptionParser(option_list=option_list),
                                 arg=args_vec)
 }
@@ -194,8 +194,7 @@ SampleID <- data.table::fread(file=args$externalSexFile, header=TRUE,
                        quote="", stringsAsFactors=FALSE, na.strings=c("NA",""),
                        data.table=FALSE, fill=TRUE)
 fail_individuals <-
-    plinkqc$perSampleQC(qcdir=args$qcdir, alg=args$alg,
-                        do.check_sex=args$do.check_sex,
+    plinkqc$perIndividualQC(indir=args$qcdir, name=args$alg,
                         maleTh=args$maleTh,
                         femaleTh=args$femaleTh,
                         externalSex=SampleID,
@@ -204,14 +203,11 @@ fail_individuals <-
                         externalFemale=args$externalFemale,
                         externalSexSex=args$externalSexSex,
                         externalSexID=args$externalSexID,
-                        do.check_heterozygosity_and_missingness=
-                            args$do.check_het_and_miss,
                         imissTh=args$imissTh,
                         hetTh=args$hetTh,
-                        do.check_relatedness=args$do.check_relatedness,
                         highIBDTh=args$highIBDTh,
-                        do.check_ancestry=args$do.check_ancestry,
                         prefixMergedDataset=args$prefixMerged,
+                        do.run_check_ancestry=FALSE,
                         refSamplesFile=args$refSamplesFile,
                         refColorsFile=args$refColorsFile,
                         refSamplesIID=args$refSamplesIID,
@@ -222,11 +218,11 @@ fail_individuals <-
                         path2plink=args$path2plink,
                         interactive=args$plot, verbose=args$verbose)
 
-overview <- plinkqc$overviewPerSampleQC(fail_individuals, interactive=args$plot)
+overview <- plinkqc$overviewPerIndividualQC(fail_individuals, interactive=args$plot)
 
 ## Per-marker QC ####
 if (args$verbose) message("per-marker QC")
-fail_markers <- plinkqc$perMarkerQC(qcdir=args$qcdir, alg=args$alg,
+fail_markers <- plinkqc$perMarkerQC(indir=args$qcdir, name=args$alg,
                                     mafTh=args$mafTh, macTh=args$macTh,
                                     hweTh=args$hweTh, lmissTh=0.01,
                                     path2plink=args$path2plink,

@@ -3,3 +3,4 @@ genodir: "/homes/hannah/data/digital-heart/genotype/imputation/combined/formated
 phenodir: "/homes/hannah/data/digital-heart/phenotype/FD"
 name: "gencall.combined.clean.related"
 n : "8"
+ukbdir: "/homes/hannah/data/ukbb/ukb-hrt/gwas"
