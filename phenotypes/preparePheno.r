@@ -119,7 +119,7 @@ FDalongHeart$Location <- factor(FDalongHeart$Location,
 
 p_fd <- ggplot(data=FDalongHeart)
 p_fd <- p_fd + geom_boxplot(aes(x=Slice, y=FD, color=Location)) +
-    scale_color_manual(values=c('#fdcc8a','#fc8d59','#e34a33')) +
+    scale_color_manual(values=c('#67a9cf','#1c9099','#016c59')) +
     labs(x="Slice", y="FD") +
     theme_bw()
 
@@ -139,7 +139,7 @@ lvv$SV <- lvv$LVEDV - lvv$LVESV
 lvv$CO <- lvv$SV * lvv$HR
 rownames(lvv) <- lvv[, 1]
 
-lvv <- dplyr::select(lvv, ID, LVEDV, LVESV, LVM, SV, CO, HR)
+lvv <- dplyr::select(lvv, ID, LVEDV, LVESV, LVEF, LVM, SV, CO, HR)
 
 ## ukbb bulk data ####
 # ukbb phenotypes
@@ -201,11 +201,17 @@ covs_noNA$height_f21002_comp <-
 
 
 ## Merge FD measures and covariates to order by samples ####
-fd_all <- merge(dplyr::select(summaryFDi, MeanBasalFD, MeanMidFD, MeanApicalFD),
+fd_all <- merge(dplyr::select(summaryFDi, MeanGlobalFD, MeanBasalFD, MeanMidFD, MeanApicalFD),
                 FDi, by=0)
 fd_all <- merge(fd_all, lvv, by=1)
 fd_all <- merge(fd_all, covs_noNA, by.x=1, by.y=0)
 fd_all$genetic_sex_f22001_0_0 <- as.factor(fd_all$genetic_sex_f22001_0_0)
+fd_all$BSA <- sqrt(fd_all$weight_f21002_0_0 * fd_all$height_f21002_comp*
+                                   100/3600)
+fd_all$LVEDVi <- fd_all$LVEDV/fd_all$BSA
+fd_all$LVESVi <- fd_all$LVESV/fd_all$BSA
+fd_all$LVEFi <- fd_all$LVEF/fd_all$BSA
+fd_all$LVMi <- fd_all$LVM/fd_all$BSA
 
 fd_pheno <- dplyr::select(fd_all, MeanBasalFD, MeanMidFD, MeanApicalFD)
 
@@ -259,6 +265,34 @@ p[6,5] <- p[6,5] + geom_histogram(binwidth=3
 ggsave(plot=p, file=paste(args$outdir, "/pairs_fdcovariates.png", sep=""),
        height=12, width=12, units="in")
 
+df_small <- dplyr::select(fd_all,
+                    genetic_sex_f22001_0_0,
+                    age_when_attended_assessment_centre_f21003_0_0,
+                    weight_f21002_0_0,
+                    body_mass_index_bmi_f21001_0_0, height_f21002_comp,
+                    SV, MeanGlobalFD)
+p <- ggpairs(df_small,
+             upper = list(continuous = wrap("smooth", alpha=0.5,size=0.1,
+                                            pch=20),
+                          combo = wrap("facethist")),
+             diag = list(continuous = wrap("densityDiag", size=0.4)),
+             lower = list(continuous = wrap("smooth", alpha=0.5,size=0.1,
+                                            pch=20),
+                          combo = wrap("facethist")),
+             columnLabels = c("Sex~(f/m)",
+                              "Age~(years)", "Height~(m)",
+                              "Weight~(kg)", "BMI~(kg/m^2)", "SV~(ml)",
+                              "global~FD"),
+             labeller = 'label_parsed',
+             axisLabels = "show") +
+    theme_bw() +
+    theme(panel.grid = element_blank(),
+          axis.text = element_text(size=6),
+          axis.text.x = element_text(angle=90),
+          strip.text = element_text(size=8),
+          strip.background = element_rect(fill="white", colour=NA))
+ggsave(plot=p, file=paste(args$outdir, "/pairs_fdcovariates_small.pdf", sep=""),
+       height=12, width=12, units="in")
 
 ## Filter phenotypes for ethnicity and relatedness ####
 related_samples <- related$smartRelatednessFilter(fd_all$Row.names, relatedness)
@@ -273,8 +307,8 @@ rownames(fd_europeans_norelated) <- fd_europeans_norelated[,1]
 fd_europeans_norelated <- merge(fd_europeans_norelated, pcs[,-1], by=1)
 index_pheno <- which(grepl("FD", colnames(fd_europeans_norelated)))
 index_slices <- which(grepl("Slice_", colnames(fd_europeans_norelated)))
-index_volumes <- 14:19
-index_cov <- 20:ncol(fd_europeans_norelated)
+index_volumes <- 15:21
+index_cov <- c(22:26, 32:ncol(fd_europeans_norelated))
 
 lm_fd_pcs <- sapply(index_pheno, function(x) {
     tmp <- lm(y ~ ., data=data.frame(y=fd_europeans_norelated[,x],
@@ -290,10 +324,16 @@ fd_europeans_norelated <- fd_europeans_norelated[,c(1,index_pheno, index_slices,
     index_volumes,
     which(colnames(fd_europeans_norelated) %in% names(sigAssociations)))]
 
+rownames(fd_europeans_norelated) <- fd_europeans_norelated$Row.names
 write.table(lm_fd_pcs[sigAssociations,],
             paste(args$outdir, "/FD_cov_associations.csv", sep=""), sep=",",
             row.names=TRUE, col.names=NA, quote=FALSE)
 
+write.table(fd_europeans_norelated,
+            paste(args$outdir, "/FD_all_EUnorel.csv", sep=""),
+            sep=",",
+            row.names=fd_europeans_norelated$Row.names, col.names=NA,
+            quote=FALSE)
 write.table(fd_europeans_norelated[,index_pheno],
             paste(args$outdir, "/FD_phenotypes_EUnorel.csv", sep=""),
             sep=",",
