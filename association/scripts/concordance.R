@@ -113,6 +113,7 @@ dh_sig_slices$beta <- as.numeric(dh_sig_slices$beta)
 dh_sig_slices$logp <- as.numeric(dh_sig_slices$logp)
 
 ## concordance of effect sizes ####
+nrObservations <- length(sign(dh_sig_slices$beta * observedBetas))
 observedConcordance <- sum(sign(dh_sig_slices$beta * observedBetas))
 
 ## Empirical concordance: matched for number of sig snps and slices ####
@@ -134,9 +135,16 @@ testConcordance <- sapply(1:draws, function(dummy) {
 
 empiricalConcordance <-
     length(which(testConcordance >= observedConcordance))/draws
-write.table(empiricalConcordance,
-            paste(directory, "/", name, "_empiricalConcordance.txt", sep=""),
-            quote=FALSE, col.names=FALSE, row.names=FALSE)
+if (empiricalConcordance == 0) {
+    empiricalConcordance <- 1/draws
+}
+concordance <- data.frame(observedConcordance=
+                            (nrObservations - observedConcordance)/2,
+                          empiricalConcordance=empiricalConcordance,
+                          nrObservations=nrObservations)
+write.table(concordance,
+            paste(directory, "/", name, "_concordance.txt", sep=""),
+            quote=FALSE, col.names=TRUE, row.names=FALSE)
 
 ## plot beta concordance ukb and digital heart ####
 slices <- cbind(ukb_sig_slices, dh_sig_slices[,3:4])
