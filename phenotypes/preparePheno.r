@@ -71,7 +71,7 @@ if (FALSE) {
     args$samples <- "~/data/digital-heart/genotype/imputation/combined/genotypes/gencall.combined.clean.related.chr1.sample"
     args$europeans <- "~/data/digital-heart/genotype/QC/combined/HVOL.gencall.combined.clean.related.fam"
     args$pcs <- "~/data/digital-heart/genotype/QC/combined/HVOL.gencall.combined.clean.related.eigenvec"
-    args$path2plink <- "/homes/hannah/bin/"
+    args$path2plink <- "/homes/hannah/bin/plink"
     args$plinkprefix <- "HVOL.gencall.combined.clean.related"
     args$genodir <- "~/data/digital-heart/genotype/QC/combined"
 }
@@ -182,6 +182,7 @@ colnames(covariates) <- c("sex", "dob", "mridate", "weight", "height")
 covariates$sex <- as.numeric(as.factor(covariates$sex))
 covariates$bmi <- covariates$weight/(covariates$height/100)^2
 covariates$age <- dob2age(covariates$dob, covariates$mridate)
+covariates$bsa <- sqrt(covariates$weight * covariates$height/3600)
 rownames(covariates) <- covs$Bru.Number
 covariates <- dplyr::select(covariates, sex, age, weight, height, bmi)
 
