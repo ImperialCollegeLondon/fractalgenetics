@@ -1,0 +1,127 @@
+{
+    "__default__" :
+    {
+        "memory" : "5000",
+        "n" : "1",
+        "resources" : "\"select[mem>5000] rusage[mem=5000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}.{wildcards}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
+    },
+    "convertPlink" :
+    {
+        "memory" : "200000 -P bigmem",
+        "resources" : "\"select[mem>120000] rusage[mem=120000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "convert.{rule}.{wildcards}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
+    },
+    "filterMaf" :
+    {
+        "memory" : "200000 -P bigmem",
+        "resources" : "\"select[mem>120000] rusage[mem=120000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "convert.{rule}.{wildcards}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
+    },
+    "getSamples" :
+    {
+        "memory" : "1",
+        "resources" : "\"select[mem>1] rusage[mem=1] span[hosts=1]\""
+    },
+    "mergeFiles" :
+    {
+        "memory" : "200000 -P bigmem",
+        "resources" : "\"select[mem>120000] rusage[mem=120000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "convert.{rule}.{wildcards}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
+    },
+    "kinshipUKB" :
+    {
+        "memory" : "100000 -P bigmem",
+        "resources" : "\"select[mem>80000] rusage[mem=80000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}_{wildcards}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
+    },
+    "association" :
+    {
+        "memory" : "50000",
+        "n" : "8",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}_{wildcards.chr}_{wildcards.analysis}",
+        "output" : "log/{rule}_{wildcards.chr}_{wildcards.analysis}.out",
+        "error" : "log/{rule}_{wildcards.chr}_{wildcards.analysis}.err"
+    },
+    "results" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}_GWAS.out",
+        "error" : "log/{rule}_GWAS.err"
+    },
+    "covariatesResults" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}_GWAS.out",
+        "error" : "log/{rule}_GWAS.err"
+    },
+    "bp" :
+    {
+        "memory" : "10000",
+        "n" : "8",
+        "resources" : "\"select[mem>10000] rusage[mem=10000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}_{wildcards.chr}",
+        "output" : "log/{rule}_{wildcards.chr}.out",
+        "error" : "log/{rule}_{wildcards.chr}.err"
+    },
+    "bpResults" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}_GWAS.out",
+        "error" : "log/{rule}_GWAS.err"
+    },
+    "ldScoreFormating" :
+    {
+        "memory" : "8000",
+        "resources" : "\"select[mem>8000] rusage[mem=8000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}_{wildcards.type}.out",
+        "error" : "log/{rule}_{wildcards.type}.err"
+    },
+    "ldScoreRegression" :
+    {
+        "memory" : "20000",
+        "resources" : "\"select[mem>20000] rusage[mem=20000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}_{wildcards.type}.out",
+        "error" : "log/{rule}_{wildcards.type}.err"
+    },
+    "generateLDtags" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}_{wildcards.chr}",
+        "output" : "log/{rule}_{wildcards.chr}.out",
+        "error" : "log/{rule}_{wildcards.chr}.err"
+    },
+}
