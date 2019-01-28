@@ -8,10 +8,10 @@ rule all:
     input:
         expand("{ukb}/gwas/bgenie_{analysis}_lm_st_chr{chr}.gz",
             ukb=config["ukbdir"],
-            analysis=['slices'],
+            analysis=['slices', 'summary'],
             chr=range(1,23)),
         expand("{ukb}/gwas/bgenie_{analysis}_lm_pseudomt_{plot}.pdf",
-           analysis=['slices'],
+           analysis=['slices', 'summary'],
            plot=['qqplot', 'manhattanplot'],
            ukb=config["ukbdir"]),
         expand("{ukb}/tags/European_ukb_imp_chr{chr}_v3_maf{maf}_{kb}kb_r{r2}.tags.list",
@@ -21,7 +21,10 @@ rule all:
             r2=config['r2'],
             chr=range(1,23)),
         expand("{ukb}/gwas/Pseudomultitrait_slices_sig5e08_genotypes.dosage.gz",
-            ukb=config["ukbdir"])
+            ukb=config["ukbdir"]),
+        expand("{ukb}/annotation/Functional_enrichment_{analysis}.pdf",
+            ukb=config["ukbdir"],
+            analysis=['summary']),
 
 rule generateSNPfiles:
     input:
@@ -89,15 +92,27 @@ rule results:
     output:
         "{dir}/gwas/bgenie_{analysis}_lm_pseudomt_qqplot.pdf",
         "{dir}/gwas/bgenie_{analysis}_lm_pseudomt_manhattanplot.pdf",
+        "{dir}/gwas/Pseudomultitrait_{analysis}_sig5e08.txt"
     shell:
         "Rscript association/association_results.R \
             --pheno {input.pheno} \
-            --name summary \
+            --name {wildcards.analysis} \
             --directory {wildcards.dir}/gwas \
             --showProgress "
 
+rule functional_enrichment:
+    input:
+        "{dir}/gwas/bgenie_{analysis}_lm_st_genomewide.csv",
+    output:
+        "{dir}/annotation/Functional_enrichment_{analysis}.pdf",
+        "{dir}/annotation/Functional_enrichment_{analysis}_all.pdf",
+    shell:
+        "Rscript association/functional-enrichment.R \
+            --name {wildcards.analysis} \
+            --directory {wildcards.dir}/gwas \
+            --showProgress "
 
-rule extractSigGenotypes:
+rule extract_genotypes:
     input:
         geno=expand("{geno}/ukb_imp_chr{chr}_v3.bgen",
             chr=range(1,23),
@@ -122,3 +137,16 @@ rule extractSigGenotypes:
             -og {output.bimbam} -s {input.samples}
         """
 
+rule mr:
+    input:
+        instruments="{dir}/gwas/Pseudomultitrait_{analysis}_sig5e08_ldFiltered.txt",
+        bimbam="{dir}/gwas/Pseudomultitrait_{analysis}_sig5e08_genotypes.dosage.gz",
+        oauth="{dir}/MR/mrbase.oauth"
+    output:
+        "{dir}/gwas/Distribution_{analysis}_beta.pdf",
+        "{dir}/gwas/Significant_per_{analysis}.csv",
+        "{dir}/MR/MRbase_{analysis}.rds"
+    shell:
+        "Rscript association/mendelian-randomisation.R \
+            --directory {wildcards.dir} \
+            --showProgress "
