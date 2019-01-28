@@ -1,7 +1,0 @@
-dir: "/homes/hannah/data/digital-heart/association/DCM"
-phenodir: "/homes/hannah/data/digital-heart/phenotype/2Dphenotype"
-imputedir: "/homes/hannah/data/digital-heart/genotype/imputation/combined"
-genodir: "/homes/hannah/data/digital-heart/genotype/QC/combined"
-sigdir: "/homes/hannah/data/ukbb/ukb-hrt/gwas"
-name: "gencall.combined.clean.related"
-n : "8"

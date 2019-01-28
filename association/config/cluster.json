@@ -27,5 +27,23 @@
         "name" : "{rule}",
         "output" : "log/{rule}_{analysis}.out",
         "error" : "log/{rule}_{analysis}.err"
+    },
+    "results" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}_{analysis}.out",
+        "error" : "log/{rule}_{analysis}.err"
+    },
+    "extract" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
     }
 }

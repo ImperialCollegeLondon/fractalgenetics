@@ -15,14 +15,19 @@ rule all:
             analysis=['slices'],
             suffix=["concordance.txt", "concordance.pdf",
                 "concordance_summary.txt"]),
-        expand("{dir}/{analysis}_{suffix}",
+        expand("{dir}/bgenie_{analysis}_{suffix}",
             dir=config["gwasdir"],
             analysis=['slices'],
-            suffix=["lm_pseudomt_qqplot.pdf", "lm_pseudomt_manhattanplot.pdf")
+            suffix=["lm_pseudomt_qqplot.pdf", "lm_pseudomt_manhattanplot.pdf"]),
+        expand("{dir}/Pseudomultitrait_{analysis}_{suffix}",
+            dir=config["gwasdir"],
+            analysis='slices',
+            suffix=['sig5e08_genotypes_stats.txt',
+            'sig5e08_genotypes.dosage.gz'])
 
 rule slices:
     input:
-        geno=expand("{geno}/{name}.chr{{chr}}.qc.bgen",
+        geno=expand("{geno}/formated/{name}.chr{{chr}}.qc.bgen",
             name=config['name'],
             geno=config["genodir"]),
         pheno=expand("{pheno}/FD_{{analysis}}_bgenie.txt",
@@ -44,17 +49,17 @@ rule slices:
 rule results:
     input:
         gwas=expand("{{dir}}/bgenie_slices_lm_st_chr{chr}.gz",
-            chr=range(1,23))
+            chr=range(1,23)),
         pheno=expand("{pheno}/FD_{{analysis}}_bgenie.txt",
             pheno=config["phenodir"]),
     output:
-        "{dir}/gwas/bgenie_{analysis}_lm_pseudomt_qqplot.pdf",
-        "{dir}/gwas/bgenie_{analysis}_lm_pseudomt_manhattanplot.pdf",
+        "{dir}/bgenie_{analysis}_lm_pseudomt_qqplot.pdf",
+        "{dir}/bgenie_{analysis}_lm_pseudomt_manhattanplot.pdf",
     shell:
         "Rscript association/association_results.R \
             --pheno {input.pheno} \
             --name {wildcards.analysis} \
-            --directory {wildcards.dir}/association \
+            --directory {wildcards.dir}/gwas \
             --showProgress "
 
 rule concordance:
@@ -76,4 +81,28 @@ rule concordance:
             --ukbdir {params.ukbdir} \
             --showProgress "
 
-
+rule extract:
+    input:
+        bgen=expand("{dir}/formated/{name}.genome.qc.bgen",
+            name=config['name'],
+            dir=config['genodir']),
+        sample=expand("{dir}/genotypes/{name}.chr1.sample",
+            name=config['name'],
+            dir=config['genodir']),
+        rsids=expand('{dir}/Pseudomultitrait_slices_sig5e08_qctool.IDs',
+            dir=config['ukbdir']),
+        update=expand('{dir}/Pseudomultitrait_slices_sig5e08_qctool.toUpdate',
+            dir=config['ukbdir']),
+        fdsamples=expand('{dir}/European.HVOL.gencall.combined.qctool.IDs',
+            dir=config['qcdir'])
+    output:
+        bimbam="{dir}/Pseudomultitrait_slices_sig5e08_genotypes.dosage.gz",
+        stats="{dir}/Pseudomultitrait_slices_sig5e08_genotypes_stats.txt",
+    shell:
+        """
+        qctool -g {input.bgen} -og {output.bimbam} -s {input.sample} \
+            -incl-samples {input.fdsamples} -incl-rsids {input.rsids}
+        qctool -g {input.bgen} -s {input.sample} \
+            -incl-samples {input.fdsamples} -incl-rsids {input.rsids} \
+            -snp-stats -osnp {output.stats}
+        """
