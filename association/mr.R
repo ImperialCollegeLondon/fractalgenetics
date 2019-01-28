@@ -181,8 +181,12 @@ slices$a_0 <- as.character(slices$a_0)
 slices$a_1 <- as.character(slices$a_1)
 
 ## slices significant slice pvalues and betas ####
-slices <- slices[slices$rsid %in% lvv$rsid, ]
 sig_per_slice <- dplyr::filter(slices, p  < 5e-8)
+write.table(sig_per_slice, paste(directory, '/Significant_per_slice.csv',
+                                 sep=''),
+            sep=",", col.names=TRUE, row.names=FALSE)
+
+sig_per_slice <- sig_per_slice[sig_per_slice$rsid %in% lvv$rsid, ]
 
 ## betas and pvalues of significant snps and slice in ukb ####
 lvv_beta <- lvv[,c(2, which(grepl('beta', colnames(lvv))))]
@@ -196,13 +200,17 @@ lvv_sig <- do.call(rbind, apply(sig_per_slice, 1, function(x) {
     pos <- which(lvv_beta$rsid %in%  x[[1]])
     beta_tmp <- lvv_beta[pos, -1]
     names(beta_tmp) <- paste(names(beta_tmp), "_beta", sep="")
-    logp_tmp <- lvv_logp[pos, -1]
-    names(logp_tmp) <- paste(names(logp_tmp), "_logp", sep="")
+    p_tmp <- 10^(-lvv_logp[pos, -1])
+    colnames(p_tmp) <- paste(colnames(p_tmp), "_p", sep="")
     se_tmp <- lvv_se[pos, -1]
     names(se_tmp) <- paste(names(se_tmp), "_se", sep="")
-    tmp <- data.frame(beta_tmp, logp_tmp, se_tmp, stringsAsFactors=FALSE)
+    tmp <- data.frame(beta_tmp, p_tmp, se_tmp, stringsAsFactors=FALSE)
     return(tmp)
 }))
+
+write.table(lvv_sig, paste(directory, '/lvv_sig.csv',
+                                 sep=''),
+            sep=",", col.names=TRUE, row.names=FALSE)
 
 ## analyse betas slices and volumes ####
 combined <- cbind(sig_per_slice, lvv_sig)
@@ -221,12 +229,13 @@ names(combined_per_area) <- levels(combined$area)
 
 unique_per_area <- lapply(seq_along(combined_per_area), function(test_area) {
     area <- combined_per_area[[test_area]]
-    colnames(area)[1:9] <- c('SNP', 'effect_allele', 'other_allele', 'eaf', 'samplesize',
-                             'slices', 'beta', 'pval', 'se')
+    colnames(area)[1:9] <- c('SNP', 'effect_allele', 'other_allele', 'eaf',
+                             'samplesize', 'slices', 'beta', 'pval', 'se')
     if (any(duplicated(area$SNP))) {
         dup <- area[area$SNP %in% area$SNP[duplicated(area$SNP)],]
         remove <- sapply(unique(dup$SNP), function(x) {
-                   minbeta <- sort(abs(area$beta[area$SNP %in% x]), decreasing=TRUE)[-1]
+                   minbeta <- sort(abs(area$beta[area$SNP %in% x]),
+                                   decreasing=TRUE)[-1]
                    which(abs(area$beta) %in% minbeta)
         })
         area <- area[-unlist(remove),]
@@ -300,6 +309,7 @@ apicalMRdata <- getMRdata(paste(directory, '/apical_association_results.txt', se
 MRdata <- list(basal=basalMRdata, mid=midMRdata, qpical=apicalMRdata)
 saveRDS(MRdata, paste(directory, "/MR/MRdata.rds", sep=""))
 results <- lapply(MRdata, function(x) MRanalysis(x$exposure, x$outcome))
+saveRDS(results, paste(directory, "/MR/MRresults.rds", sep=""))
 
 
 p1 <- mr_scatter_plot(res, dat)
