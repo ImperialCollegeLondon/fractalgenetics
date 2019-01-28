@@ -32,14 +32,18 @@ option_list <- list(
     optparse$make_option(c("--showProgress"), action="store_true",
                dest="verbose",
                default=FALSE, type="logical", help="If set, progress messages
-               about analyses are printed to standard out [default: %default].")
+               about analyses are printed to standard out [default: %default]."),
+    optparse$make_option(c("--debug"), action="store_true",
+               dest="debug", default=FALSE, type="logical",
+               help="If set, predefined arguments are used to test the script",
+               "[default: %default].")
 )
 
 args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 
-if (FALSE) {
+if (args$debug) {
     args <- list()
-    args$directory <- "~/data/digital-heart/association/FD"
+    args$directory <- "~/data/digital-heart/gwas/FD"
     args$ukbdir <- "~/data/ukbb/ukb-hrt/gwas"
     args$name <- 'slices'
     args$verbose <- TRUE
@@ -64,8 +68,12 @@ write.table(slices_dh,
 
 
 ## ld-filtered, significant genome-wide association results ukb ####
-slices_ukb <- read.table(paste(ukbdir, "/Slices_sig5e08_ldFiltered.txt", sep=""),
+slices_ukb <- read.table(paste(ukbdir,
+                               "/Pseudomultitrait_slices_sig5e08_ldFiltered.txt",
+                               sep=""),
                          sep=",", stringsAsFactors=FALSE, header=TRUE)
+# LD filter misses these two SNPs, manually remove
+slices_ukb <- slices_ukb[!slices_ukb$rsid %in% c("rs12214483", "rs117953218"),]
 
 ## format ukb betas and p-values per slice ####
 slices_ukb_beta <- cbind(rsid=slices_ukb$rsid,
@@ -143,7 +151,7 @@ concordance <- data.frame(observedConcordance=
                           empiricalConcordance=empiricalConcordance,
                           nrObservations=nrObservations)
 write.table(concordance,
-            paste(directory, "/", name, "_concordance.txt", sep=""),
+            paste(directory, "/", name, "_concordance_summary.txt", sep=""),
             quote=FALSE, col.names=TRUE, row.names=FALSE)
 
 ## plot beta concordance ukb and digital heart ####
