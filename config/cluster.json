@@ -56,9 +56,9 @@
         "n" : "8",
         "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
         "queue" : "research-rh7",
-        "name" : "{rule}_{wildcards.chr}",
-        "output" : "log/{rule}_{wildcards.chr}.out",
-        "error" : "log/{rule}_{wildcards.chr}.err"
+        "name" : "{rule}_{wildcards.chr}_{wildcards.analysis}",
+        "output" : "log/{rule}_{wildcards.chr}_{wildcards.analysis}.out",
+        "error" : "log/{rule}_{wildcards.chr}_{wildcards.analysis}.err"
     },
     "results" :
     {
