@@ -1,0 +1,48 @@
+
+ensemblNotInUK10K1KG : "/homes/hannah/data/hmeyer/Supplementary/20160415_GRCh37p13_not_in_UK10K1KG.txt"
+highld : "/homes/hannah/data/hmeyer/HapMap/data_2010_NatureProtocols_Anderson_Suppl/high-LD-regions.txt"
+UK10K1KGdir : "/homes/hannah/data/hmeyer/UK10K1000Genomes"
+reference : "HapMapIII"
+hapmap : "HapMapIII_CGRCh37.good_pos"
+hapmapdir : "/homes/hannah/data/hmeyer/HapMap"
+dir : "/homes/hannah/data/genotype/QC"
+sample :
+    singapore12 : "/homes/hannah/data/genotype/omnix_NHCS_20160217/corrected_sample_id.txt"
+    singapore3 : "/homes/hannah/data/genotype/omnix_NHCS_20160217/corrected_sample_id.txt"
+    sanger12: "/homes/hannah/data/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt"
+center :
+    singapore12 : "singapore"
+    singapore3 : "singapore"
+    sanger12: "sanger"
+rawdir :
+    singapore12 : "/homes/hannah/data/genotype/omnix_NHCS_20160217"
+    singapore3 : "/homes/hannah/data/genotype/omnix_NHCS_20160217"
+    sanger12: "/homes/hannah/data/genotype/omnix_hhtmri_20141121"
+rawdata :
+    singapore12 : "Heart_StudyStuartCook_Omniexpress_08052015"
+    singapore3 : "Edmund_NHCS_Heart_Failure"
+    sanger12: "omnix_hhtmri_20141121.gencall.smajor"
+
+probes :
+    singapore12: "/homes/hannah/data/genotype/omnix_NHCS_20160217/Manifests/HumanOmniExpress-24v1-0/humanomniexpress-24v1-0_a.csv"
+    singapore3 : "/homes/hannah/data/genotype/omnix_NHCS_20160217/Manifests/HumanOmniExpress-24v1-1_A/humanomniexpress-24-v1-1-a.csv"
+    sanger12 : "/homes/hannah/data/genotype/omnix_hhtmri_20141121/HumanOmniExpress-12v1-1_A.csv"
+
+externalSex: "/homes/hannah/data/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt"
+externalSexID : "Bru.Number"
+externalSexSex : "Sex"
+refSamples : "/homes/hannah/data/hmeyer/HapMap/HapMap_ID2Pop.txt"
+refColors : "/homes/hannah/data/hmeyer/HapMap/HapMap_PopColors.txt"
+path2plink : "~/bin"
+
+maleTh : 0.8
+femaleTh : 0.2
+imissTh : 0.03
+hetTh : 3
+highIBDTh : 0.1875
+lmissTh : 0.01
+hweTh : "1e-5"
+macTh : 20
+
+diagnosis : "/homes/hannah/data/phenotype/2Dphenotype/20160209_All_BRU_family_format.txt"
+

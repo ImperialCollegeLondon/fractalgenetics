@@ -1,0 +1,6 @@
+controldir : "/homes/hannah/data/digital-heart/genotype"
+imputedir : "/homes/hannah/data/digital-heart/genotype/imputation/combined/formated"
+genodir : "/homes/hannah/data/digital-heart/genotype/QC/combined"
+name : "gencall"
+suffix: "clean.related"
+n : 8

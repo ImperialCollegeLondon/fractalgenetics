@@ -1,0 +1,39 @@
+{
+    "__default__" :
+    {
+        "memory" : "5000",
+        "n" : "1",
+        "resources" : "\"select[mem>5000] rusage[mem=5000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}.{wildcards}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
+    },
+    "prepare_files" :
+    {
+        "memory" : "5000",
+        "resources" : "\"select[mem>5000] rusage[mem=5000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
+    },
+    "association_genotyped" :
+    {
+        "memory" : "5000",
+        "resources" : "\"select[mem>5000] rusage[mem=5000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
+    },
+    "association_results" :
+    {
+        "memory" : "5000",
+        "resources" : "\"select[mem>5000] rusage[mem=5000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
+    }
+}
