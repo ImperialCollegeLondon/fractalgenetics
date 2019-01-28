@@ -14,6 +14,37 @@ zip <- modules::import_package('zip')
 prepGarfield <- modules::import("prepGarfield")
 
 ## functions ####
+garfieldR <- function(trait_name, directory,
+                             garfielddir=paste("/nfs/research1/birney/",
+                                               "resources/human_reference/",
+                                               "GARFIELD/garfield-data", sep=""),
+                             nperm=100000, chrs=1:22, is.NegLog10=TRUE,
+                             run.option='complete'){
+
+    resdir <- paste(directory, "/", trait_name, sep="")
+    prep.file <- paste(resdir, "/garfield_results.prep", sep="")
+    message("Run Garfield analyses for trait: ", trait_name)
+    if (run.option %in% c('complete', 'perm', 'prep')) {
+        garfieldRun <- garfield::garfield.run(out.file=paste(resdir,
+                                                            "/garfield_results",
+                                                            sep=""),
+                             chrs=chrs, data.dir=garfielddir, trait=trait_name,
+                             nperm=nperm, run.option=run.option, prep.file=prep.file)
+    }
+    if (run.option %in% c('complete', 'plot')) {
+        message("Plot Garfield results for trait: ", trait_name)
+        garfieldPlot <- garfield::garfield.plot(input_file=paste(resdir,
+                                                            "/garfield_results.perm",
+                                                            sep=""),
+                                           num_perm=nperm,
+                                           output_prefix=paste(resdir, "/",
+                                                               trait_name, "_plot",
+                                                               sep="")
+                                           )
+    }
+}
+
+
 prepAnalyses <- function(traitindex, bgenie, directory,
                              garfielddir=paste("/nfs/research1/birney/",
                                                "resources/human_reference/",
@@ -100,6 +131,7 @@ peaks_ranges <- "166-290,590-888"
 gwas <- data.table::fread(paste(directory,
                                 '/bgenie_summary_lm_st_genomewide.csv', sep=""),
                           data.table=FALSE, stringsAsFactors=FALSE)
+gwas$SNPID <- paste(gwas$chr, ":", gwas$pos, sep="")
 
 index_logp <- which(grepl("log10p", colnames(gwas)))
 traits <- gsub("-log10p", "", colnames(gwas)[index_logp])
@@ -114,8 +146,29 @@ perSlicePrep <- sapply(index_logp, prepAnalyses, bgenie=gwas,
                         directory=directory)
 
 ## submit garfield jobs ####
-perSliceGarfield <- clustermq::Q(garfieldRun,
-                                 trait_name=traits,
+summaryGarfieldprep <- clustermq::Q(garfieldR,
+                                 trait_name=traits[c(2,4,6)][c(2,4,6)],
+                                 const=list(garfielddir=garfielddir,
+                                            directory=directory,
+                                            run.option='prep'),
+                                 n_jobs=3, memory=20000)
+
+summaryGarfieldperm <- clustermq::Q(garfieldR,
+                                 trait_name=traits[c(2,4,6)],
+                                 const=list(garfielddir=garfielddir,
+                                            directory=directory,
+                                            run.option='perm'),
+                                 n_jobs=3, memory=20000)
+
+summaryGarfieldplot <- clustermq::Q(garfieldR,
+                                 trait_name=traits[c(2,4,6)],
+                                 const=list(garfielddir=garfielddir,
+                                            directory=directory,
+                                            run.option='plot'),
+                                 n_jobs=3, memory=1000)
+## submit garfield jobs ####
+perSummaryGarfield <- clustermq::Q(garfieldRun,
+                                 trait_name=traits[c(2,4,6)],
                                  const=list(garfielddir=garfielddir,
                                             annotations=peaks_ranges,
                                             penrichment=penrichment),
@@ -134,6 +187,30 @@ apicalFD <- data.table::fread(paste(garfielddir, '/output/MeanApicalFD/',
                                  'garfield.test.MeanApicalFD.out', sep=""),
                            data.table=FALSE, stringsAsFactors=FALSE)
 
+apical_variants <- data.table::fread(paste(garfielddir, '/output/MeanApicalFD/',
+                                 'garfield.test.MeanApicalFD.out.significant.annotations.1e-5.0.001.variants', sep=""),
+                           data.table=FALSE, stringsAsFactors=FALSE)
+
+apical_variants$SNPID <- gsub("(\\d{1,2}:\\d*)\\(.*", "\\1", apical_variants$VAR_INFO)
+apical_variants <- merge(apical_variants, annotation_link, by.x='ID', by.y="Index")
+apical_fh <- dplyr::filter(apical_variants, Tissue %in% "fetal_heart")
+
+gwas_apical <- gwas[gwas$SNPID %in% apical_fh$SNPID,]
+apical_results <- dplyr::select(gwas_apical, SNPID, rsid, chr, pos, af,
+                                'MeanApicalFD_beta', 'MeanApicalFD-log10p')
+
+mid_variants <- data.table::fread(paste(garfielddir, '/output/MeanMidFD/',
+                                 'garfield.test.MeanMidFD.out.significant.annotations.1e-5.0.001.variants', sep=""),
+                           data.table=FALSE, stringsAsFactors=FALSE)
+
+mid_variants$SNPID <- gsub("(\\d{1,2}:\\d*)\\(.*", "\\1", mid_variants$VAR_INFO)
+mid_variants <- merge(mid_variants, annotation_link, by.x='ID', by.y="Index")
+mid_fh <- dplyr::filter(mid_variants, Tissue %in% "fetal_heart")
+
+gwas_mid <- gwas[gwas$SNPID %in% mid_fh$SNPID,]
+mid_results <- dplyr::select(gwas_mid, SNPID, rsid, chr, pos, af,
+                                'MeanMidFD_beta', 'MeanMidFD-log10p')
+
 ## format garfield results ####
 mid <- prepData(input=midFD, link=annotation_link, name='Mid')
 apical <- prepData(input=apicalFD, link=annotation_link, name='Apical')
@@ -141,6 +218,7 @@ basal <- prepData(input=basalFD, link=annotation_link, name='Basal')
 
 combined <- rbind(basal, mid, apical)
 combined$Name <- factor(combined$Name, levels=c("Basal", "Mid", "Apical"))
+
 
 ## select tissues of interest and represeentative colors
 tissues_color <- c("tomato", "skyblue3", "yellow", "brown2", "lightgreen",
