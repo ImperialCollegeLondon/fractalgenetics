@@ -1,6 +1,5 @@
 ukbdir: "/homes/hannah/data/ukbb/ukb-hrt"
 genodir: "/homes/hannah/data/ukbb/500K_release_v3"
-LDdir: "/homes/hannah/data/hmeyer/Supplementary"
 n : "8"
 maf: "0.001"
 kbwindow : 250
