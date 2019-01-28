@@ -1,7 +1,7 @@
 # snakemake -s conversion.smk --jobs 5000 --latency-wait 30 --cluster-config config/cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources} -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete
 
 
-configfile: "config/config_conversion.yaml"
+configfile: "config/config_genotypes.yaml"
 
 rule all:
     input:
