@@ -80,12 +80,16 @@ option_list <- list(
     optparse$make_option(c("-i", "--interpolate"), action="store",
                dest="interpolate",
                type="integer", help="Number of slices to interpolate to
-               [default: %default].", default=9)
+               [default: %default].", default=9),
+    optparse$make_option(c("--debug"), action="store_true",
+                        dest="debug", default=FALSE, type="logical",
+                        help="If set, predefined arguments are used to test the
+                        script [default: %default]."))
 )
 
 args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 
-if (FALSE) {
+if (args$debug) {
     args <- list()
     args$directory <-"/homes/hannah/data/ukbb/ukb-hrt/gwas"
     args$name <-"slices"
@@ -94,6 +98,7 @@ if (FALSE) {
     args$verbose <- TRUE
     args$interpolate <- 9
 }
+
 directory <- args$directory
 name <- args$name
 phenofile <- args$phenofile
@@ -123,60 +128,59 @@ write.table(genomewide,
             sep=",",quote=FALSE, col.names=TRUE, row.names=FALSE)
 
 ## Meta-analysis single-trait summary statistics ####
-if (name %in% c('summary', 'slices')) {
-    if (verbose) message("Estimate pseudo-multitrait association results")
-    multitrait_res <- meta$pseudoMultitrait(genomewide[, index_t])
-    multitrait <- cbind(genomewide[,index_snp], multitrait_res$multitrait_p)
-    colnames(multitrait) <- c("CHR", "SNP","BP", "P")
+if (verbose) message("Estimate pseudo-multitrait association results")
+multitrait_res <- meta$pseudoMultitrait(genomewide[, index_t])
+multitrait <- cbind(genomewide[,index_snp], multitrait_res$multitrait_p)
+colnames(multitrait) <- c("CHR", "SNP","BP", "P")
 
-    if (verbose) message("Write pseudo-multitrait association results")
-    write.table(multitrait,
-                file=paste(directory, "/bgenie_", name, "_lm_pseudomt_all.csv",
-                           sep=""),
-                sep=",", quote=FALSE, col.names=TRUE, row.names=FALSE)
-    if (name == 'slices') {
-        title="Pseudomulti-trait all FD slices"
-    } else {
-        title="Pseudomulti-trait mean basal, mid and apical FD"
-    }
+if (verbose) message("Write pseudo-multitrait association results")
+write.table(multitrait,
+            file=paste(directory, "/bgenie_", name, "_lm_pseudomt_all.csv",
+                       sep=""),
+            sep=",", quote=FALSE, col.names=TRUE, row.names=FALSE)
+if (name == 'slices') {
+    title="Pseudomulti-trait all FD slices"
+} else {
+    title="Pseudomulti-trait mean basal, mid and apical FD"
+}
 
-    if (verbose) message("Plot pseudo-multitrait association results")
-    ymin <- 10^(-1)
-    ymax <- max(c(-log10(min(multitrait$P)), max(genomewide[,index_logp])))
-    sig <- multitrait[multitrait$P < ymin, ]
-    p_manhattan_mt <- plots$manhattan(d=sig,
-                        title=title,
-                        size.x.text=13, size.y.text=13,
-                        size.x.title=15, size.y.title=15, is.negLog=FALSE,
-                        color=c('#878787', '#4d4d4d'),
-                        colorHighlight="#fc8d59",
-                        highlight=multitrait$SNP[multitrait$P < 5e-8],
-                        max.y=ymax)
+if (verbose) message("Plot pseudo-multitrait association results")
+ymin <- 10^(-1)
+ymax <- max(c(-log10(min(multitrait$P)), max(genomewide[,index_logp])))
+sig <- multitrait[multitrait$P < ymin, ]
+p_manhattan_mt <- plots$manhattan(d=sig,
+                    title=title,
+                    size.x.text=13, size.y.text=13,
+                    size.x.title=15, size.y.title=15, is.negLog=FALSE,
+                    color=c('#878787', '#4d4d4d'),
+                    colorHighlight="#fc8d59",
+                    highlight=multitrait$SNP[multitrait$P < 5e-8],
+                    max.y=ymax)
 
-    ggplot2::ggsave(plot=p_manhattan_mt, height=4, width=11,
-           file=paste(directory,"/bgenie_", name,
-                      "_lm_pseudomt_manhattanplot.pdf", sep=""))
+ggplot2::ggsave(plot=p_manhattan_mt, height=4, width=11,
+       file=paste(directory,"/bgenie_", name,
+                  "_lm_pseudomt_manhattanplot.pdf", sep=""))
 
-    p_qq_mt <- plots$qqplot(multitrait$P, size.text=14, size.title=14)
-    ggplot2::ggsave(plot=p_qq_mt, height=7, width=7,
-           file=paste(directory,"/bgenie_", name,
-                      "_lm_pseudomt_qqplot.pdf", sep=""))
+p_qq_mt <- plots$qqplot(multitrait$P, size.text=14, size.title=14)
+ggplot2::ggsave(plot=p_qq_mt, height=7, width=7,
+       file=paste(directory,"/bgenie_", name,
+                  "_lm_pseudomt_qqplot.pdf", sep=""))
 
-    if (verbose) message("Filter pseudo-multitrait association results for LD")
-    multitrait_ld <-
-        ldfilter$filterSigLoci4LD(gwas=cbind(multitrait[,1:3], P=multitrait$P,
-                                             genomewide[,c(4:7, index_beta)]),
-                                  tags_dir=tags_dir,
-                                  tags_prefix=tags_prefix,
-                                  tags_suffix=tags_suffix,
-                                  matchBy="SNP", tags_ID="SNP",
-                                  tagsSplit="|")
-    ldfilter$writeSig(multitrait_ld, threshold=5*10^(-8), directory=directory,
-                   name="Pseudomultitrait_Slices")
-    sig <- genomewide[genomewide$rsid %in% multitrait_ld$sig_no_ld,]
-    write.table(sig, paste(directory, "/", name, "_sig5e08_ldFiltered.txt",
-                                  sep=""),
-                col.names=TRUE, row.names=FALSE, quote=FALSE)
+if (verbose) message("Filter pseudo-multitrait association results for LD")
+multitrait_ld <-
+    ldfilter$filterSigLoci4LD(gwas=cbind(multitrait[,1:3], P=multitrait$P,
+                                         genomewide[,c(4:7, index_beta)]),
+                              tags_dir=tags_dir,
+                              tags_prefix=tags_prefix,
+                              tags_suffix=tags_suffix,
+                              matchBy="SNP", tags_ID="SNP",
+                              tagsSplit="|")
+ldfilter$writeSig(multitrait_ld, threshold=5*10^(-8), directory=directory,
+               name="Pseudomultitrait_Slices")
+sig <- genomewide[genomewide$rsid %in% multitrait_ld$sig_no_ld,]
+write.table(sig, paste(directory, "/", name, "_sig5e08_ldFiltered.txt",
+                              sep=""),
+            col.names=TRUE, row.names=FALSE, quote=FALSE)
 
 }
 ## per trait qq and manhattan plots ####
@@ -203,29 +207,4 @@ sigAssociations <- genomewide[sig,]
 write.table(sigAssociations, paste(directory, "/bgenie_", name,
                                    "_lm_st_significant.csv",  sep=""),
             quote=FALSE, col.names=TRUE, row.names=FALSE)
-
-## Format single-trait association statistics for LD score regression ####
-if (verbose) message("Format results for LD score regression")
-ldshub_file <- "~/data/ukbb/ukb-hrt/gwas/ldc_hub/w_hm3.noMHC.snplist"
-ldshub_snps <- data.table::fread(ldshub_file, data.table=FALSE,
-                                 stringsAsFactors=FALSE)
-
-ldsc_single <- sapply(index_beta, function(x) {
-                   columns <- c(1:7, x:(x+3))
-                   nn <- paste(name, "_",
-                               gsub("_beta", "", colnames(genomewide)[x]),
-                               sep="")
-                   tmp <- bgenie$bgenie2ldsc(genomewide[,columns],
-                                             sumstat="_beta",
-                                             ldshub_snps=ldshub_snps)
-                   message("Write LDSC output for ", nn)
-                   write.table(tmp, file=paste(directory, "/sumstats_", nn,
-                                               ".txt", sep=""),
-                               sep="\t", quote=FALSE, col.names=TRUE,
-                               row.names=FALSE)
-                   system(paste("cd ", directory, "; zip sumstats_", nn, ".zip ",
-                                "sumstats_", nn, ".txt", sep=""))
-                }
-)
-
 
