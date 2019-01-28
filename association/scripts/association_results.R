@@ -69,6 +69,10 @@ option_list <- list(
                dest="verbose",
                default=FALSE, type="logical", help="If set, progress messages
                about analyses are printed to standard out [default: %default]."),
+    optparse$make_option(c("--debug"), action="store_true",
+               dest="debug", default=FALSE, type="logical",
+               help="If set, predefined arguments are used to test the script",
+               "[default: %default].")
 )
 
 args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
