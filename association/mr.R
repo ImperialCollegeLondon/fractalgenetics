@@ -3,9 +3,10 @@
 ###############################
 options(bitmapType = 'cairo', device = 'pdf')
 
-optparse <- modules::import_package('dplyr', attach=TRUE)
+modules::import_package('dplyr', attach=TRUE)
+modules::import_package('ggplot2', attach=TRUE)
+modules::import_package('TwoSampleMR', attach=TRUE)
 optparse <- modules::import_package('optparse')
-rmr <- modules::import_package('RadialMR')
 
 estimateI2 <- function(y,s) {
     k <- length(y)
@@ -18,30 +19,40 @@ estimateI2 <- function(y,s) {
     return(Isq)
 }
 
-alleleScore <- function(bx, by, bxse, byse) {
-    # for equal weights, otherwise specify weights
-    wts <- rep(1, length(bx))
-    # equivalent to original IVW method when wts = bx
-    # standard error from delta method (first-order approximation)
-    se_SSw_first <- sqrt(sum(wts^2/byse^2)/sum(wts*bx/byse^2))
-    # standard error from delta method (second-order approximation)
-    # theta is the correlation between the numerator and denominator of the estimate
-    # if the correlation is not known, it can be taken as the observational
-    # correlation between the risk factor and outcome; # a sensitivity analysis can also be performed for its value
-    se_SSw_second = sqrt(sum(wts^2/byse^2)/sum(wts*bx/byse^2)^2 + sum(wts*by/byse^2)^2/sum(wts*bx/byse^2)^4*sum(wts^2/byse^2) - 2*theta*sum(wts*by/byse^2)/sum(wts*bx/byse^2)^3) 
-    beta_SSw = sum(wts*by/byse^2)/sum(wts*bx/byse^2) 
-If the genetic variants are correlated
-
-getMRdata <- function(filename, outcomes, access) {
-    ao <- available_outcomes(access)
-    exposure_dat <- read_exposure_data(
-        filename = filename
-    )
-    outcome_dat <- extract_outcome_data(exposure_dat$SNP, outcomes,
+getMRdata <- function(filename_exposure, data_exposure=NULL, outcomes=NULL,
+                      access, name='FD', data_outcome=NULL,
+                      filename_outcome=NULL, 
+                      sep = " ", phenotype_col = "Phenotype", snp_col = "SNP",
+                      beta_col = "beta", se_col = "se", eaf_col = "eaf",
+                      effect_allele_col = "effect_allele", pval_col='pval',
+                      other_allele_col = "other_allele") {
+    if (is.null(data_exposure)) {
+        data_exposure <- read_exposure_data(filename = filename_exposure)
+    }
+    if (!is.null(outcomes)) {
+        ao <- available_outcomes(access)
+        data_outcome <- extract_outcome_data(data_exposure$SNP, outcomes,
                                         proxies=TRUE, rsq=0.8, align_alleles=1,
                                         palindromes=1, maf_threshold=0.3,
                                         access_token=access)
-    return(list(exposure=exposure_dat, outcome=outcome_dat))
+    } else if (!is.null(filename_outcome)) {
+        data_outcome <- read_outcome_data(filename=filename_outcome, sep=sep,
+                                         phenotype_col=phenotype_col,
+                                         snp_col=snp_col, beta_col=beta_col,
+                                         se_col=se_col, eaf_col=eaf_col,
+                                         effect_allele_col=effect_allele_col,
+                                         other_allele_col=other_allele_col)
+    }  else if (!is.null(data_outcome)) {
+        data_outcome <- format_data(data_outcome, type='outcome',
+                                   phenotype_col=phenotype_col,
+                                   snp_col=snp_col, beta_col=beta_col,
+                                   se_col=se_col, eaf_col=eaf_col,
+                                   pval_col=pval_col,
+                                   effect_allele_col=effect_allele_col,
+                                   other_allele_col=other_allele_col)
+    }
+
+    return(list(exposure=data_exposure, outcome=data_outcome))
 }
 
 MRanalysis <- function(exposure_dat, outcome_dat,
@@ -74,6 +85,35 @@ MRanalysis <- function(exposure_dat, outcome_dat,
            plei_results=plei_results, loo_results=loo_results,
            directionality_results=directionality_results, I2=I2))
 }
+
+plotMR <- function(dat, mr_results) {
+    p_mr <- mr_scatter_plot(mr_results, dat)
+    res_single <- mr_singlesnp(dat,
+                               all_method=c("mr_egger_regression", "mr_ivw",
+                                            "mr_weighted_median",
+                                            "mr_weighted_mode"))
+    p_forrest <- mr_forest_plot(res_single)
+    
+    res_loo <- mr_leaveoneout(dat)
+    p_loo <- mr_leaveoneout_plot(res_loo)
+    
+    p_funnel <- mr_funnel_plot(res_single)
+    legendMR <- cowplot::get_legend(p_funnel[[1]] + theme_bw() +
+                                        theme(legend.position='left') )
+    
+    all_plots <- lapply(seq_along(p_forrest), function(x) {
+        mr <- p_mr[[x]] + theme_bw()  + theme(legend.position='none')
+        forrest <- p_forrest[[x]] + theme_bw() + theme(legend.position='none')
+        loo <- p_loo[[x]] + theme_bw() + theme(legend.position='none')
+        funnel <-  p_funnel[[x]] + theme_bw() + theme(legend.position='none')
+        plots_1 <- cowplot::plot_grid(mr, funnel, nrow=2, align='v')
+        plots_2 <- cowplot::plot_grid(forrest,  loo, nrow=2, align='v')
+        plots <- cowplot::plot_grid(plots_1, plots_2, ncol=2, align='h')
+        p_all <- cowplot::plot_grid(legendMR, plots, ncol=2, rel_widths=c(1,4))
+    })
+    return(list(all_plots=all_plots, forrest=p_forrest))
+}
+
 ############
 ## data  ###
 ############
@@ -84,38 +124,35 @@ option_list <- list(
                dest="directory",
                type="character", help="Path to directory with digital-heart
                bgenie association results [default: %default].", default=NULL),
-    optparse$make_option(c("-ukb", "--ukbdir"), action="store",
-               dest="ukbdir",
-               type="character", help="Path to directory with ukbb significant
-               association results [default: %default].", default=NULL),
-    optparse$make_option(c("-n", "--name"), action="store", dest="name",
-               type="character", help="Name of analysis; has to be the same as
-               in naming bgenie files [default: %default].", default=NULL),
     optparse$make_option(c("--showProgress"), action="store_true",
                dest="verbose",
                default=FALSE, type="logical", help="If set, progress messages
-               about analyses are printed to standard out [default: %default].")
+               about analyses are printed to standard out ",
+               "[default: %default]."),
+    optparse$make_option(c("--debug"), action="store_true",
+                dest="debug", default=FALSE, type="logical",
+                help="If set, predefined arguments are used to test the script",
+                "[default: %default].")
 )
 
 args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 
-if (FALSE) {
+if (args$debug) {
     args <- list()
     args$directory <- "~/data/ukbb/ukb-hrt/gwas"
-    args$name <- 'volumes'
     args$verbose <- TRUE
 }
 directory <- args$directory
-name <- args$name
 verbose <- args$verbose
 
-## genome-wide association results volumes ####
-lvv <- data.table::fread(paste(directory, "/bgenie_", name, "_lm_st_genomewide.csv",
-                               sep=""), data.table=FALSE, stringsAsFactors=FALSE)
-
 ## ld-filtered, significant genome-wide association results ukb ####
-slices_sig <- read.table(paste(directory, "/Slices_sig5e08_ldFiltered.txt", sep=""),
+slices_sig <- read.table(paste(directory,
+                               "/Pseudomultitrait_slices_sig5e08_ldFiltered.txt",
+                               sep=""),
                          sep=",", stringsAsFactors=FALSE, header=TRUE)
+# LD filter misses these two SNPs, manually remove
+slices_sig <- slices_sig[!slices_sig$rsid %in% c("rs12214483", "rs117953218"),]
+
 slices_sig$SNPID <- paste(slices_sig$chr, ":", slices_sig$pos, "_",
                           slices_sig$a_0, "_", slices_sig$a_1, sep="")
 
@@ -127,27 +164,10 @@ geno_sig$SNPID <- paste(geno_sig$chromosome, ":", geno_sig$position, "_",
                         geno_sig$alleleA, "_", geno_sig$alleleB, sep="")
 geno_sig <- geno_sig[geno_sig$SNPID %in% slices_sig$SNPID,]
 geno_sig <- merge(slices_sig[, c(2,6)], geno_sig, by='rsid')
-geno_recode <- apply(geno_sig[, c(2,8:ncol(geno_sig))], 1, function(x) {
-    if(x[1] > 0.5) return(abs(x[-1]-2))
-    return(x[-1])
-})
-geno_recode <- cbind(geno_sig[,1:7], t(geno_recode))
-colnames(geno_recode) <- colnames(geno_sig)
-
-
-## phenotyes and covariates ####
-slices <- data.table::fread('~/data/ukbb/ukb-hrt/phenotypes/FD_slices_EUnorel.csv',
-                           stringsAsFactors=FALSE, data.table=FALSE)
-summary <- data.table::fread('~/data/ukbb/ukb-hrt/phenotypes/FD_summary_EUnorel.csv',
-                           stringsAsFactors=FALSE, data.table=FALSE)
-covs <- data.table::fread('~/data/ukbb/ukb-hrt/phenotypes/FD_covariates_EUnorel.csv',
-                          stringsAsFactors=FALSE, data.table=FALSE)
 
 ###############
 ## analysis ###
 ###############
-
-
 
 ## format slice betas and p-values per slice ####
 slices_beta <- cbind(rsid=slices_sig$rsid, a_0=slices_sig$a_0,
@@ -179,258 +199,154 @@ slices <- cbind(beta, p=10^(-logp$logp), se=se$se)
 slices$rsid <- as.character(slices$rsid)
 slices$a_0 <- as.character(slices$a_0)
 slices$a_1 <- as.character(slices$a_1)
+slices$sig <- 1
+slices$sig[slices$p > 5*10^(-8)] <- 0
+slices$sig <- factor(slices$sig, levels=c(1,0))
+
+## Effect size estimates per variant across slices ####
+p_beta <- ggplot(slices, aes(x=slice, y=beta, color=sig))
+p_beta <- p_beta + geom_point() + 
+    facet_wrap(~rsid) +
+    ylim(c(-0.16,0.16)) +
+    geom_hline(yintercept=0, color='grey') +
+    scale_color_brewer(type='qual', palette = 'Set1', name='GWAS',
+                       labels = c(expression(p<5%*%10^-8),
+                                               expression(p>=5%*%10^-8))) +
+    xlab('Slice') +
+    ylab("Effect size estimates") +
+    theme_bw() + theme(axis.text.x = element_text(angle=90),
+                       strip.background=element_rect(fill='white'))
+
+ggsave(plot=p_beta, paste(directory, "/Distribution_beta.pdf", sep=""),
+       height=8, width=8)
 
 ## slices significant slice pvalues and betas ####
-slices <- slices[slices$rsid %in% lvv$rsid, ]
 sig_per_slice <- dplyr::filter(slices, p  < 5e-8)
+write.table(sig_per_slice,
+            paste(directory, '/Significant_per_slice.csv', sep=""),
+            sep=',', col.names=TRUE, row.names=FALSE)
 
-## betas and pvalues of significant snps and slice in ukb ####
-lvv_beta <- lvv[,c(2, which(grepl('beta', colnames(lvv))))]
-colnames(lvv_beta) <- gsub("_beta", "", colnames(lvv_beta))
-lvv_logp <- lvv[,c(2, which(grepl('log10p', colnames(lvv))))]
-colnames(lvv_logp) <- gsub("-log10p", "", colnames(lvv_logp))
-lvv_se <- lvv[,c(2, which(grepl('se', colnames(lvv))))]
-colnames(lvv_se) <- gsub("_se", "", colnames(lvv_se))
-
-lvv_sig <- do.call(rbind, apply(sig_per_slice, 1, function(x) {
-    pos <- which(lvv_beta$rsid %in%  x[[1]])
-    beta_tmp <- lvv_beta[pos, -1]
-    names(beta_tmp) <- paste(names(beta_tmp), "_beta", sep="")
-    logp_tmp <- lvv_logp[pos, -1]
-    names(logp_tmp) <- paste(names(logp_tmp), "_logp", sep="")
-    se_tmp <- lvv_se[pos, -1]
-    names(se_tmp) <- paste(names(se_tmp), "_se", sep="")
-    tmp <- data.frame(beta_tmp, logp_tmp, se_tmp, stringsAsFactors=FALSE)
-    return(tmp)
-}))
-
-## analyse betas slices and volumes ####
-combined <- cbind(sig_per_slice, lvv_sig)
-colnames(combined)[1:9] <- c('rsid', 'a_0', 'a_1', 'af', 'samplesize',
+# analyse betas slices ####
+colnames(sig_per_slice)[1:9] <- c('rsid', 'a_0', 'a_1', 'af', 'samplesize',
                              'slices', 'slices_beta', 'slices_p', 'slices_se')
 
-base <- as.character(combined$slices) %in% c('Slice_1', 'Slice_2', 'Slice_3')
-mid <- as.character(combined$slices) %in% c('Slice_4', 'Slice_5', 'Slice_6')
-combined$area <- "apical"
-combined$area[base] <- 'basal'
-combined$area[mid] <- 'mid'
-combined$area <- factor(combined$area, levels=c('basal', 'mid', 'apical'))
+base <- as.character(sig_per_slice$slices) %in%
+    c('Slice_1', 'Slice_2', 'Slice_3')
+mid <- as.character(sig_per_slice$slices) %in%
+    c('Slice_4', 'Slice_5', 'Slice_6')
+sig_per_slice$area <- "apical"
+sig_per_slice$area[base] <- 'basal'
+sig_per_slice$area[mid] <- 'mid'
+sig_per_slice$area <- factor(sig_per_slice $area,
+                              levels=c('basal', 'mid', 'apical'))
 
-combined_per_area <- split(combined, f=combined$area)
-names(combined_per_area) <- levels(combined$area)
+sig_per_area <- split(sig_per_slice , f=sig_per_slice $area)
+names(sig_per_area) <- levels(sig_per_slice$area)
 
-unique_per_area <- lapply(seq_along(combined_per_area), function(test_area) {
-    area <- combined_per_area[[test_area]]
-    colnames(area)[1:9] <- c('SNP', 'effect_allele', 'other_allele', 'eaf', 'samplesize',
-                             'slices', 'beta', 'pval', 'se')
+unique_per_area <- lapply(seq_along(sig_per_area), function(test_area) {
+    area <- sig_per_area[[test_area]]
+    colnames(area)[1:9] <- c('SNP', 'effect_allele', 'other_allele', 'eaf',
+                             'samplesize', 'slices', 'beta', 'pval', 'se')
     if (any(duplicated(area$SNP))) {
         dup <- area[area$SNP %in% area$SNP[duplicated(area$SNP)],]
         remove <- sapply(unique(dup$SNP), function(x) {
-                   minbeta <- sort(abs(area$beta[area$SNP %in% x]), decreasing=TRUE)[-1]
-                   which(abs(area$beta) %in% minbeta)
+            minbeta <- sort(abs(area$beta[area$SNP %in% x]),decreasing=TRUE)[-1]
+            which(abs(area$beta) %in% minbeta)
         })
         area <- area[-unlist(remove),]
     }
-    write.table(area[,1:9], paste(directory, '/',
+    return(area)
+})
+names(unique_per_area) <- names(sig_per_area)
+
+exposure_per_area <- lapply(seq_along(unique_per_area), function(test_area) {
+    area <- unique_per_area[[test_area]]
+    area_exposure <- format_data(area, type='exposure')
+    area_exposure$id.exposure <- 'FD'
+    area_exposure$exposure <- 'FD'
+    write.table(area_exposure, paste(directory, '/',
                                   names(combined_per_area)[test_area],
                             "_association_results.txt", sep=""),
                 sep=' ', col.names=TRUE, row.names=FALSE, quote=FALSE)
-    return(area)
+    return(area_exposure)
 })
-names(unique_per_area) <- names(combined_per_area)
+names(exposure_per_area) <- names(combined_per_area)
 
-## estimate % of variance of sig loci ####
-genotypes <- t(geno_sig[, -c(1:7)])
-colnames(genotypes) <- geno_sig$rsid
 
-ve_sig <- sapply(seq_along(unique_per_area), function(test_area) {
-    area <- unique_per_area[[test_area]]
-    pheno <- summary[, c(1, 1+test_area)]
-    colnames(pheno) <- c("IID", "pheno")
-    #gt <- rowSums(genotypes[, colnames(genotypes) %in% area$SNP])
-    gt <- genotypes[, colnames(genotypes) %in% area$SNP]
-
-    df_null <- merge(pheno, covs, by=1)
-    df_alt <- merge(df_null, gt, by.x=1, by.y=0)
-
-    lm_null <- lm(pheno ~ ., df_null[, -1])
-    lm_alt <- lm(pheno ~ ., df_alt[, -1])
-    r2 <- summary(lm_alt)$adj.r.squared - summary(lm_null)$adj.r.squared
-    N <- dim(geno_sig)[2]
-    k <- dim(gt)[2]
-    F <- (N - k -1)/k * r2/(1-r2)
-    low <- findlowerflimit(F, k, N)
-    return(c(F, low))
-})
-
-findlowerflimit <- function(f, nu1, nu2) {
-    lambda <- f*nu1*(nu2-2)/nu2-nu1
-    lower <- f - 1
-    while (pf(lower, df1=nu1, df2=nu2, ncp=lambda) > 0.05) {
-        lower <- lower-1
-    }
-    upper <- lower + 1
-    while (abs(pf((lower+upper)/2, df1=nu1, df2=nu2, ncp=lambda)-0.05) > 0.0001 ) {
-        if (pf((lower+upper)/2, df1=nu1, df2=nu2, ncp=lambda) > 0.05) {
-            upper = (lower+upper)/2
-        }
-        if (pf((lower+upper)/2, df1=nu1, df2=nu2, ncp=lambda) <0.05) {
-        lower = (lower+upper)/2
-        }
-    }
-    return((lower+upper)/2)
-}
-
-## MR base ####
-library(TwoSampleMR)
-token <- googleAuthR::gar_auth( paste(directory, "/mrbase.oauth", sep=''))
+## MR base: `two-sample` MR with Biobank data ####
+token <- googleAuthR::gar_auth(paste(directory, "/mrbase.oauth", sep=''))
 access <- token$credentials$access_token
 
+#SV, QRS duration, HR
+outcomes <- c('UKB-b:6025', 'UKB-b:2240', '1056')
 
-filename <- paste(directory, '/mid_association_results.txt', sep="")
-outcomes <- c('UKB-b:6025','1056')
+basalMRbase <- getMRdata(data_exposure=exposure_per_area[[1]],
+                       outcomes=outcomes, access=access)
+midMRbase <- getMRdata(data_exposure=exposure_per_area[[2]],
+                       outcomes=outcomes, access=access)
+apicalMRbase <- getMRdata(data_exposure=exposure_per_area[[3]],
+                          outcomes=outcomes, access=access)
 
-basalMRdata <- getMRdata(paste(directory, '/basal_association_results.txt', sep=""),
-                       outcomes, access)
-midMRdata <- getMRdata(paste(directory, '/mid_association_results.txt', sep=""),
-                       outcomes, access)
-apicalMRdata <- getMRdata(paste(directory, '/apical_association_results.txt', sep=""),
-                       outcomes, access)
+MRbase <- list(basal=basalMRbase, mid=midMRbase, apical=apicalMRbase)
+saveRDS(MRbase, paste(directory, "/MR/MRbase.rds", sep=""))
 
-MRdata <- list(basal=basalMRdata, mid=midMRdata, qpical=apicalMRdata)
-saveRDS(MRdata, paste(directory, "/MR/MRdata.rds", sep=""))
-results <- lapply(MRdata, function(x) MRanalysis(x$exposure, x$outcome))
+MRbase_results <- lapply(MRbase, function(x) MRanalysis(x$exposure, x$outcome))
 
+mr_tables <- lapply(seq_along(MRbase_results), function(x) {
+    region <- MRbase_results[[x]]
+    name_region <- names(MRbase_results)[x]
+    write.table(region$mr_results,  paste(directory, "/MR/", name_region,
+                                          "_MR_results.csv", sep=""),
+                col.names=TRUE, row.names=FALSE, sep=',', quote=FALSE)
+    write.table(region$plei_results,  paste(directory, "/MR/", name_region,
+                                          "_MR_pleiotropy_results.csv", sep=""),
+                col.names=TRUE, row.names=FALSE, sep=',', quote=FALSE)
+    write.table(region$directionality_results,
+                paste(directory, "/MR/", name_region,
+                      "_MR_directionality_results.csv", sep=""),
+                col.names=TRUE, row.names=FALSE, sep=',', quote=FALSE)
 
-p1 <- mr_scatter_plot(res, dat)
-
-res_single <- mr_singlesnp(dat)
-p2 <- mr_forest_plot(res_single)
-p2[[1]]
-
-
-
-
-mr_area <- lapply(seq_along(combined_per_area), function(test_area) {
-    area <- combined_per_area[[test_area]]
-    tmp <- lapply(c('CO', 'SV', 'HR'), function(x){
-        if (x == 'CO') {
-            BYG=area$CO_beta
-            seBYG=area$CO_se
-        }
-        if (x == 'SV') {
-            BYG=area$SV_beta
-            seBYG=area$SV_se
-        }
-        if (x == 'HR') {
-            BYG=area$HR_beta
-            seBYG=area$HR_se
-        }
-        formated <- rmr$format_radial(BXG=area$slices_beta, BYG=BYG,
-                                  seBXG=area$slices_se,
-                                  seBYG=seBYG, RSID=area$rsid)
-        ivw <- rmr$ivw_radial(r_input=formated, alpha=0.05, weights=1)
-        egger <- rmr$egger_radial(r_input=formated, alpha=0.05, weights=1)
-        if (any(!ivw$outliers %in% "No significant outliers")) {
-            formated_wo_outliers <- formated[!as.character(formated$SNP) %in%
-                                                as.character(ivw$outliers$SNP),]
-            ivw <- rmr$ivw_radial(r_input=formated_wo_outliers, alpha=0.05,
-                                  weights=1)
-            egger <- rmr$egger_radial(r_input=formated_wo_outliers, alpha=0.05,
-                                  weights=1)
-        }
-        ivw$data$area <- names(combined_per_area)[test_area]
-        ivw$data$type <- x
-        egger$data$area <- names(combined_per_area)[test_area]
-        egger$data$type <- x
-        return(list(ivw=ivw, egger=egger))
-    })
-    names(tmp) <- c('CO', 'SV', 'HR')
-    return(tmp)
-})
-names(mr_area) <- names(combined_per_area)
-
-summaryMR <- lapply(seq_along(mr_area), function(test_area) {
-    area <- mr_area[[test_area]]
-    perX <- lapply(seq_along(area), function(test_x) {
-        x <- area[[test_x]]
-        ivw_tmp <- data.frame(x$ivw$coef)
-        ivw_tmp$df <- x$ivw$df
-        ivw_tmp$Q <- x$ivw$qstatistic
-        ivw_tmp$p_q <- pchisq(ivw_tmp$Q, ivw_tmp$df, lower.tail=FALSE)
-        rownames(ivw_tmp) <- c("beta_ivw")
-        ivw_tmp$test <- c("beta_ivw")
-        egger_tmp <- data.frame(x$egger$coef)
-        egger_tmp$df <- x$egger$df
-        egger_tmp$Q <- x$egger$qstatistic
-        egger_tmp$p_q <- pchisq(egger_tmp$Q, egger_tmp$df, lower.tail=FALSE)
-        rownames(egger_tmp) <- c("beta_1E", "beta1E")
-        egger_tmp$test <- c("beta_1E", "beta1E")
-        tmp <- rbind(ivw_tmp, egger_tmp)
-        colnames(tmp)[1:4] <- c("Estimate", "se", "t.value", 'p.value')
-        tmp$type <- names(area)[test_x]
-        return(tmp)
-    })
-    tmp <- do.call(rbind, perX)
-    tmp$area <- names(mr_area)[test_area]
-    return(tmp)
+    write.table(region$I2, paste(directory, "/MR/", name_region,
+                                            "_MR_I2_results.csv", sep=""),
+                col.names=FALSE, row.names=FALSE, sep=',', quote=FALSE)
 })
 
-summaryMR <- do.call(rbind, summaryMR)
-summaryMR$p.adjust <- p.adjust(summaryMR$p.value)
-MRsig <- summaryMR[summaryMR$p.adjust < 0.05,]
+mr_plots <- lapply(MRbase_results, function(region) {
+    dat <- region$dat
+    res <- region$mr_results
+    tmp <- plotMR(dat, res)
+})
 
-p_CO_mid <- rmr$plot_radial(r_object=mr_area$mid$CO$ivw,
-                            show_outliers=FALSE, radial_scale = TRUE) +
-    ggtitle("CO in mid region") + xlim(c(0, 12))
+panels_hr <- lapply(panel_plots, function(x) x[[1]]) 
+p_panels_hr <- cowplot::plot_grid(plotlist=panels_hr, nrow=3) 
+ggsave(plot=p_panels_hr, paste(directory, "/MR/MR_panels_HR.pdf", sep=""),
+       height=20, width=12)
 
-p_CO_apical <- rmr$plot_radial(r_object=mr_area$apical$CO$ivw,
-                            show_outliers=TRUE, radial_scale = TRUE) +
-    ggtitle("CO in apical region") + xlim(c(0, 12)) + ylim(c(-1,5))
+panels_qrs <- lapply(panel_plots, function(x) x[[4]]) 
+p_panels_qrs <- cowplot::plot_grid(plotlist=panels_qrs, nrow=3) 
+ggsave(plot=p_panels_qrs, paste(directory, "/MR/MR_panels_QRS.pdf", sep=""),
+       height=20, width=12)
 
-p_SV_basal <- rmr$plot_radial(r_object=mr_area$basal$SV$ivw,
-                               show_outliers=FALSE, radial_scale = TRUE) +
-    ggtitle("SV in basal region") + xlim(c(0, 12)) 
-
-p_HR_apical <- rmr$plot_radial(r_object=mr_area$apical$HR$ivw,
-                              show_outliers=FALSE, radial_scale = TRUE) +
-    ggtitle("HR in apical region") + xlim(c(0, 12)) + ylim(c(-0.5,5))
-
+panel_plots <- lapply(mr_plots, function(x) x$all_plots)
+panels_sv <- lapply(panel_plots, function(x) x[[5]]) 
+p_panels_sv <- cowplot::plot_grid(plotlist=panels_sv, nrow=3) 
+ggsave(plot=p_panels_sv, paste(directory, "/MR/MR_panels_SV.pdf", sep=""),
+       height=20, width=12)
 
 
-pvl <- select(combined, rsid, slices, slices_beta, slices_se,
-                     HR_beta, HR_se, SV_beta, SV_se, CO_beta, CO_se, area)
-pvl <- reshape2::melt(pvl, id.vars=c('rsid', 'slices', 'slices_se','slices_beta',
-                                     'area', 'HR_beta', 'SV_beta', 'CO_beta'),
-                      value.name='se', variable.name='type_se')
-pvl <- reshape2::melt(pvl, id.vars=c('rsid', 'slices', 'slices_se',
-                                     'slices_beta', 'area',
-                                     'type_se', 'se'),
-                      value.name='beta', variable.name='type_beta')
-pvl$type_beta <- factor(gsub("_beta", "",as.character(pvl$type_beta)),
-                        levels=c("SV", "CO", "HR"))
+forrests_sv <- lapply(mr_plots, function(x) x$forrest[[3]] + theme_bw() +
+                          scale_x_continuous(limits=c(-1,4)) +
+                          theme(legend.position='none',
+                              axis.title.x = element_blank()))
+p_forrests_sv <- cowplot::plot_grid(plotlist=forrests_sv, ncol=3) 
+ggsave(plot=p_forrests_sv, paste(directory, "/MR/MR_forrest_SV.pdf", sep=""),
+       height=4, width=12)
 
-#reverse <- pvl$slices_beta < 0
-#pvl$slices_beta[reverse] <- -pvl$slices_beta[reverse] 
-#pvl$beta[reverse] <- -pvl$beta[reverse] 
+forrests_qrs <- lapply(mr_plots, function(x) x$forrest[[2]] + theme_bw() +
+                          scale_x_continuous(limits=c(-1,4)) +
+                          theme(legend.position='none',
+                                axis.title.x = element_blank()))
+p_forrests_qrs <- cowplot::plot_grid(plotlist=forrests_qrs, ncol=3) 
+ggsave(plot=p_forrests_qrs, paste(directory, "/MR/MR_forrest_QRS.pdf", sep=""),
+       height=4, width=12)
 
-p_pvl <- ggplot(data=pvl)
-p_pvl <- p_pvl + geom_point(aes(x=slices_beta, y=beta, color=slices)) +
-    geom_hline(yintercept = 0) +
-    geom_vline(xintercept = 0) +
-    scale_color_manual(name="Slices",
-                       values=c('#8c96c6','#810f7c', '#7bccc4','#43a2ca',
-                                '#0868ac', '#fdbb84','#fc8d59')) +
-    xlab(expression(hat(beta)[slices])) +
-    ylab(expression(hat(beta)[pheno])) +
-    geom_errorbar(aes(ymin=beta - se, ymax=beta + se, x=slices_beta,
-                      color=slices)) +
-    geom_errorbarh(aes(xmin=slices_beta-slices_se, xmax=slices_beta + slices_se,
-                       y=beta, color=slices)) +
-    facet_grid(type_beta~area) +
-    theme_bw() +
-    theme(strip.background = element_rect(fill='white', colour = 'white'))
-print(p_pvl)
-
-ggsave(plot=p_pvl, paste(directory, "/MR_PVL.pdf", sep=""),
-       height=6.5, width=8)
