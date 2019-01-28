@@ -122,8 +122,8 @@ plotMR <- function(dat, mr_results) {
 option_list <- list(
     optparse$make_option(c("-d", "--directory"), action="store",
                dest="directory",
-               type="character", help="Path to directory with digital-heart
-               bgenie association results [default: %default].", default=NULL),
+               type="character", help="Path ukbb root data rootdirectory
+                [default: %default].", default=NULL),
     optparse$make_option(c("--showProgress"), action="store_true",
                dest="verbose",
                default=FALSE, type="logical", help="If set, progress messages
@@ -139,7 +139,7 @@ args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 
 if (args$debug) {
     args <- list()
-    args$directory <- "~/data/ukbb/ukb-hrt/gwas"
+    args$directory <- "~/data/ukbb/ukb-hrt"
     args$verbose <- TRUE
 }
 directory <- args$directory
@@ -147,7 +147,7 @@ verbose <- args$verbose
 
 ## ld-filtered, significant genome-wide association results ukb ####
 slices_sig <- read.table(paste(directory,
-                               "/Pseudomultitrait_slices_sig5e08_ldFiltered.txt",
+                               "/gwas/Pseudomultitrait_slices_sig5e08_ldFiltered.txt",
                                sep=""),
                          sep=",", stringsAsFactors=FALSE, header=TRUE)
 # LD filter misses these two SNPs, manually remove
@@ -158,7 +158,7 @@ slices_sig$SNPID <- paste(slices_sig$chr, ":", slices_sig$pos, "_",
 
 ## genotypes of ld-filtered, significant genome-wide association results ####
 cmd=paste("zcat ", directory,
-          "/Pseudomultitrait_slices_sig5e08_genotypes.dosage.gz", sep="")
+          "/gwas/Pseudomultitrait_slices_sig5e08_genotypes.dosage.gz", sep="")
 geno_sig <- data.table::fread(cmd=cmd, stringsAsFactors=FALSE, data.table=FALSE)
 geno_sig$SNPID <- paste(geno_sig$chromosome, ":", geno_sig$position, "_",
                         geno_sig$alleleA, "_", geno_sig$alleleB, sep="")
@@ -205,7 +205,7 @@ slices$sig <- factor(slices$sig, levels=c(1,0))
 
 ## Effect size estimates per variant across slices ####
 p_beta <- ggplot(slices, aes(x=slice, y=beta, color=sig))
-p_beta <- p_beta + geom_point() + 
+p_beta <- p_beta + geom_point() +
     facet_wrap(~rsid) +
     ylim(c(-0.16,0.16)) +
     geom_hline(yintercept=0, color='grey') +
@@ -217,13 +217,13 @@ p_beta <- p_beta + geom_point() +
     theme_bw() + theme(axis.text.x = element_text(angle=90),
                        strip.background=element_rect(fill='white'))
 
-ggsave(plot=p_beta, paste(directory, "/Distribution_beta.pdf", sep=""),
+ggsave(plot=p_beta, paste(directory, "/gwas/Distribution_beta.pdf", sep=""),
        height=8, width=8)
 
 ## slices significant slice pvalues and betas ####
 sig_per_slice <- dplyr::filter(slices, p  < 5e-8)
 write.table(sig_per_slice,
-            paste(directory, '/Significant_per_slice.csv', sep=""),
+            paste(directory, '/gwas/Significant_per_slice.csv', sep=""),
             sep=',', col.names=TRUE, row.names=FALSE)
 
 # analyse betas slices ####
@@ -274,7 +274,7 @@ names(exposure_per_area) <- names(combined_per_area)
 
 
 ## MR base: `two-sample` MR with Biobank data ####
-token <- googleAuthR::gar_auth(paste(directory, "/mrbase.oauth", sep=''))
+token <- googleAuthR::gar_auth(paste(directory, "/MR/mrbase.oauth", sep=''))
 access <- token$credentials$access_token
 
 #SV, QRS duration, HR
@@ -317,19 +317,19 @@ mr_plots <- lapply(MRbase_results, function(region) {
     tmp <- plotMR(dat, res)
 })
 
-panels_hr <- lapply(panel_plots, function(x) x[[1]]) 
-p_panels_hr <- cowplot::plot_grid(plotlist=panels_hr, nrow=3) 
+panels_hr <- lapply(panel_plots, function(x) x[[1]])
+p_panels_hr <- cowplot::plot_grid(plotlist=panels_hr, nrow=3)
 ggsave(plot=p_panels_hr, paste(directory, "/MR/MR_panels_HR.pdf", sep=""),
        height=20, width=12)
 
-panels_qrs <- lapply(panel_plots, function(x) x[[4]]) 
-p_panels_qrs <- cowplot::plot_grid(plotlist=panels_qrs, nrow=3) 
+panels_qrs <- lapply(panel_plots, function(x) x[[4]])
+p_panels_qrs <- cowplot::plot_grid(plotlist=panels_qrs, nrow=3)
 ggsave(plot=p_panels_qrs, paste(directory, "/MR/MR_panels_QRS.pdf", sep=""),
        height=20, width=12)
 
 panel_plots <- lapply(mr_plots, function(x) x$all_plots)
-panels_sv <- lapply(panel_plots, function(x) x[[5]]) 
-p_panels_sv <- cowplot::plot_grid(plotlist=panels_sv, nrow=3) 
+panels_sv <- lapply(panel_plots, function(x) x[[5]])
+p_panels_sv <- cowplot::plot_grid(plotlist=panels_sv, nrow=3)
 ggsave(plot=p_panels_sv, paste(directory, "/MR/MR_panels_SV.pdf", sep=""),
        height=20, width=12)
 
@@ -338,7 +338,7 @@ forrests_sv <- lapply(mr_plots, function(x) x$forrest[[3]] + theme_bw() +
                           scale_x_continuous(limits=c(-1,4)) +
                           theme(legend.position='none',
                               axis.title.x = element_blank()))
-p_forrests_sv <- cowplot::plot_grid(plotlist=forrests_sv, ncol=3) 
+p_forrests_sv <- cowplot::plot_grid(plotlist=forrests_sv, ncol=3)
 ggsave(plot=p_forrests_sv, paste(directory, "/MR/MR_forrest_SV.pdf", sep=""),
        height=4, width=12)
 
@@ -346,7 +346,7 @@ forrests_qrs <- lapply(mr_plots, function(x) x$forrest[[2]] + theme_bw() +
                           scale_x_continuous(limits=c(-1,4)) +
                           theme(legend.position='none',
                                 axis.title.x = element_blank()))
-p_forrests_qrs <- cowplot::plot_grid(plotlist=forrests_qrs, ncol=3) 
+p_forrests_qrs <- cowplot::plot_grid(plotlist=forrests_qrs, ncol=3)
 ggsave(plot=p_forrests_qrs, paste(directory, "/MR/MR_forrest_QRS.pdf", sep=""),
        height=4, width=12)
 
