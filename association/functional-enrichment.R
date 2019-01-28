@@ -84,11 +84,51 @@ prepData <- function(input, name, link, filterTh=10, num_perm=100000,
 ###########
 ## data ###
 ###########
-directory <- '/homes/hannah/data/ukbb/ukb-hrt/gwas'
-garfielddir <- paste("/nfs/research1/birney/resources/human_reference/",
-                  "GARFIELD/garfield-data", sep="")
 
-penrichment <- 1e-3
+option_list <- list(
+    optparse$make_option(c("-d", "--directory"), action="store",
+               dest="directory",
+               type="character", help="Path to ukbb gwas directory
+                [default: %default].", default=NULL),
+    optparse$make_option(c("-gd", "--garfielddir"), action="store",
+               dest="garfielddir",
+               type="character", help="Path to directory with garfield data
+                [default: %default].",
+               default="/nfs/research1/birney/resources/human_reference/GARFIELD/garfield-data"),
+    optparse$make_option(c("-p", "--penrichment"), action="store",
+               dest="penrichment",
+               type="character", help="Enrichment threshold
+                [default: %default].", default=1e-3),
+    optparse$make_option(c("-n", "--name"), action="store",
+               dest="name",
+               type="character", help="Name of analysis [default: %default].",
+               default='summary'),
+    optparse$make_option(c("--showProgress"), action="store_true",
+               dest="verbose",
+               default=FALSE, type="logical", help="If set, progress messages
+               about analyses are printed to standard out ",
+               "[default: %default]."),
+    optparse$make_option(c("--debug"), action="store_true",
+                dest="debug", default=FALSE, type="logical",
+                help="If set, predefined arguments are used to test the script",
+                "[default: %default].")
+)
+
+args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
+
+if (args$debug) {
+    args <- list()
+    args$directory <- "~/data/ukbb/ukb-hrt/gwas"
+    args$garfielddir <- paste("/nfs/research1/birney/resources/human_reference/",
+                  "GARFIELD/garfield-data", sep="")
+    args$penrichment <- 1e-3
+    args$name <- 'summary'
+    args$verbose <- TRUE
+}
+directory <- args$directory
+garfielddir <- args$garfielddir
+penrichment <- args$penrichment
+name <- args$name
 
 annotation_link <- data.table::fread(paste(garfielddir,
                                            '/annotation/link_file.txt', sep=""),
@@ -97,7 +137,8 @@ peaks <- annotation_link$Index[annotation_link$Category == "Peaks"]
 peaks_ranges <- "166-290,590-888"
 
 gwas <- data.table::fread(paste(directory,
-                                '/bgenie_summary_lm_st_genomewide.csv', sep=""),
+                                '/bgenie_", name, "_lm_st_genomewide.csv',
+                                sep=""),
                           data.table=FALSE, stringsAsFactors=FALSE)
 gwas$SNPID <- paste(gwas$chr, ":", gwas$pos, sep="")
 
@@ -151,7 +192,7 @@ tissues_color <- c("tomato", "skyblue3", "yellow", "brown2", "lightgreen",
 toi <- c("fetal_heart", "heart", 'fetal_muscle', 'muscle',
          "blood", "blood_vessel", 'epithelium')
 
-toi_color <- c( '#de2d26', '#fb6a4a', '#756bb1', '#9e9ac8', 
+toi_color <- c( '#de2d26', '#fb6a4a', '#756bb1', '#9e9ac8',
                 '#e6f598' ,'#abdda4', '#66c2a5', '#666666')
 
 all_color <- colorRampPalette(toi_color)(length(unique(combined$Tissue)))
@@ -164,7 +205,8 @@ section_color_selected <- c('#67a9cf','#1c9099','#016c59')
 # a) only tissues of interest
 selected <- combined
 selected$Tissue[!selected$Tissue %in% toi] <- 'other tissues'
-selected$Tissue_labels <- as.numeric(factor(selected$Tissue, levels=c(toi, 'other tissues')))
+selected$Tissue_labels <- as.numeric(factor(selected$Tissue,
+                                            levels=c(toi, 'other tissues')))
 selected$Tissue <- paste(selected$Tissue_labels,
                          gsub("_", " ", as.character(selected$Tissue)),
                          sep="-")
@@ -198,7 +240,8 @@ for (i in strip) {
 }
 grid.draw(g_selected)
 ggsave(plot=g_selected,
-       filename=paste(directory, '/annotation/Funtional_enrichment.pdf', sep=""),
+       filename=paste(directory, '/annotation/Functional_enrichment_", name,
+                      ".pdf', sep=""),
        height=3, width=6)
 
 
@@ -238,6 +281,6 @@ for (i in strip) {
 }
 grid.draw(g_all)
 ggsave(plot=g_all,
-       filename=paste(directory, '/annotation/Funtional_enrichment_all.pdf',
-                      sep=""),
+       filename=paste(directory, '/annotation/Functional_enrichment_", name,
+                      "_all.pdf', sep=""),
        height=8, width=9)
