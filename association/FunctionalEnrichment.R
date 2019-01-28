@@ -147,50 +147,73 @@ tissues_color <- c("tomato", "skyblue3", "yellow", "brown2", "lightgreen",
                    "darkgreen")
 toi <- c("fetal_heart", "heart", 'fetal_muscle', 'muscle',
          "blood", "blood_vessel", 'epithelium')
-toi_color <- c( '#542788', '#8073ac', '#4575b4', '#74add1',
+
+toi_color <- c( '#de2d26', '#fb6a4a', '#756bb1', '#9e9ac8', 
                 '#e6f598' ,'#abdda4', '#66c2a5', '#666666')
+
+#toi_color <- c( '#542788', '#8073ac', '#4575b4', '#74add1',
+#                '#e6f598' ,'#abdda4', '#66c2a5', '#666666')
 all_color <- colorRampPalette(toi_color)(length(unique(combined$Tissue)))
-section_color <- c('#fdcc8a','#fc8d59','#e34a33')
+
+
+section_color_all <- c('#016c59','#1c9099','#67a9cf')
+section_color_selected <- c('#67a9cf','#1c9099','#016c59')
 
 ## depict region-wise annotation enrichments ####
 # a) only tissues of interest
 selected <- combined
-selected$Tissue[!selected$Tissue %in% toi] <- 'other'
-selected$Tissue <- factor(selected$Tissue, levels=c(toi, 'other'),
-                          labels=c(gsub("_", " ", as.character(toi)),
-                                          'other tissues'))
-selected_red <- dplyr::filter(selected, Threshold == 1e-5, empP > -log10(5e-3))
+selected$Tissue[!selected$Tissue %in% toi] <- 'other tissues'
+selected$Tissue_labels <- as.numeric(factor(selected$Tissue, levels=c(toi, 'other tissues')))
+selected$Tissue <- paste(selected$Tissue_labels,
+                         gsub("_", " ", as.character(selected$Tissue)),
+                         sep="-")
+selected$Tissue <- factor(selected$Tissue,
+                          levels=unique(selected$Tissue)[order(unique(selected$Tissue_labels))])
+selected$Tissue_labels <- factor(selected$Tissue_labels,
+                                 levels=sort(unique(selected$Tissue_labels)))
 
-p_selected <- ggplot(selected_red, aes(x=Tissue, y=OR, fill=Tissue))
+
+selected_red <- dplyr::filter(selected, Threshold >= 1e-6, empP > -log10(5e-3))
+
+p_selected <- ggplot(selected_red, aes(x=Tissue_labels, y=OR, fill=Tissue))
 p_selected <- p_selected +
-    facet_grid(~Name, scales = "free_x", space="free_x", switch = "x") +
+    facet_grid(~Name, scales = "free_x", space="free_x") +
     geom_boxplot() +
+    #ylim(0,15) +
     scale_fill_manual(values=toi_color, name="Tissue") +
     theme_bw() +
     theme(legend.position='bottom',
           strip.background=element_rect(fill='white'),
+          strip.text = element_text(color='white'),
           axis.title.x=element_blank(),
-          axis.text.x=element_blank(),
           axis.ticks.x=element_blank()
     )
 g_selected <- ggplot_gtable(ggplot_build(p_selected))
-strip <- which(grepl('strip-b', g_selected$layout$name))
+strip <- which(grepl('strip-t', g_selected$layout$name))
 k <- 1
 for (i in strip) {
     j <- which(grepl('rect', g_selected$grobs[[i]]$grobs[[1]]$childrenOrder))
-    g_selected$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- section_color[k]
+    g_selected$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- section_color_selected[k]
     k <- k+1
 }
 grid.draw(g_selected)
 ggsave(plot=g_selected,
        filename=paste(directory, '/annotation/Funtional_enrichment.pdf', sep=""),
-       height=5, width=8)
+       height=3, width=6)
 
 
 # b) all GARFIELD tissues
-all_red <- dplyr::filter(combined, Threshold == 1e-5, empP > -log10(5e-2))
+combined$Tissue_labels <- as.numeric(as.factor(combined$Tissue))
+combined$Tissue <- paste(combined$Tissue_labels, combined$Tissue,
+                         sep="-")
+combined$Tissue <- factor(combined$Tissue,
+                          levels=unique(combined$Tissue)[order(unique(combined$Tissue_labels))])
+combined$Tissue_labels <- factor(combined$Tissue_labels,
+                                 levels=sort(unique(combined$Tissue_labels)))
 
-p_all <- ggplot(all_red, aes(x=Tissue, y=OR, fill=Tissue))
+all_red <- dplyr::filter(combined, Threshold >= 1e-6, empP > -log10(5e-3))
+
+p_all <- ggplot(all_red, aes(x=Tissue_labels, y=OR, fill=Tissue))
 p_all <- p_all +
     facet_wrap(~Name, scales = "free_x", strip.position = 'top',
                ncol=1) +
@@ -199,22 +222,22 @@ p_all <- p_all +
     theme_bw() +
     theme(legend.position='bottom',
           strip.background=element_rect(fill='white'),
+          strip.text = element_text(color='white'),
           axis.title.x=element_blank(),
-          axis.text.x=element_blank(),
           axis.ticks.x=element_blank()
     )
 
 
 g_all <- ggplot_gtable(ggplot_build(p_all))
-strip <- which(grepl('strip-b', g_all$layout$name))
+strip <- which(grepl('strip-t', g_all$layout$name))
 k <- 1
 for (i in strip) {
     j <- which(grepl('rect', g_all$grobs[[i]]$grobs[[1]]$childrenOrder))
-    g_all$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- section_color[k]
+    g_all$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- section_color_all[k]
     k <- k+1
 }
 grid.draw(g_all)
 ggsave(plot=g_all,
        filename=paste(directory, '/annotation/Funtional_enrichment_all.pdf',
                       sep=""),
-       height=12, width=9)
+       height=8, width=9)
