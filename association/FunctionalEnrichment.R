@@ -99,6 +99,7 @@ peaks_ranges <- "166-290,590-888"
 gwas <- data.table::fread(paste(directory,
                                 '/bgenie_summary_lm_st_genomewide.csv', sep=""),
                           data.table=FALSE, stringsAsFactors=FALSE)
+gwas$SNPID <- paste(gwas$chr, ":", gwas$pos, sep="")
 
 index_logp <- which(grepl("log10p", colnames(gwas)))
 traits <- gsub("-log10p", "", colnames(gwas)[index_logp])
@@ -113,8 +114,8 @@ perSlicePrep <- sapply(index_logp, prepAnalyses, bgenie=gwas,
                         directory=directory)
 
 ## submit garfield jobs ####
-perSliceGarfield <- clustermq::Q(garfieldRun,
-                                 trait_name=traits,
+perSummaryGarfield <- clustermq::Q(garfieldRun,
+                                 trait_name=traits[c(2,4,6)],
                                  const=list(garfielddir=garfielddir,
                                             annotations=peaks_ranges,
                                             penrichment=penrichment),
@@ -133,6 +134,7 @@ apicalFD <- data.table::fread(paste(garfielddir, '/output/MeanApicalFD/',
                                  'garfield.test.MeanApicalFD.out', sep=""),
                            data.table=FALSE, stringsAsFactors=FALSE)
 
+
 ## format garfield results ####
 mid <- prepData(input=midFD, link=annotation_link, name='Mid')
 apical <- prepData(input=apicalFD, link=annotation_link, name='Apical')
@@ -140,6 +142,7 @@ basal <- prepData(input=basalFD, link=annotation_link, name='Basal')
 
 combined <- rbind(basal, mid, apical)
 combined$Name <- factor(combined$Name, levels=c("Basal", "Mid", "Apical"))
+
 
 ## select tissues of interest and represeentative colors
 tissues_color <- c("tomato", "skyblue3", "yellow", "brown2", "lightgreen",
@@ -151,8 +154,6 @@ toi <- c("fetal_heart", "heart", 'fetal_muscle', 'muscle',
 toi_color <- c( '#de2d26', '#fb6a4a', '#756bb1', '#9e9ac8', 
                 '#e6f598' ,'#abdda4', '#66c2a5', '#666666')
 
-#toi_color <- c( '#542788', '#8073ac', '#4575b4', '#74add1',
-#                '#e6f598' ,'#abdda4', '#66c2a5', '#666666')
 all_color <- colorRampPalette(toi_color)(length(unique(combined$Tissue)))
 
 
@@ -179,7 +180,6 @@ p_selected <- ggplot(selected_red, aes(x=Tissue_labels, y=OR, fill=Tissue))
 p_selected <- p_selected +
     facet_grid(~Name, scales = "free_x", space="free_x") +
     geom_boxplot() +
-    #ylim(0,15) +
     scale_fill_manual(values=toi_color, name="Tissue") +
     theme_bw() +
     theme(legend.position='bottom',

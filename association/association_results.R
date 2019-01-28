@@ -19,18 +19,22 @@ stPlots <- function(trait_index, bgenie_result, directory, is.negLog=FALSE,
     if (!is.negLog) {
         pvalues <- sapply(bgenie_result[,trait_index],
                           function(x) min(x * valueMeff, 1))
-        which.sig <- pvalues < ymin
+        which.min <- pvalues < ymin
+        which.sig <- pvalues < 5e-8
     } else {
         pvalues <- sapply(bgenie_result[,trait_index],
                           function(x) max(x - log10(valueMeff), 0))
-        which.sig <- pvalues > -log10(ymin)
+        which.min <- pvalues > -log10(ymin)
+        which.sig <- pvalues > -log10(5e-8)
     }
-    p_manhattan <- plots$manhattan(data.frame(bgenie_result[which.sig, 1:3],
-                                              P=pvalues[which.sig]),
+    highlight <- bgenie_result$rsid[which.sig]
+    p_manhattan <- plots$manhattan(data.frame(bgenie_result[which.min, 1:3],
+                                              P=pvalues[which.min]),
                                    title=colnames(bgenie_result)[trait_index],
                                    size.x.labels=12, size.y.labels=12,
                                    is.negLog=is.negLog,
-                                   color=c("#fc8d59", "#b30000"), chr='chr',
+                                   color=c('#878787', '#4d4d4d'), chr='chr',
+                                   highlight=highlight, colorHighlight='#35978f',
                                    snp="rsid", bp="pos", max.y=ymax)
     ggplot2::ggsave(plot=p_manhattan, height=4, width=10,
                     file=paste(directory,"/bgenie", name, "_lm_",
@@ -42,41 +46,6 @@ stPlots <- function(trait_index, bgenie_result, directory, is.negLog=FALSE,
                   file=paste(directory,"/bgenie", name, "_lm_",
                          colnames(bgenie_result)[trait_index],"_qqplot.png",
                     sep=""))
-}
-
-garfieldAnalyses <- function(traitindex, bgenie, directory,
-                             garfielddir=paste("/nfs/research1/birney/",
-                                               "resources/human_reference/",
-                                               "GARFIELD/garfield-data", sep=""),
-                             nperm=100000, chrs=1:22, is.NegLog10=TRUE){
-    trait_name <- gsub("-log10p", "", colnames(bgenie)[traitindex])
-    gwas <- bgenie[, c(1:3, traitindex)]
-    colnames(gwas)[4] <- "P"
-    if (is.NegLog10) gwas$P <- 10^(-gwas$P)
-    resdir <- paste(directory, "/", trait_name, sep="")
-
-    message("Prepare Garfield files for trait: ", trait_name)
-    garfieldPrep <- prepGarfield$prepGarfield(gwas=gwas,
-            trait_name=trait_name, directory=directory,
-            chr_name="chr", bp_name="pos",
-            garfielddir=paste(garfielddir, "/pval", sep=""))
-
-    message("Run Garfield analyses for trait: ", trait_name)
-    garfieldRun <- garfield$garfield.run(out.file=paste(resdir,
-                                                        "/garfield_results",
-                                                        sep=""),
-                         chrs=chrs, data.dir=garfielddir, trait=trait_name,
-                         nperm=nperm)
-
-    message("Plot Garfield results for trait: ", trait_name)
-    garfieldPlot <- garfield$garfield.plot(input_file=paste(resdir,
-                                                        "/garfield_results.perm",
-                                                        sep=""),
-                                       num_perm=nperm,
-                                       output_prefix=paste(resdir, "/",
-                                                           trait_name, "_plot",
-                                                           sep="")
-                                       )
 }
 
 
@@ -144,6 +113,7 @@ index_snp <- 1:3
 index_logp <- which(grepl("log10p", colnames(genomewide)))
 index_beta <- which(grepl("beta", colnames(genomewide)))
 index_t <- which(grepl("_t", colnames(genomewide)))
+ymax <- 'max'
 
 ## Write combined results ####
 if (verbose) message("Write file with genome-wide association results")
@@ -176,10 +146,14 @@ if (name %in% c('summary', 'slices')) {
     sig <- multitrait[multitrait$P < ymin, ]
     p_manhattan_mt <- plots$manhattan(d=sig,
                         title=title,
-                        size.x.labels=12, size.y.labels=12, is.negLog=FALSE,
-                        color=c("#fc8d59", "#b30000"), max.y=ymax)
+                        size.x.text=13, size.y.text=13,
+                        size.x.title=15, size.y.title=15, is.negLog=FALSE,
+                        color=c('#878787', '#4d4d4d'),
+                        colorHighlight="#fc8d59",
+                        highlight=multitrait$SNP[multitrait$P < 5e-8],
+                        max.y=ymax)
 
-    ggplot2::ggsave(plot=p_manhattan_mt, height=4, width=10,
+    ggplot2::ggsave(plot=p_manhattan_mt, height=4, width=11,
            file=paste(directory,"/bgenie_", name,
                       "_lm_pseudomt_manhattanplot.pdf", sep=""))
 
@@ -204,11 +178,6 @@ if (name %in% c('summary', 'slices')) {
                                   sep=""),
                 col.names=TRUE, row.names=FALSE, quote=FALSE)
 
-    if (name == 'summary') {
-        ## GARFIELD analysis ####
-        perTraitGarfield <- sapply(index_logp, garfieldAnalyses,
-                                   bgenie=genomewide, directory=directory)
-    }
 }
 ## per trait qq and manhattan plots ####
 # effective number of tests to adjust single-trait assocation p-values by
@@ -228,9 +197,16 @@ plots_perTrait <- sapply(index_logp, stPlots, bgenie_result=genomewide, ymin=0.1
                          is.negLog=TRUE, directory=directory, Meff=valueMeff,
                          name=name,  ymax=ymax)
 
+sig <- apply(as.matrix(genomewide[, index_logp]), 1,
+             function(x, index) any(x > -log10(5e-8)))
+sigAssociations <- genomewide[sig,]
+write.table(sigAssociations, paste(directory, "/bgenie_", name,
+                                   "_lm_st_significant.csv",  sep=""),
+            quote=FALSE, col.names=TRUE, row.names=FALSE)
+
 ## Format single-trait association statistics for LD score regression ####
 if (verbose) message("Format results for LD score regression")
-ldshub_file <- "~/data/ukbb/ukb-hrt/gwas/ldc_hub/w_hm4.noMHC.snplist"
+ldshub_file <- "~/data/ukbb/ukb-hrt/gwas/ldc_hub/w_hm3.noMHC.snplist"
 ldshub_snps <- data.table::fread(ldshub_file, data.table=FALSE,
                                  stringsAsFactors=FALSE)
 
@@ -247,9 +223,8 @@ ldsc_single <- sapply(index_beta, function(x) {
                                                ".txt", sep=""),
                                sep="\t", quote=FALSE, col.names=TRUE,
                                row.names=FALSE)
-                   zip$zip(zipfile=paste(directory, "/sumstats_", nn,".gz",
-                                         sep=""),
-                       paste(directory, "/sumstats_", nn, ".txt", sep=""))
+                   system(paste("cd ", directory, "; zip sumstats_", nn, ".zip ",
+                                "sumstats_", nn, ".txt", sep=""))
                 }
 )
 

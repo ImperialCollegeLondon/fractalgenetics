@@ -79,34 +79,6 @@ p_na <- p_na + geom_point(size=1) +
 ggsave(plot=p_na, file=paste(args$outdir, "/NAdist_FD.pdf", sep=""),
        height=4, width=4, units="in")
 
-## Divide slices into Basal and Apical FD ####
-summary_raw_BA <- data.frame(t(apply(as.matrix(dataFD), 1,
-                                     autofd$stats$summaryStatistics,
-                           discard=FALSE, sections="BA")))
-summary_raw_BA <- reshape2::melt(summary_raw_BA, id.var="SlicesUsed")
-summary_BA <- lapply(c(7,8,9,10,11,12), exploreInterpolate, data=dataFD,
-                      raw=summary_raw_BA, sections="BA")
-summary_BA <- do.call(rbind, summary_BA)
-
-p_BA <- ggplot(summary_BA, aes(x=raw, y=interpolate, color=type))
-p_BA <- p_BA +
-    smooth$stat_smooth_func(geom="text", method="lm", hjust=0, parse=TRUE,
-                            xpos=0.9, ypos=1.4, vjust=0, color="black") +
-    geom_smooth(method="lm", se=FALSE) +
-    geom_point(size=1) +
-    facet_grid(interpolateSlices ~ type) +
-    scale_color_brewer(type="qual", palette=6) +
-    theme_bw() +
-    theme(legend.position = "bottom",
-            strip.background = element_rect(fill="white", color="white"),
-            axis.text  =element_text(size=12),
-            legend.title  =element_text(size=12),
-            legend.text  =element_text(size=12),
-            strip.text  =element_text(size=12))
-ggsave(plot=p_summary,
-       file=paste(args$outdir, "/Raw_vs_interpolated_compareBA.pdf", sep=""),
-       height=15, width=15, units="in")
-
 ## Divide slices into Basal, Mid and Apical FD ####
 summary_raw_BMA <- data.frame(t(apply(as.matrix(dataFD), 1,
                             autofd$stats$summaryStatistics,
