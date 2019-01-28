@@ -37,12 +37,16 @@ option_list <- list(
                [default: %default].", default="UKBB"),
     make_option(c("-sc", "--samplesColor"), action="store", dest="samplesColor",
                type="character", help="Color for study samples (for plotting)
-               [default: %default].", default="#2c7bb6")
+               [default: %default].", default="#2c7bb6"),
+    optparse$make_option(c("--debug"), action="store_true",
+                        dest="debug", default=FALSE, type="logical",
+                        help="If set, predefined arguments are used to test the
+                        script [default: %default]."))
 )
 
 args <- parse_args(OptionParser(option_list=option_list))
 
-if (FALSE) {
+if (args$debug) {
     args <- list()
     args$HapMapColors <- "~/data/hmeyer/HapMap/HapMap_PopulationColors.txt"
     args$HapMapSamples <- "~/data/hmeyer/HapMap/HapMap_PopulationCode.txt"
