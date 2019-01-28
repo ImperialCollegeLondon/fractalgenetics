@@ -159,12 +159,16 @@ option_list <- list(
                help="Absolute path to where external plink software
                (https://www.cog-genomics.org/plink/1.9/) can be found. If not
                provided, assumed that PATH set-up works and plink will be found
-               by system('plink'). [default: %default].", default=NULL)
+               by system('plink'). [default: %default].", default=NULL),
+    optparse$make_option(c("--debug"), action="store_true",
+                        dest="debug", default=FALSE, type="logical",
+                        help="If set, predefined arguments are used to test the
+                        script [default: %default].")
 )
 
 args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 
-if (FALSE) {
+if (args$debug) {
     # testing parser
     args_vec <-
         c("--name=gencall.combined",

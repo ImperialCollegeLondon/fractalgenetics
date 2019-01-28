@@ -33,18 +33,22 @@ option_list <- list(
     optparse$make_option(c("--singapore3"), action="store", dest="singapore3",
                type="character", help="/path/to/file/with/singapore3/probes
                [default: %default].", default=NULL)
+    optparse$make_option(c("--debug"), action="store_true",
+                        dest="debug", default=FALSE, type="logical",
+                        help="If set, predefined arguments are used to test the
+                        script [default: %default].")
 )
 args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 
 #############
 ## data  ####
 #############
-if (FALSE) {
+if (args$debug) {
     args <- list()
-    args$directory <- "~/data/genotype/QC/compare"
-    args$sanger12 <- "/homes/hannah/data/genotype/omnix_hhtmri_20141121/HumanOmniExpress-12v1-1_A.csv"
-    args$singapore12 <- "/homes/hannah/data/genotype/omnix_NHCS_20160217/Manifests/HumanOmniExpress-24v1-0/humanomniexpress-24v1-0_a.csv"
-    args$singapore3 <- "/homes/hannah/data/genotype/omnix_hhtmri_20141121/HumanOmniExpress-12v1-1_A.csv"
+    args$directory <- "~/data/digital-heart/genotype/QC/compare"
+    args$sanger12 <- "/homes/hannah/data/digital-heart/genotype/omnix_hhtmri_20141121/HumanOmniExpress-12v1-1_A.csv"
+    args$singapore12 <- "/homes/hannah/data/digital-heart/genotype/omnix_NHCS_20160217/Manifests/HumanOmniExpress-24v1-0/humanomniexpress-24v1-0_a.csv"
+    args$singapore3 <- "/homes/hannah/data/digital-heart/genotype/omnix_hhtmri_20141121/HumanOmniExpress-12v1-1_A.csv"
 }
 
 ## 1. SNP info data for the different platforms/batches ####
