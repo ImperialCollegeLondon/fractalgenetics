@@ -19,8 +19,6 @@ rule all:
             alg=['combined'],
             call='gencall',
             suffix=['bim', 'bed', 'fam']),
-        #expand("{dir}/European.HVOL.sanger12.singapore123.txt",
-         #   dir=config["dir"])
 
 rule format_raw_genotypes:
     input:
