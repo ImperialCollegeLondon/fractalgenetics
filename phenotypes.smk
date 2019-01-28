@@ -53,5 +53,5 @@ rule processUKB:
             -s={input.samples} \
             -r={input.relatedness} \
             -e={input.europeans} \
-            -pcs={input.pcs}'
+            -pcs={input.pcs}"
 
