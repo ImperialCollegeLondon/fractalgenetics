@@ -8,6 +8,38 @@ modules::import_package('ggplot2', attach=TRUE)
 modules::import_package('TwoSampleMR', attach=TRUE)
 optparse <- modules::import_package('optparse')
 
+## Pierce 2013 American Journal of Epidemiology
+Fstat <- function(r2, nsample, ninstruments) {
+    if (length(unique(c(length(r2), length(nsample),
+                        length(ninstruments)))) != 1) {
+        stop("Length of all input variables has to be the same")
+    }
+    rep1 <- rep(1, length(nsample))
+    r2*(nsample-rep1-ninstruments)/((rep1-r2)*ninstruments)
+}
+
+## Burgess 2016 Genetic Epidemiology
+findlowerlimitF <- function(f, ninstruments, nsample) {	
+    lambda <- f*ninstruments*(nsample-2)/nsample-ninstruments	
+    lower <- f - 1	
+    while (pf(lower, df1=ninstruments, df2=nsample, ncp=lambda) > 0.05) {	
+        lower <- lower-1	
+    }	
+    upper <- lower + 1	
+    while (abs(pf((lower+upper)/2, df1=ninstruments, df2=nsample, 
+                  ncp=lambda)-0.05) > 0.0001) {	
+        if (pf((lower+upper)/2, df1=ninstruments, df2=nsample,
+               ncp=lambda) > 0.05) {	
+            upper = (lower+upper)/2	
+        }	
+        if (pf((lower+upper)/2, df1=ninstruments, df2=nsample,
+               ncp=lambda) <0.05) {	
+            lower = (lower+upper)/2	
+        }	
+    }	
+    return((lower+upper)/2)	
+}
+
 estimateI2 <- function(y,s) {
     k <- length(y)
     w <- 1/s^2
@@ -77,13 +109,27 @@ MRanalysis <- function(exposure_dat, outcome_dat,
     if (verbose) message("MR directionality analysis")
     directionality_results <- directionality_test(dat)
 
+    if (verbose) message("MR F statistic")
+    per_study_F <-
+        data.frame(study=mr_results$outcome[!duplicated(mr_results$outcome)])
+    per_study_F$ninstruments <- mr_results$nsnp[!duplicated(mr_results$outcome)]
+    per_study_F$samplesize.exposure <- unique(dat$samplesize.exposure)
+    per_study_F$samplesize.outcome <- dat$samplesize.outcome[!duplicated(dat$outcome)]
+    per_study_F$r2 <- directionality_results$snp_r2.exposure
+    per_study_F$Fstat <- Fstat(per_study_F$r2, per_study_F$samplesize.exposure,
+                                  per_study_F$ninstruments) 
+    per_study_F$lowerBound <- apply(as.matrix(per_study_F[,-1]), 1, function(x){
+        findlowerlimitF(x[5], x[1], x[2])
+    })
+    
     if (verbose) message("MR I^2 analysis")
     weighted_beta <- dat$beta.exposure/dat$se.outcome
     weighted_se <- dat$se.exposure/dat$se.outcome
     I2 <- estimateI2(weighted_beta,weighted_se)
     return(list(dat=dat, mr_results=mr_results, het_results=het_results,
            plei_results=plei_results, loo_results=loo_results,
-           directionality_results=directionality_results, I2=I2))
+           directionality_results=directionality_results, I2=I2,
+           Fstat=per_study_F))
 }
 
 plotMR <- function(dat, mr_results) {
@@ -308,6 +354,9 @@ mr_tables <- lapply(seq_along(MRbase_results), function(x) {
 
     write.table(region$I2, paste(directory, "/MR/", name_region,
                                             "_MR_I2_results.csv", sep=""),
+                col.names=FALSE, row.names=FALSE, sep=',', quote=FALSE)
+    write.table(region$Fstat, paste(directory, "/MR/", name_region,
+                                 "_MR_Fstat_results.csv", sep=""),
                 col.names=FALSE, row.names=FALSE, sep=',', quote=FALSE)
 })
 
