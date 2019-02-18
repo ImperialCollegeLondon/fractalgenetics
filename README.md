@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/166986710.svg)](https://zenodo.org/badge/latestdoi/166986710)
+
 # Genetics of natural variation in left ventricular trabeculation phenotypes
 
 In human hearts, trabeculation of the left ventricle varies in pattern and strength. Both, naturally occurring differences
