@@ -1,16 +1,15 @@
 # FD processing
 R code for post-processing of FD values output by
-[AutoFD](https://github.com/UK-Digital-Heart-Project/AutoFD).
+[AutoFD](automated-fractal-analysis).
 
 1. fracDecimateFD.R (fracDecimate function)
     Interpolation of FD values to a common number of slices across individuals.
 1. summaryFD.R (summaryStatistics function)
     Summary statistics of FD values per individual: mean global FD, mean and max
     Apical FD, mean and max Basal FD. This is an R version of the matlab
-    function
-    [FDstatististics](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/pft_JC_FDStatistics.m).
+    function [FDstatististics](automated-fractal-analysis/pft_JC_FDStatistics.m).
     The function has been tested for equivalent output in
-    [tests](https://github.com/UK-Digital-Heart-Project/AutoFD_interpolation/tree/master/tests).
+    [tests](fractal-analysis-processing/tests).
 1. radial-registration.R
     Collection of functions for co-registration of myocardial and trabeculation
     outline to closest enclosing circle. Functions include transformation of
@@ -21,7 +20,7 @@ R code for post-processing of FD values output by
  the relevant functions. Alternatively,
  the [modules package](https://github.com/klmr/modules) offers flexible and tidy
  integration of R source files. Application of both functions via modules in
- [ukbb-fd](https://github.com/HannahVMeyer/ukbb-fd/blob/master/phenotypes/preparePheno.r).
+ [ukbb-fd](UK-Biobank/phenotypes/preparePheno.r).
 
 A test file `FD.csv` is included in the repo, but any csv file can be called by
 the function.
@@ -80,5 +79,5 @@ max Basal FD
 ### radial-registration.R
 A detailed example of how to run radial co-registration of myocard and
 trabeculation outline based on intermediate files generated in
-[AutoFD](https://github.com/UK-Digital-Heart-Project/AutoFD) can be found
-[here](https://github.com/UK-Digital-Heart-Project/AutoFD_interpolation/tests/radial-registration/test-registration.R).
+[AutoFD](automated-fractal-analysis) can be found
+[here](fractal-analysis-processing/tests/radial-registration/test-registration.R).
