@@ -1,7 +1,7 @@
 #################
 ## libraries ####
 #################
-options(import.path=c("/homes/hannah/analysis/fd",
+options(import.path=c("/homes/hannah/analysis/fractalgenetics/fractal-analysis-processing",
                       "/homes/hannah/projects"))
 options(bitmapType = 'cairo', device = 'pdf')
 
