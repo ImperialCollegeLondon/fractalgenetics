@@ -4,7 +4,7 @@
 Work-flow for converting biobank genotype data in .bgen format to plink format, minor-allele frequency and ld-filtering
 of variants. Application-specific (18545) filtering of samples from 500k genotypes in first step to speed up computation.
 Parameters for filtering, file names and target directories are supplied in config/config_conversion.yaml.
-Requires plink [v1.9](https://www.cog-genomics.org/plink2).
+Requires plink [v1.9](https://www.cog-genomics.org/plink2) and [v2](https://www.cog-genomics.org/plink/2.0/).
 
 ### 2. ancestry.smk
 Work-flow for estimating kinship and ancestry of sample cohort. Takes ld-pruned, maf-filtered files from [genotypes.smk](UK-Biobank/genotypes.smk).
@@ -12,7 +12,7 @@ For ancestry estimation, cohort genotypes are fused with HapMap genotypes of kno
 principal components computed and cohort samples within 1.5 times the maximum Euclidean distance of European Hapmap samples
 to the centre of the European Hapmap samples are selected as European via [selectPCA.R](UK-Biobank/ancestry/selectPCA.R).
 Parameters for filtering, file names and target directories are supplied in config/config_ancestry.yaml. Scripts called by [ancestry.smk](UK-Biobank/ancestry).
-Requires plink [v1.9](https://www.cog-genomics.org/plink2) and [v2](https://www.cog-genomics.org/plink/2.0/) as well as [flashpca](https://github.com/gabraham/flashpca).
+Requires plink [v1.9](https://www.cog-genomics.org/plink2) and [flashpca](https://github.com/gabraham/flashpca).
 
 ### 3. phenotypes.smk
 Work-flow for processing ukbb covariates and ukbb-derived FD phenotypes obtained via [FD estimation](automated-fractal-analysis).
