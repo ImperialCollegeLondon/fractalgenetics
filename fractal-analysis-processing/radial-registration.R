@@ -5,8 +5,8 @@
 #' @return data.frame with r, the radius and theta, the
 #' angle of the polar coordinate.
 cart2pol <- function(x, y) {
-    r[r==0] <- 1e-4
     r <- sqrt(x^2 + y^2)
+    r[r==0] <- 1e-4
     theta <- acos(x/r)
     theta[y < 0] <- -theta[y < 0]
     return(data.frame(r=r, theta=theta))
@@ -87,7 +87,7 @@ loadSlices <- function(IID, filename, sliceInfo,
     iid <- gsub(".*/(.*)/(.*)-Slice-.*", '\\1', filename)
     if (IID != iid) stop("Provided ID does not match slice ID")
     slice_id <- gsub(".*/(.*)/(.*)-Slice-(.*)-ED.png", '\\3', filename)
-    slice_id <- paste("Slice", slice_id, sep="")
+    slice_id <- paste("Slice_", slice_id, sep="")
     slice_value <- sliceInfo[sliceInfo$IID == IID,
                              colnames(sliceInfo) == slice_id]
     if (slice_value  %in% nonseg) return(NULL)
@@ -335,14 +335,22 @@ processSlices <- function(IID, directory, sliceInfo, intensity=0.941176,
                           targetRadius=1, n=2,
                           nonseg=c("Sparse myocardium",  "Meagre blood pool", 
                                    "FD measure failed"), 
-                          center=pi/2, verbose=TRUE) {
+                          center=pi/2, rotation=FALSE, verbose=TRUE) {
     if (verbose) message("Processing file from ", IID, "\n")
-    background <- findOrientation(IID=IID, directory=directory,
-                                  sliceInfo=sliceInfo, intensity=intensity,
-                                  nonseg=nonseg, center=center)
+    if (rotation) {
+        background <- findOrientation(IID=IID, directory=directory,
+                                      sliceInfo=sliceInfo, intensity=intensity,
+                                      nonseg=nonseg, center=center)
+        rc=background$bg.rotation
+    } else {
+        rc=NULL
+    }
     filelist <- list.files(file.path(directory, IID),
                            pattern="Edge-Image-Slice-.*-ED.png",
                            full.names=TRUE)
+    if (length(filelist) == 0) {
+        stop("No edge images in specified directory")
+    }
     results <- lapply(filelist, function(x, iid, rc) {
         images <- loadSlices(IID=iid, filename=x, sliceInfo=sliceInfo,
                              nonseg=nonseg)
@@ -358,7 +366,7 @@ processSlices <- function(IID, directory, sliceInfo, intensity=0.941176,
         } else {
             return(NULL)
         }
-    }, iid=IID, rc=background$bg.rotation)
+    }, iid=IID, rc=rc)
     results <- results[sapply(results, function(x) !is.null(x))]
     return(results)
 }

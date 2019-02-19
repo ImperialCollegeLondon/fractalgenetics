@@ -22,6 +22,15 @@ rule all:
             chr=range(1,23)),
         expand("{ukb}/gwas/Pseudomultitrait_slices_sig5e08_genotypes.dosage.gz",
             ukb=config["ukbdir"]),
+        expand("{ukb}/gwas/Distribution_{analysis}_beta.pdf",
+           analysis=['slices'],
+           ukb=config["ukbdir"]),
+        expand("{ukb}/gwas/Significant_per_{analysis}.csv",
+           analysis=['slices'],
+           ukb=config["ukbdir"]),
+        expand("{ukb}/MR/MRbase_{analysis}.rds",
+           analysis=['slices'],
+           ukb=config["ukbdir"]),
         expand("{ukb}/annotation/Functional_enrichment_{analysis}.pdf",
             ukb=config["ukbdir"],
             analysis=['summary']),
@@ -137,6 +146,15 @@ rule extract_genotypes:
             -og {output.bimbam} -s {input.samples}
         """
 
+rule effect:
+    input:
+        instruments="{dir}/gwas/Pseudomultitrait_{analysis}_sig5e08_ldFiltered.txt",
+    output:
+        "{dir}/gwas/Distribution_{analysis}_beta.pdf",
+    shell:
+        "Rscript association/effect-size-distribution.R \
+            --directory {wildcards.dir} \
+            --showProgress "
 rule mr:
     input:
         instruments="{dir}/gwas/Pseudomultitrait_{analysis}_sig5e08_ldFiltered.txt",
