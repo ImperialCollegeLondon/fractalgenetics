@@ -187,13 +187,15 @@ if (args$debug) {
     args <- list()
     args$directory <- "~/data/ukbb/ukb-hrt"
     args$verbose <- TRUE
+    args$Teff <- 6.6
 }
 directory <- args$directory
+Teff <- args$Teff
 verbose <- args$verbose
 
 ## ld-filtered, significant genome-wide association results ukb ####
 slices_sig <- read.table(paste(directory,
-                               "/gwas/Pseudomultitrait_slices_sig5e08_ldFiltered.txt",
+                               "/gwas/Pseudomultitrait_Slices_sig5e08_ldFiltered.txt",
                                sep=""),
                          sep=",", stringsAsFactors=FALSE, header=TRUE)
 # LD filter misses these two SNPs, manually remove
@@ -216,11 +218,13 @@ geno_sig <- merge(slices_sig[, c(2,6)], geno_sig, by='rsid')
 ###############
 
 ## format slice betas and p-values per slice ####
-slices_beta <- cbind(rsid=slices_sig$rsid, a_0=slices_sig$a_0,
+slices_beta <- cbind(rsid=slices_sig$rsid,
+                     a_0=slices_sig$a_0,
                      a_1=slices_sig$a_1, af=slices_sig$af, samplesize=18097,
                      slices_sig[,grepl('beta', colnames(slices_sig))])
 colnames(slices_beta) <- gsub("_beta", "", colnames(slices_beta))
-beta <- reshape2::melt(slices_beta, id.var=c('rsid', 'a_0', 'a_1', 'af',
+beta <- reshape2::melt(slices_beta, id.var=c('rsid',
+                                             'a_0', 'a_1', 'af',
                                              'samplesize'),
                                              value.name='beta',
                        variable.name='slice')
@@ -245,26 +249,6 @@ slices <- cbind(beta, p=10^(-logp$logp), se=se$se)
 slices$rsid <- as.character(slices$rsid)
 slices$a_0 <- as.character(slices$a_0)
 slices$a_1 <- as.character(slices$a_1)
-slices$sig <- 1
-slices$sig[slices$p > 5*10^(-8)] <- 0
-slices$sig <- factor(slices$sig, levels=c(1,0))
-
-## Effect size estimates per variant across slices ####
-p_beta <- ggplot(slices, aes(x=slice, y=beta, color=sig))
-p_beta <- p_beta + geom_point() +
-    facet_wrap(~rsid) +
-    ylim(c(-0.16,0.16)) +
-    geom_hline(yintercept=0, color='grey') +
-    scale_color_brewer(type='qual', palette = 'Set1', name='GWAS',
-                       labels = c(expression(p<5%*%10^-8),
-                                               expression(p>=5%*%10^-8))) +
-    xlab('Slice') +
-    ylab("Effect size estimates") +
-    theme_bw() + theme(axis.text.x = element_text(angle=90),
-                       strip.background=element_rect(fill='white'))
-
-ggsave(plot=p_beta, paste(directory, "/gwas/Distribution_beta.pdf", sep=""),
-       height=8, width=8)
 
 ## slices significant slice pvalues and betas ####
 sig_per_slice <- dplyr::filter(slices, p  < 5e-8)
