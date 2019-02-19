@@ -151,5 +151,5 @@ p_plots <- cowplot::plot_grid(plotlist=perChr_beta, nrow=length(slices_per_chr),
                         align='v', axis='l', hjust=0, vjust=1,
                         labels=paste('chr', names(slices_per_chr), sep=""))
 p_all <- cowplot::plot_grid(sigLegend, p_plots, rel_heights=c(1,20), nrow=2)
-ggsave(plot=p_all, paste(directory, "/gwas/Distribution_beta.pdf", sep=""),
+ggsave(plot=p_all, paste(directory, "/gwas/Distribution_slices_beta.pdf", sep=""),
        height=15, width=6)
