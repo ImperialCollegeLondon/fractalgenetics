@@ -14,7 +14,7 @@ Genetics analyses require
 plink [v1.9](https://www.cog-genomics.org/plink2) and [v2](https://www.cog-genomics.org/plink/2.0/) as well as [flashpca](https://github.com/gabraham/flashpca).
 Data visualisation and processing is done in [R](https://www.r-project.org/), version 3.4.1.
 Genetic association testing requires [Bgenie](https://jmarchini.org/bgenie/) v1.3.
-Fractal analysis requires Matlab, [MATLAB Compiler Runtime (MCR) 2016b](https://uk.mathworks.com/products/compiler/matlab-runtime.html) and [Ghostscript](https://www.ghostscript.com/).
+Fractal analysis requires Matlab, [MATLAB Compiler Runtime (MCR) 2016b](https://uk.mathworks.com/products/compiler/matlab-runtime.html) and [Ghostscript](https://www.ghostscript.com/). Finite element modeling was conducted with [Abaqus/Standard, Simulia](https://www.3ds.com/products-services/simulia/products/abaqus/abaqusstandard/).
 
 ## Content
 ### 1. fractal-analysis
@@ -32,6 +32,10 @@ GWAS, GWAS results processing, functional enrichement and Mendelian randomisatio
 
 ### 5. digital-heart
 Trabeculation GWAS in Digital-heart project cohort (validation cohort) containing analysis pipelines for genotype and phenotype processing, GWAS and GWAS results processing.
+
+### 6. Finite element modelling
+Finite element modeling input files (Abaqus Standard, SIMULIA, Dessault Systemes)for the simulation of 5 consecutive cardiac cycles of the left ventricle, starting from the ventricular reference configuration (zero ventricular pressure).
+
 
 
 
