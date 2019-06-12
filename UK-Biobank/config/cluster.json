@@ -29,7 +29,7 @@
     },
     "getSamples" :
     {
-        "memory" : "1",
+        "memory" : "50",
         "resources" : "\"select[mem>1] rusage[mem=1] span[hosts=1]\""
     },
     "mergeFiles" :
