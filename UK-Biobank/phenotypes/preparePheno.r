@@ -58,7 +58,7 @@ if (args$debug) {
     args <- list()
     args$rawdir <- "~/data/ukbb/ukb-hrt/rawdata"
     args$outdir <- "~/data/ukbb/ukb-hrt/phenotypes"
-    args$pheno <- "~/data/ukbb/ukb-hrt/rawdata/FD.csv"
+    args$pheno <- "~/data/ukbb/ukb-hrt/rawdata/190402_fractal_dimension_26k.csv"
     args$interpolate <- 9
     args$cov <- "~/data/ukbb/ukb-hrt/rawdata/VentricularVolumes.csv"
     args$samples <- "~/data/ukbb/ukb-hrt/rawdata/ukb18545_imp_chr1_v3_s487378.sample"
