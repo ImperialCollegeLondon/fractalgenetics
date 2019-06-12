@@ -38,14 +38,14 @@ rule processUKB:
     input:
         ukbdir="{dir}/rawdata",
         outdir="{dir}/phenotypes",
-        pheno="{dir}/rawdata/FD.csv",
+        pheno="{dir}/rawdata/{pheno}.csv",
         samples="{dir}/rawdata/ukb18545_imp_chr1_v3_s487378.sample",
         relatedness="{dir}/rawdata/ukb18545_rel_s488346.dat",
         europeans="{dir}/ancestry/European_samples.csv",
         pcs="{dir}/ancestry/ukb_imp_genome_v3_maf0.1.pruned.European.pca"
     output:
-        "{dir}/phenotypes/FD_phenotypes_bgenie.csv",
-        "{dir}/phenotypes/FD_covariates_bgenie.csv"
+        "{dir}/phenotypes/{pheno}_bgenie.csv",
+        "{dir}/phenotypes/{pheno}_covariates_bgenie.csv"
     shell:
         "Rscript 'phenotypes/preparePheno.r' -u={input.ukbdir} \
             -o={input.outdir} \
