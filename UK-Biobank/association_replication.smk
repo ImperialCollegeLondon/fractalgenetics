@@ -1,5 +1,5 @@
 # how to run fro ./:
-# snakemake -s association.smk --jobs 5000 --latency-wait 30 --cluster-config config/cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources}
+# snakemake -s association_replication.smk --jobs 5000 --latency-wait 30 --cluster-config config/cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources}
 # -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete --use-conda
 
 configfile: "config/config_association.yaml"
@@ -12,10 +12,13 @@ rule all:
             pheno=config['pheno'],
             chr=range(1,23)),
         expand("{ukb}/gwas/{pheno}/bgenie_{analysis}_lm_pseudomt_{plot}.pdf",
-           analysis=['slices'],
-           plot=['qqplot', 'manhattanplot'],
+            analysis=['slices'],
+            plot=['qqplot', 'manhattanplot'],
             pheno=config['pheno'],
-           ukb=config["ukbdir"]),
+            ukb=config["ukbdir"]),
+        expand("{ukb}/gwas/{pheno}/Replication_association_significant_in_discovery.txt",
+            pheno=config['pheno'],
+            ukb=config["ukbdir"]),
 
 
 rule association:
@@ -72,7 +75,7 @@ rule prep_replication:
             discovery=config['discovery']),
         rep="{dir}/gwas/{pheno}/bgenie_slices_lm_pseudomt_all.csv"
     output:
-        rep="{dir}/gwas/{pheno}/bgenie_slices_lm_pseudomt_all_replication.csv"
+        rep="{dir}/gwas/{pheno}/bgenie_slices_lm_pseudomt_all_replication.csv",
         dsv_filter="{dir}/gwas/{pheno}/Pseudomultitrait_discovery_slices_sig5e08_ldFiltered_rsID.txt",
         rep_filter="{dir}/gwas/{pheno}/bgenie_slices_lm_pseudomt_all_replication_ldFiltered.csv"
     shell:
@@ -92,9 +95,8 @@ rule replication:
     params:
         nloci=config['nloci']
     shell:
-        "Rscript association/replication-analysis.R \
-            --pheno {input.pheno} \
+        """
+        Rscript association/replication-analysis.R \
             --nloci {params.nloci} \
-            --directory {wildcards.dir}/gwas/{wildcards.pheno} \
-            --showProgress "
-        "
+            --directory {wildcards.dir}/gwas/{wildcards.pheno}
+        """
