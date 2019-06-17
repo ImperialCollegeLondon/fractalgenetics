@@ -35,13 +35,16 @@ option_list <- list(
     make_option(c("-n", "--name"), action="store", dest="name",
                type="character", help="Name of study sample files (for plotting)
                [default: %default].", default="UKBB"),
+    make_option(c("-n", "--reference"), action="store", dest="reference",
+               type="character", help="Name of reference [default: %default].",
+               default="HapMapIII_CGRCh37"),
     make_option(c("-sc", "--samplesColor"), action="store", dest="samplesColor",
                type="character", help="Color for study samples (for plotting)
                [default: %default].", default="#2c7bb6"),
-    optparse$make_option(c("--debug"), action="store_true",
+    make_option(c("--debug"), action="store_true",
                         dest="debug", default=FALSE, type="logical",
                         help="If set, predefined arguments are used to test the
-                        script [default: %default]."))
+                        script [default: %default].")
 )
 
 args <- parse_args(OptionParser(option_list=option_list))
@@ -51,10 +54,12 @@ if (args$debug) {
     args$HapMapColors <- "~/data/hmeyer/HapMap/HapMap_PopulationColors.txt"
     args$HapMapSamples <- "~/data/hmeyer/HapMap/HapMap_PopulationCode.txt"
     args$directory <- "~/data/ukbb/ukb-hrt/ancestry"
-    args$pcadata <- paste(args$directory, "/",
-                          "HapMapIII_CGRCh37.good_pos_ukb_imp_genome_v3_maf0.1",
+    args$pheno <-  "190402_fractal_dimension_26k"
+    args$hapmap <-  "HapMapIII_CGRCh37"
+    args$pcadata <- paste(args$directory, "/190402_fractal_dimension_26k/",
+                          "HapMapIII_CGRCh37.ukb_imp_genome_v3_maf0.1",
                           ".pruned.merged_pca", sep="")
-    args$samples <- paste(args$directory, "/",
+    args$samples <- paste(args$directory, "/190402_fractal_dimension_26k/",
                           "ukb_imp_genome_v3_maf0.1.pruned.intersection.",
                           "matched.fam", sep="")
     args$name <- "UKBB"
@@ -111,9 +116,13 @@ euro_ukbb <- ukbb$ID[which(ukbb$euclid_dist < (max_euclid_dist * 1.5))]
 not_euro_ukbb <- ukbb$ID[which(ukbb$euclid_dist > (max_euclid_dist * 1.5))]
 
 ## save sample lists ####
-write.table(euro_ukbb, file=paste(args$dir, "/", "European_samples.csv", sep=""),
+write.table(cbind(euro_ukbb, euro_ukbb),
+            file=paste(args$dir, "/", "European_samples_filtered_by_",
+                       args$reference, ".txt", sep=""),
     sep=",", row.names=FALSE, col.names=FALSE, quote=FALSE)
-write.table(not_euro_ukbb, file=paste(args$dir, "/", "NonEuropean_samples.csv",
+write.table(cbind(not_euro_ukbb, not_euro_ukbb),
+            file=paste(args$dir, "/", "NonEuropean_samples_filtered_by",
+                       args$reference, ".txt",
     sep=""), sep=",", row.names=FALSE, col.names=FALSE, quote=FALSE)
 
 ## Plot distribution ####
@@ -125,4 +134,5 @@ p <- p + geom_point(data=data_all, aes(x=PC1, y=PC2, color=pop)) +
                 radius=(max_euclid_dist * 1.5)) +
     theme_bw()
 ggsave(plot=p,
-       file=paste(args$dir, "/", "HapMap_", args$name, "_pca.png", sep=""))
+       file=paste(args$dir, "/", args$reference, "_", args$name, "_pca.png",
+                  sep=""))
