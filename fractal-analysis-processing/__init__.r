@@ -1,2 +1,2 @@
-interpolate <- import("./fracDecimate")
+interpolate <- import("./interpolate")
 stats <- import("./summaryFD")
