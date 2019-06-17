@@ -14,38 +14,29 @@ rule all:
              maf=config["maf"],
              pheno=config["pheno"],
              chr=range(1,23)),
-        expand("{ukb}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.bed",
+        expand("{ukb}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.bim",
              ukb=config["ukbdir"],
              maf=config["maf"],
              pheno=config["pheno"],
              chr=range(1,23)),
-       # expand("{ukb}/maf{maf}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.duplicateIDs",
-       #     ukb=config["ukbdir"],
-       #     maf=config["maf"],
-       #     chr=range(1,23)),
-       # expand("{ukb}/maf{maf}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.duplicatePos",
-        #    ukb=config["ukbdir"],
-       #     maf=config["maf"],
-       #     chr=range(1,23)),
-       # expand("{ukb}/maf{maf}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.duplicatePosIDs",
-       #     ukb=config["ukbdir"],
-       #     maf=config["maf"],
-       #     chr=range(1,23)),
-       # expand("{ukb}/maf{maf}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.allDuplicates",
-       #     ukb=config["ukbdir"],
-       #     maf=config["maf"],
-       #     chr=range(1,23)),
-       # expand("{ukb}/maf{maf}/ukb_imp_chr{chr}_v3_maf{maf}.pruned_no_duplicates.bed",
-       #     ukb=config["ukbdir"],
-       #     maf=config["maf"],
-       #     chr=range(1,23)),
-       # expand("{ukb}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
-       #     ukb=config["ukbdir"],
-       #     maf=config["maf"]),
-       # expand("{ukb}/popstructure/ukb_imp_v3_kinship.rel",
-       #     ukb=config["ukbdir"]),
-       # expand("{ukb}/popstructure/ukb_imp_v3_pca",
-       #     ukb=config["ukbdir"])
+        expand("{ukb}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.duplicateIDs",
+             ukb=config["ukbdir"],
+             maf=config["maf"],
+             pheno=config["pheno"],
+             chr=range(1,23)),
+        expand("{ukb}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned_no_duplicates.bed",
+             ukb=config["ukbdir"],
+             maf=config["maf"],
+             pheno=config["pheno"],
+             chr=range(1,23)),
+         expand("{ukb}/maf{maf}/{pheno}/ukb_imp_v3_kinship.rel",
+             pheno=config["pheno"],
+             maf=config["maf"],
+             ukb=config["ukbdir"]),
+         expand("{ukb}/maf{maf}/{pheno}/ukb_imp_v3_pca",
+             pheno=config["pheno"],
+             maf=config["maf"],
+             ukb=config["ukbdir"])
 
 rule getSamples:
     input:
@@ -116,8 +107,8 @@ rule pruneLD:
         fam="{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.fam",
         prunein="{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.prune.in",
     output:
-        "{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.bed"
-        "{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.bim"
+        "{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.bed",
+        "{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.bim",
         "{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.fam"
     shell:
         "plink2 --bed {input.bed} \
@@ -131,10 +122,10 @@ rule findDuplicates:
     input:
         bim="{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.bim",
     output:
-        duplicateIDs="{dir}/maf{maf}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.duplicateIDs",
-        duplicatePos="{dir}/maf{maf}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.duplicatePos",
-        duplicatePosIDs="{dir}/maf{maf}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.duplicatePosIDs",
-        allDuplicates="{dir}/maf{maf}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.allDuplicates"
+        duplicateIDs="{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.duplicateIDs",
+        duplicatePos="{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.duplicatePos",
+        duplicatePosIDs="{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.duplicatePosIDs",
+        allDuplicates="{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.allDuplicates"
     shell:
         """
         awk -F "\\t" 'id[$2]++ >= 1 {{print $2}}' {input.bim} > {output.duplicateIDs}
@@ -145,13 +136,13 @@ rule findDuplicates:
 
 rule filterDuplicates:
     input:
-        duplicates="{dir}/maf{maf}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.allDuplicates",
+        duplicates="{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.allDuplicates",
         bed="{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.bed",
         bim="{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.bim",
-        fam="{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.fam",
+        fam="{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned.fam"
     output:
-        "{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned_no_duplicates.bed"
-        "{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned_no_duplicates.bim"
+        "{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned_no_duplicates.bed",
+        "{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned_no_duplicates.bim",
         "{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned_no_duplicates.fam"
     shell:
         "plink2 --bed {input.bed} \
@@ -162,22 +153,35 @@ rule filterDuplicates:
             --out {wildcards.dir}/maf{wildcards.maf}/{wildcards.pheno}/ukb_imp_chr{wildcards.chr}_v3_maf{wildcards.maf}.pruned_no_duplicates"
 
 rule createFilelist:
+    input:
+        bed=expand("{{dir}}/maf{{maf}}/{{pheno}}/ukb_imp_chr{chr}_v3_maf{{maf}}.pruned_no_duplicates.bed",
+             chr=range(1,23)),
+        bim=expand("{{dir}}/maf{{maf}}/{{pheno}}/ukb_imp_chr{chr}_v3_maf{{maf}}.pruned_no_duplicates.bim",
+             chr=range(1,23)),
+        fam=expand("{{dir}}/maf{{maf}}/{{pheno}}/ukb_imp_chr{chr}_v3_maf{{maf}}.pruned_no_duplicates.fam",
+             chr=range(1,23)),
     output:
-        "'{dir}/maf{maf}/{pheno}/ukb_imp_v3_maf{maf}.pruned_no_duplicates.file_list'.format(dir=config['ukbdir'], maf=config['maf'])"
+        "{dir}/maf{maf}/{pheno}/ukb_imp_v3_maf{maf}.pruned_no_duplicates.file_list"
     run:
         files2merge = ["{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.pruned_no_duplicates".format(
             dir=config['ukbdir'], maf=config['maf'], pheno=config['pheno'], chr=x) for x in range(1, 23)]
 
-        with open({output}, "w") as handle:
+        with open(output[0], "w") as handle:
             for f in files2merge:
                 handle.write("{}\n".format(f))
 
 rule mergeFiles:
     input:
         list="{dir}/maf{maf}/{pheno}/ukb_imp_v3_maf{maf}.pruned_no_duplicates.file_list",
+        bed=expand("{{dir}}/maf{{maf}}/{{pheno}}/ukb_imp_chr{chr}_v3_maf{{maf}}.pruned_no_duplicates.bed",
+             chr=range(1,23)),
+        bim=expand("{{dir}}/maf{{maf}}/{{pheno}}/ukb_imp_chr{chr}_v3_maf{{maf}}.pruned_no_duplicates.bim",
+             chr=range(1,23)),
+        fam=expand("{{dir}}/maf{{maf}}/{{pheno}}/ukb_imp_chr{chr}_v3_maf{{maf}}.pruned_no_duplicates.fam",
+             chr=range(1,23)),
     output:
-        "{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bed"
-        "{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bim"
+        "{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
+        "{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bim",
         "{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.fam"
     shell:
         "plink --merge-list {input.list} \
@@ -190,7 +194,7 @@ rule kinship:
         bim="{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bim",
         fam="{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.fam",
     output:
-        "{dir}/{pheno}/ukb_imp_v3_kinship.rel"
+        "{dir}/maf{maf}/{pheno}/ukb_imp_v3_kinship.rel"
     shell:
         "plink2 --bed {input.bed} \
                 --fam {input.fam} \
@@ -205,7 +209,7 @@ rule pca:
         bim="{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bim",
         fam="{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.fam",
     output:
-        "{dir}/{pheno}/ukb_imp_v3_pca"
+        "{dir}/maf{maf}/{pheno}/ukb_imp_v3_pca"
     shell:
         "flashpca --bed {input.bed} \
                 --fam {input.fam} \
@@ -213,4 +217,3 @@ rule pca:
                 --ndim 50 \
                 --outpc {wildcards.dir}/{wildcards.pheno}/ukb_imp_v3_pca \
                 --suffix _ukb_imp_v3.txt"
-
