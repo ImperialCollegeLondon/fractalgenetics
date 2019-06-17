@@ -5,9 +5,6 @@ options(import.path="/homes/hannah/projects/GWAS")
 options(bitmapType = 'cairo', device = 'pdf')
 
 optparse <- modules::import_package('optparse')
-garfield <- modules::import_package('garfield')
-zip <- modules::import_package('zip')
-prepGarfield <- modules::import("prepGarfield")
 bgenie <- modules::import("bgenieResults")
 plots <- modules::import("plots")
 meta <- modules::import("metaanalysis")
@@ -31,7 +28,7 @@ stPlots <- function(trait_index, bgenie_result, directory, is.negLog=FALSE,
     p_manhattan <- plots$manhattan(data.frame(bgenie_result[which.min, 1:3],
                                               P=pvalues[which.min]),
                                    title=colnames(bgenie_result)[trait_index],
-                                   size.x.labels=12, size.y.labels=12,
+                                   size.x.text=12, size.y.text=12,
                                    is.negLog=is.negLog,
                                    color=c('#878787', '#4d4d4d'), chr='chr',
                                    highlight=highlight, colorHighlight='#35978f',
@@ -84,7 +81,7 @@ option_list <- list(
     optparse$make_option(c("--debug"), action="store_true",
                         dest="debug", default=FALSE, type="logical",
                         help="If set, predefined arguments are used to test the
-                        script [default: %default]."))
+                        script [default: %default].")
 )
 
 args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
@@ -105,7 +102,7 @@ phenofile <- args$phenofile
 verbose <- args$verbose
 tags_prefix <- "European_ukb_imp_chr"
 tags_suffix <- "_v3_maf0.001_250kb_r0.6.tags.list"
-tags_dir <- "~/data/ukbb/ukb-hrt/tags"
+tags_dir <- "~/data/ukbb/ukb-hrt/tags/180628_fractal_dimension"
 
 ## Read results ####
 if (verbose) message("Read files with genome-wide association results")
@@ -182,7 +179,6 @@ write.table(sig, paste(directory, "/", name, "_sig5e08_ldFiltered.txt",
                               sep=""),
             col.names=TRUE, row.names=FALSE, quote=FALSE)
 
-}
 ## per trait qq and manhattan plots ####
 # effective number of tests to adjust single-trait assocation p-values by
 if (!is.null(phenofile)) {
@@ -202,7 +198,7 @@ plots_perTrait <- sapply(index_logp, stPlots, bgenie_result=genomewide, ymin=0.1
                          name=name,  ymax=ymax)
 
 sig <- apply(as.matrix(genomewide[, index_logp]), 1,
-             function(x, index) any(x > -log10(5e-8)))
+             function(x, index) any(x > -log10(5e-8/valueMeff)))
 sigAssociations <- genomewide[sig,]
 write.table(sigAssociations, paste(directory, "/bgenie_", name,
                                    "_lm_st_significant.csv",  sep=""),
