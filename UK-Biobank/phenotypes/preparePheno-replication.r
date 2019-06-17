@@ -1,7 +1,7 @@
 #################
 ## libraries ####
 #################
-options(import.path=c("/homes/hannah/analysis/fractalgenetics/fractal-analysis-processing",
+options(import.path=c("/homes/hannah/analysis/fractalgenetics",
                       "/homes/hannah/projects"))
 options(bitmapType = 'cairo', device = 'pdf')
 
@@ -10,7 +10,7 @@ modules::import_package('GGally', attach=TRUE)
 optparse <- modules::import_package('optparse')
 ukbtools <- modules::import_package('ukbtools')
 related <- modules::import('GWAS/relatedness')
-autofd <- modules::import('AutoFD_interpolation')
+autofd <- modules::import('fractal-analysis-processing')
 smooth <- modules::import('utils/smoothAddR2')
 
 
@@ -57,14 +57,14 @@ args <- optparse$parse_args(OptionParser(option_list=option_list))
 if (args$debug) {
     args <- list()
     args$rawdir <- "~/data/ukbb/ukb-hrt/rawdata"
-    args$outdir <- "~/data/ukbb/ukb-hrt/phenotypes"
+    args$outdir <- "~/data/ukbb/ukb-hrt/phenotypes/190402_fractal_dimension_26k"
     args$pheno <- "~/data/ukbb/ukb-hrt/rawdata/190402_fractal_dimension_26k.csv"
     args$interpolate <- 9
-    args$cov <- "~/data/ukbb/ukb-hrt/rawdata/VentricularVolumes.csv"
+    args$cov <- "~/data/ukbb/ukb-hrt/rawdata/190402_cardiac_phenotypes.csv"
     args$samples <- "~/data/ukbb/ukb-hrt/rawdata/ukb18545_imp_chr1_v3_s487378.sample"
     args$relatedness <-"~/data/ukbb/ukb-hrt/rawdata/ukb18545_rel_s488346.dat"
-    args$europeans <- "~/data/ukbb/ukb-hrt/ancestry/European_samples.csv"
-    args$pcs <- "~/data/ukbb/ukb-hrt/ancestry/ukb_imp_genome_v3_maf0.1.pruned.European.pca"
+    args$europeans <- "~/data/ukbb/ukb-hrt/phenotypes/190402_fractal_dimension_26k/European_samples_filtered_by_HapMapIII_CGRCh37_replication.txt"
+    args$pcs <- "~/data/ukbb/ukb-hrt/ancestry/190402_fractal_dimension_26k/ukb_imp_genome_v3_maf0.1.pruned.European.pca"
 }
 
 ## ukb phenotype files converted via ukb_tools:
@@ -93,7 +93,8 @@ dataFD <- dataFD[,grepl("Slice \\d{1,2}", colnames(dataFD))]
 colnames(dataFD) <- gsub(" ", "", colnames(dataFD))
 
 # Exclude individuals where less than 6 slices were measured
-NaN_values <- c("Sparse myocardium", "Meagre blood pool","FD measure failed")
+NaN_values <- c("Sparse myocardium", "Meagre blood pool","FD measure failed",
+                "")
 fd_notNA <- apply(dataFD, 1,  function(x) {
                 length(which(!(is.na(x) | x %in% NaN_values))) > 5
                             })
@@ -133,23 +134,15 @@ ggsave(plot=p_fd, file=paste(args$outdir, "/FDAlongHeart_slices",
        height=4, width=4, units="in")
 
 
-## LV volume measurements ####
-lvv <- data.table::fread(args$cov, data.table=FALSE,
-                            stringsAsFactors=FALSE, na.strings=c("NA", "NaN"))
-hr <- data.table::fread(paste(args$rawdir, "/20181124_HR_from_CMR.csv", sep=""),
-                        data.table=FALSE, stringsAsFactors=FALSE)
-
-lvv <- merge(hr, lvv, by="ID")
-lvv$SV <- lvv$LVEDV - lvv$LVESV
-lvv$CO <- lvv$SV * lvv$HR
-rownames(lvv) <- lvv[, 1]
-
-lvv <- dplyr::select(lvv, ID, LVEDV, LVESV, LVEF, LVM, SV, CO, HR)
 
 ## ukbb bulk data ####
 # ukbb phenotypes
-ukbb <- ukb_df(fileset="ukb22219", path=args$rawdir)
-saveRDS(ukbb, paste(args$rawdir, "/ukb22219.rds", sep=""))
+if (! file.exists(aste(args$rawdir, "/ukb22219.rds", sep="")) {
+    ukbb <- ukb_df(fileset="ukb22219", path=args$rawdir)
+    saveRDS(ukbb, paste(args$rawdir, "/ukb22219.rds", sep=""))
+} else {
+    ukbb <- readRDS(paste(args$rawdir, "/ukb22219.rds", sep=""))
+}
 
 ukbb_fd <- dplyr::filter(ukbb, eid %in% rownames(dataFD))
 saveRDS(ukbb_fd, paste(args$rawdir, "/ukb22219_fd.rds", sep=""))
@@ -164,10 +157,14 @@ relatedness <- data.table::fread(args$relatedness, data.table=FALSE,
                              stringsAsFactors=FALSE)
 # European ancestry via ancestry.smk
 europeans <- data.table::fread(args$europeans, data.table=FALSE,
-                            stringsAsFactors=FALSE, col.names="ID")
+                            stringsAsFactors=FALSE, col.names=c("IID", "FID"))
 
 # Principal components of European ancestry via ancestry.smk
 pcs <- data.table::fread(args$pcs, data.table=FALSE, stringsAsFactors=FALSE)
+
+# LV volume measurements
+lvv <- data.table::fread(args$cov, data.table=FALSE,
+                            stringsAsFactors=FALSE, na.strings=c("NA", "NaN"))
 
 ## get covariates data ####
 # grep columns with covariates sex, age, bmi and weight
@@ -322,15 +319,15 @@ related2filter <- c(related_samples$related2filter,
                     related_samples$related2decide$ID1)
 
 fd_norelated <- fd_all[!fd_all$Row.names %in% related2filter,]
-fd_europeans_norelated <- fd_norelated[fd_norelated$Row.names %in% europeans$ID,]
+fd_europeans_norelated <- fd_norelated[fd_norelated$Row.names %in% europeans$IID,]
 rownames(fd_europeans_norelated) <- fd_europeans_norelated[,1]
 
 ## Test association with all covs and principal components ####
 fd_europeans_norelated <- merge(fd_europeans_norelated, pcs[,-1], by=1)
 index_pheno <- which(grepl("FD", colnames(fd_europeans_norelated)))
 index_slices <- which(grepl("Slice_", colnames(fd_europeans_norelated)))
-index_volumes <- 15:21
-index_cov <- c(22:26, 32:ncol(fd_europeans_norelated))
+index_volumes <- 15:19
+index_cov <- c(20:24, 30:ncol(fd_europeans_norelated))
 
 lm_fd_pcs <- sapply(index_pheno, function(x) {
     tmp <- lm(y ~ ., data=data.frame(y=fd_europeans_norelated[,x],
@@ -342,9 +339,6 @@ rownames(lm_fd_pcs) <- c("intercept",
     colnames(fd_europeans_norelated)[index_cov])
 sigAssociations <- which(apply(lm_fd_pcs, 1, function(x) any(x < 0.01)))
 
-fd_europeans_norelated <- fd_europeans_norelated[,c(1,index_pheno, index_slices,
-    index_volumes,
-    which(colnames(fd_europeans_norelated) %in% names(sigAssociations)))]
 
 rownames(fd_europeans_norelated) <- fd_europeans_norelated$Row.names
 write.table(lm_fd_pcs[sigAssociations,],
@@ -361,7 +355,7 @@ write.table(fd_europeans_norelated[,index_pheno],
             sep=",",
             row.names=fd_europeans_norelated$Row.names, col.names=NA,
             quote=FALSE)
-write.table(fd_europeans_norelated[,-c(1, index_pheno, index_slices,
+write.table(fd_europeans_norelated[,-c(1, 25:29, index_pheno, index_slices,
                                        index_volumes)],
             paste(args$outdir, "/FD_covariates_EUnorel.csv", sep=""), sep=",",
             row.names=fd_europeans_norelated$Row.names, col.names=NA,
@@ -391,129 +385,10 @@ write.table(fd_bgenie[, (index_pheno + 3)],
 write.table(fd_bgenie[, (index_slices + 3)],
             paste(args$outdir, "/FD_slices_bgenie.txt", sep=""), sep=" ",
             row.names=FALSE, col.names=TRUE, quote=FALSE)
-write.table(fd_bgenie[,-c(1:4, index_pheno + 3, index_slices + 3,
+write.table(fd_bgenie[,-c(1:4, index_pheno + 3, 28:32, index_slices + 3,
                           index_volumes + 3)],
             paste(args$outdir, "/FD_covariates_bgenie.txt", sep=""), sep=" ",
             row.names=FALSE, col.names=TRUE, quote=FALSE)
 write.table(fd_bgenie[,(index_volumes + 3)],
             paste(args$outdir, "/FD_volumes_bgenie.txt", sep=""), sep=" ",
-            row.names=FALSE, col.names=TRUE, quote=FALSE)
-
-## Blood pressure phenotypes ####
-systolicNA <- apply(ukbb_fd[!sexNA, systolic] , 2, function(x)
-    length(which(is.na(x)))) # 796,1108,14233,14228,3362,3343
-diastolicNA <- apply(ukbb_fd[!sexNA, diastolic] , 2, function(x)
-    length(which(is.na(x)))) # 796,1108,14232,14228,3362,3343
-bp <- allSex[,c(systolic[which.min(systolic)],
-                diastolic[which.min(diastolic)])]
-bpIndex_noNA <- which(apply(bp, 1, function(x) !any(is.na(x))))
-bp_noNA <- bp[bpIndex_noNA,]
-bp_noNA <- as.data.frame(apply(bp_noNA, 2, as.numeric))
-rownames(bp_noNA) <- allSex$eid[bpIndex_noNA]
-
-## Filter blood pressure phenotypes for ethnicity and relatedness ####
-bp_europeans_norelated <- merge(bp_noNA, fd_europeans_norelated[,-c(1:26)], by=0)
-
-index_bp <- which(grepl("blood_pressure", colnames(bp_europeans_norelated)))
-index_cov <-
-    which(!grepl("blood_pressure", colnames(bp_europeans_norelated)))[-1]
-
-lm_bp <- sapply(index_bp, function(x) {
-    tmp <- lm(y ~ ., data=data.frame(y=bp_europeans_norelated[,x],
-                                     bp_europeans_norelated[,index_cov]))
-    summary(tmp)$coefficient[,4]
-    })
-
-colnames(lm_bp) <- colnames(bp_europeans_norelated)[index_bp]
-rownames(lm_bp) <- c("intercept", colnames(bp_europeans_norelated)[index_cov])
-sigAssociations_bp <- which(apply(lm_bp, 1, function(x) any(x < 0.01)))
-
-bp_europeans_norelated <-
-    bp_europeans_norelated[,c(1, index_bp,
-                              which(colnames(bp_europeans_norelated) %in%
-                                     names(sigAssociations_bp)))]
-
-write.table(lm_bp[sigAssociations_bp,],
-            paste(args$outdir, "/BP_cov_associations.csv", sep=""), sep=",",
-            row.names=TRUE, col.names=NA, quote=FALSE)
-
-write.table(bp_europeans_norelated[,index_bp],
-            paste(args$outdir, "/BP_phenotypes_EUnorel.csv", sep=""),
-            sep=",", row.names=bp_europeans_norelated$Row.names, col.names=NA,
-            quote=FALSE)
-write.table(bp_europeans_norelated[,-c(1, index_bp)],
-            paste(args$outdir, "/BP_covariates_EUnorel.csv", sep=""), sep=",",
-            row.names=bp_europeans_norelated$Row.names, col.names=NA,
-            quote=FALSE)
-
-## Format bp phenotypes and covariates for bgenie ####
-bp_bgenie <- merge(samples, bp_europeans_norelated, by=1, all.x=TRUE, sort=FALSE)
-bp_bgenie <- bp_bgenie[match(samples$ID_1, bp_bgenie$ID_1),]
-bp_bgenie$genetic_sex_f22001_0_0 <- as.numeric(bp_bgenie$genetic_sex_f22001_0_0)
-bp_bgenie[is.na(bp_bgenie)] <- -999
-
-write.table(bp_bgenie[, (index_bp + 3)],
-            paste(args$outdir, "/BP_phenotypes_bgenie.txt", sep=""), sep=" ",
-            row.names=FALSE, col.names=TRUE, quote=FALSE)
-write.table(bp_bgenie[,-c(1:4, index_bp + 3)],
-            paste(args$outdir, "/BP_covariates_bgenie.txt", sep=""), sep=" ",
-            row.names=FALSE, col.names=TRUE, quote=FALSE)
-
-## Cardiac volume phenotypes ####
-hr <- data.table::fread(paste(args$rawdir, "/20181124_HR_from_CMR.csv", sep=""),
-                        data.table=FALSE, stringsAsFactors=FALSE)
-
-lvv <- data.table::fread(paste(args$rawdir, "/VentricularVolumes.csv", sep=""),
-                        data.table=FALSE, stringsAsFactors=FALSE)
-
-lvv.hr <- merge(hr, lvv, by="ID")
-lvv.hr$SV <- lvv.hr$LVEDV - lvv.hr$LVESV
-lvv.hr$CO <- lvv.hr$SV * lvv.hr$HR
-
-## Filter cardiac volume for ethnicity and relatedness ####
-vv_europeans_norelated <- merge(lvv.hr, fd_europeans_norelated[,-c(1:26)], by=0)
-
-index_bp <- which(grepl("blood_pressure", colnames(bp_europeans_norelated)))
-index_cov <-
-    which(!grepl("blood_pressure", colnames(bp_europeans_norelated)))[-1]
-
-lm_bp <- sapply(index_bp, function(x) {
-    tmp <- lm(y ~ ., data=data.frame(y=bp_europeans_norelated[,x],
-                                     bp_europeans_norelated[,index_cov]))
-    summary(tmp)$coefficient[,4]
-    })
-
-colnames(lm_bp) <- colnames(bp_europeans_norelated)[index_bp]
-rownames(lm_bp) <- c("intercept", colnames(bp_europeans_norelated)[index_cov])
-sigAssociations_bp <- which(apply(lm_bp, 1, function(x) any(x < 0.01)))
-
-bp_europeans_norelated <-
-    bp_europeans_norelated[,c(1, index_bp,
-                              which(colnames(bp_europeans_norelated) %in%
-                                     names(sigAssociations_bp)))]
-
-write.table(lm_bp[sigAssociations_bp,],
-            paste(args$outdir, "/BP_cov_associations.csv", sep=""), sep=",",
-            row.names=TRUE, col.names=NA, quote=FALSE)
-
-write.table(bp_europeans_norelated[,index_bp],
-            paste(args$outdir, "/BP_phenotypes_EUnorel.csv", sep=""),
-            sep=",", row.names=bp_europeans_norelated$Row.names, col.names=NA,
-            quote=FALSE)
-write.table(bp_europeans_norelated[,-c(1, index_bp)],
-            paste(args$outdir, "/BP_covariates_EUnorel.csv", sep=""), sep=",",
-            row.names=bp_europeans_norelated$Row.names, col.names=NA,
-            quote=FALSE)
-
-## Format bp phenotypes and covariates for bgenie ####
-bp_bgenie <- merge(samples, bp_europeans_norelated, by=1, all.x=TRUE, sort=FALSE)
-bp_bgenie <- bp_bgenie[match(samples$ID_1, bp_bgenie$ID_1),]
-bp_bgenie$genetic_sex_f22001_0_0 <- as.numeric(bp_bgenie$genetic_sex_f22001_0_0)
-bp_bgenie[is.na(bp_bgenie)] <- -999
-
-write.table(bp_bgenie[, (index_bp + 3)],
-            paste(args$outdir, "/BP_phenotypes_bgenie.txt", sep=""), sep=" ",
-            row.names=FALSE, col.names=TRUE, quote=FALSE)
-write.table(bp_bgenie[,-c(1:4, index_bp + 3)],
-            paste(args$outdir, "/BP_covariates_bgenie.txt", sep=""), sep=" ",
             row.names=FALSE, col.names=TRUE, quote=FALSE)
