@@ -1,2 +1,4 @@
 ukbdir: "/homes/hannah/data/ukbb/ukb-hrt"
+pheno: "190402_fractal_dimension_26k"
+discovery: "180628_fractal_dimension"
 
