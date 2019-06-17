@@ -6,26 +6,26 @@ configfile: "config/config_association.yaml"
 
 rule all:
     input:
-        expand("{ukb}/gwas/bgenie_{analysis}_lm_st_chr{chr}.gz",
+        expand("{ukb}/gwas/{pheno}/bgenie_{analysis}_lm_st_chr{chr}.gz",
             ukb=config["ukbdir"],
             analysis=['slices', 'summary'],
             chr=range(1,23)),
-        expand("{ukb}/gwas/bgenie_{analysis}_lm_pseudomt_{plot}.pdf",
+        expand("{ukb}/gwas/{pheno}/bgenie_{analysis}_lm_pseudomt_{plot}.pdf",
            analysis=['slices', 'summary'],
            plot=['qqplot', 'manhattanplot'],
            ukb=config["ukbdir"]),
-        expand("{ukb}/tags/European_ukb_imp_chr{chr}_v3_maf{maf}_{kb}kb_r{r2}.tags.list",
+        expand("{ukb}/tags/{pheno}/European_ukb_imp_chr{chr}_v3_maf{maf}_{kb}kb_r{r2}.tags.list",
             ukb=config["ukbdir"],
             maf=config['maf'],
             kb=config['kbwindow'],
             r2=config['r2'],
             chr=range(1,23)),
-        expand("{ukb}/gwas/Pseudomultitrait_slices_sig5e08_genotypes.dosage.gz",
+        expand("{ukb}/gwas/{pheno}/Pseudomultitrait_slices_sig5e08_genotypes.dosage.gz",
             ukb=config["ukbdir"]),
-        expand("{ukb}/gwas/Distribution_{analysis}_beta.pdf",
+        expand("{ukb}/gwas/{pheno}/Distribution_{analysis}_beta.pdf",
            analysis=['slices'],
            ukb=config["ukbdir"]),
-        expand("{ukb}/gwas/Significant_per_{analysis}.csv",
+        expand("{ukb}/gwas/{pheno}/Significant_per_{analysis}.csv",
            analysis=['slices'],
            ukb=config["ukbdir"]),
         expand("{ukb}/MR/MRbase_{analysis}.rds",
@@ -37,24 +37,24 @@ rule all:
 
 rule generateSNPfiles:
     input:
-        rsids="{dir}/maf0.001/ukb_imp_chr{chr}_v3_maf0.001.bim"
+        rsids="{dir}/maf0.001/{pheno}/ukb_imp_chr{chr}_v3_maf0.001.bim"
     output:
-        "{dir}/maf0.001/ukb_imp_chr{chr}_v3_maf0.001.rsid"
+        "{dir}/maf0.001/{pheno}/ukb_imp_chr{chr}_v3_maf0.001.rsid"
     shell:
         "cut -f 2 {input.rsids} |sort|uniq > {output}"
 
 rule generateLDtags:
     input:
-        keep="{dir}/ancestry/European_FID_IID.keep",
-        rsid="{dir}/maf0.001/ukb_imp_chr{chr}_v3_maf0.001.rsid",
-        bed="{dir}/plink/ukb_imp_chr{chr}_v3.bed",
-        bim="{dir}/plink/ukb_imp_chr{chr}_v3.bim",
-        fam="{dir}/plink/ukb_imp_chr{chr}_v3.fam",
+        keep="{dir}/ancestry/{pheno}/European_FID_IID.keep",
+        rsid="{dir}/maf0.001/{pheno}/ukb_imp_chr{chr}_v3_maf0.001.rsid",
+        bed="{dir}/plink/{pheno}/ukb_imp_chr{chr}_v3.bed",
+        bim="{dir}/plink/{pheno}/ukb_imp_chr{chr}_v3.bim",
+        fam="{dir}/plink/{pheno}/ukb_imp_chr{chr}_v3.fam",
     params:
         r2=config['r2'],
         kb=config['kbwindow']
     output:
-        "{dir}/tags/European_ukb_imp_chr{chr}_v3_maf{maf}_{kb}kb_r{r2}.tags.list"
+        "{dir}/tags/{pheno}/European_ukb_imp_chr{chr}_v3_maf{maf}_{kb}kb_r{r2}.tags.list"
     shell:
         "plink --bed {input.bed} \
             --fam {input.fam} \
@@ -63,17 +63,17 @@ rule generateLDtags:
             --extract {input.rsid} \
             --show-tags all \
             --tag-r2 {params.r2} --tag-kb {params.kb} \
-            --out {wildcards.dir}/tags/European_ukb_imp_chr{wildcards.chr}_v3_maf{wildcards.maf}_{params.kb}kb_r{params.r2}"
+            --out {wildcards.dir}/tags/{wildcards.pheno}/European_ukb_imp_chr{wildcards.chr}_v3_maf{wildcards.maf}_{params.kb}kb_r{params.r2}"
 
 rule association:
     input:
         geno=expand("{geno}/ukb_imp_chr{{chr}}_v3.bgen",
             geno=config["genodir"]),
-        pheno=expand("{ukb}/phenotypes/FD_{{analysis}}_bgenie.txt",
+        pheno=expand("{ukb}/phenotypes/{{pheno}}/FD_{{analysis}}_bgenie.txt",
             ukb=config["ukbdir"]),
-        covs=expand("{ukb}/phenotypes/FD_covariates_bgenie.txt",
+        covs=expand("{ukb}/phenotypes/{{pheno}}/FD_covariates_bgenie.txt",
             ukb=config["ukbdir"]),
-        rsids=expand("{ukb}/maf0.001/ukb_imp_chr{{chr}}_v3_maf0.001.rsid",
+        rsids=expand("{ukb}/maf0.001/{{pheno}}/ukb_imp_chr{{chr}}_v3_maf0.001.rsid",
                     ukb=config["ukbdir"])
     params:
         n=config["n"]
@@ -86,27 +86,27 @@ rule association:
             --include_rsids  {input.rsids} \
             --pvals --exc_missing_inds \
             --thread {params.n} \
-            --out {wildcards.dir}/gwas/bgenie_{wildcards.analysis}_lm_st_chr{wildcards.chr}"
+            --out {wildcards.dir}/gwas/{wildcards.pheno}/bgenie_{wildcards.analysis}_lm_st_chr{wildcards.chr}"
 
 rule results:
     input:
-        tags=expand("{{dir}}/tags/European_ukb_imp_chr{chr}_v3_maf{maf}_{kb}kb_r{r2}.tags.list",
+        tags=expand("{{dir}}/tags/{{pheno}}/European_ukb_imp_chr{chr}_v3_maf{maf}_{kb}kb_r{r2}.tags.list",
             maf=config['maf'],
             r2=config['r2'],
             kb=config['kbwindow'],
             chr=range(1,23)),
-        gwas=expand("{{dir}}/gwas/bgenie_{{analysis}}_lm_st_chr{chr}.gz",
+        gwas=expand("{{dir}}/gwas/{{pheno}}/bgenie_{{analysis}}_lm_st_chr{chr}.gz",
             chr=range(1,23)),
-        pheno="{dir}/phenotypes/FD_{analysis}_EUnorel.csv"
+        pheno="{dir}/phenotypes/{pheno}/FD_{analysis}_EUnorel.csv"
     output:
-        "{dir}/gwas/bgenie_{analysis}_lm_pseudomt_qqplot.pdf",
-        "{dir}/gwas/bgenie_{analysis}_lm_pseudomt_manhattanplot.pdf",
-        "{dir}/gwas/Pseudomultitrait_{analysis}_sig5e08.txt"
+        "{dir}/gwas/{pheno}/bgenie_{analysis}_lm_pseudomt_qqplot.pdf",
+        "{dir}/gwas/{pheno}/bgenie_{analysis}_lm_pseudomt_manhattanplot.pdf",
+        "{dir}/gwas/{pheno}/Pseudomultitrait_{analysis}_sig5e08.txt"
     shell:
-        "Rscript association/association_results.R \
+        "Rscript association/association-results.R \
             --pheno {input.pheno} \
             --name {wildcards.analysis} \
-            --directory {wildcards.dir}/gwas \
+            --directory {wildcards.dir}/gwas/{wildcards.pheno} \
             --showProgress "
 
 rule functional_enrichment:
