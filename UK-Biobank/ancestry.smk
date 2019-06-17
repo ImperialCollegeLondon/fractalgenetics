@@ -1,38 +1,58 @@
 # how to run fro ./:
-# snakemake -s ancestry.smk --jobs 5000 --latency-wait 30 --cluster-config config/cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources} -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete
+# snakemake -s ancestry.smk --jobs 5000 --latency-wait 200 --cluster-config config/cluster.json 
+# --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources} -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete
 
 configfile: "config/config_ancestry.yaml"
 
 rule all:
     input:
-        expand("{ukb}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.kinship.rel",
+        expand("{ukb}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
             ukb=config["ukbdir"],
+            pheno=config["pheno"],
             maf=config["maf"]),
-        expand("{ukb}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.pca",
+        #expand("{ukb}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.kinship.rel",
+        expand("{ukb}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.kinship.rel",
             ukb=config["ukbdir"],
+            pheno=config["pheno"],
             maf=config["maf"]),
-        expand("{ukb}/ancestry/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.pca",
+        #expand("{ukb}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.pca",
+        #    ukb=config["ukbdir"],
+        #    pheno=config["pheno"],
+        #    maf=config["maf"]),
+        expand("{ukb}/ancestry/{pheno}/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.pca",
+            ukb=config["ukbdir"],
+            pheno=config["pheno"],
+            maf=config["maf"],
+            hapmap=config["hapmap"]),
+        expand("{ukb}/ancestry/{pheno}/{hapmap}_UKBB-FD_maf{maf}_pca.png",
+            pheno=config["pheno"],
             ukb=config["ukbdir"],
             maf=config["maf"],
             hapmap=config["hapmap"]),
-        expand("{ukb}/ancestry/HapMap_UKBB-FD_pca.png",
-            ukb=config["ukbdir"]),
-        expand("{ukb}/ancestry/ukb_imp_genome_v3_maf{maf}.pruned.European.pca",
+        expand("{ukb}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.European.pca",
+            pheno=config["pheno"],
             ukb=config["ukbdir"],
             maf=config["maf"])
 
 # maf in
 rule ukbSNPs:
     input:
-        bed=expand("{{dir}}/maf{maf}/{{pheno}}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
-            maf=config['maf-in'])
-        bim=expand("{{dir}}/maf{maf}/{{pheno}}/ukb_imp_genome_v3_maf{maf}.pruned.bim",
-            maf=config['maf-in'])
-        fam=expand("{{dir}}/maf{maf}/{{pheno}}/ukb_imp_genome_v3_maf{maf}.pruned.fam",
+        bed=expand("{ukb}/maf{maf}/{{pheno}}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
+            ukb=config["ukbdir"],
+            maf=config['maf-in']),
+        bim=expand("{ukb}/maf{maf}/{{pheno}}/ukb_imp_genome_v3_maf{maf}.pruned.bim",
+            ukb=config["ukbdir"],
+            maf=config['maf-in']),
+        fam=expand("{ukb}/maf{maf}/{{pheno}}/ukb_imp_genome_v3_maf{maf}.pruned.fam",
+            ukb=config["ukbdir"],
             maf=config['maf-in'])
     output:
         "{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
+        "{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bim",
+        "{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.fam",
         "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.snplist"
+    wildcard_constraints:
+        maf=0.1
     shell:
         """
         plink2 --bed {input.bed} \
@@ -71,29 +91,33 @@ rule pcaUKB:
         "flashpca --bed {input.bed} \
                 --fam {input.fam} \
                 --bim {input.bim} \
-                --ndim 10 \
+                --ndim 50 \
                 --outpc {wildcards.dir}/ancestry/{wildcards.pheno}/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.pca \
                 --outvec  {wildcards.dir}/ancestry/{wildcards.pheno}/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.eigenvectors \
                 --outload  {wildcards.dir}/ancestry/{wildcards.pheno}/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.SNPloadings \
                 --outval  {wildcards.dir}/ancestry/{wildcards.pheno}/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.eigenvalues \
                 --outpve  {wildcards.dir}/ancestry/{wildcards.pheno}/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.variance_explained"
 
-
 rule extractUKBfromHapmap:
     input:
         bed=expand("{hapdir}/{hapmap}.bed",
-            hapdir=config["hapdir"],
-            hapmap=config["hapmap"]),
+            hapmap=config["hapmap"],
+            hapdir=config["hapdir"]),
         bim=expand("{hapdir}/{hapmap}.bim",
-            hapdir=config["hapdir"],
-            hapmap=config["hapmap"]),
+            hapmap=config["hapmap"],
+            hapdir=config["hapdir"]),
         fam=expand("{hapdir}/{hapmap}.fam",
-            hapdir=config["hapdir"],
-            hapmap=config["hapmap"]),
-        snplist="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.snplist",
+            hapmap=config["hapmap"],
+            hapdir=config["hapdir"]),
+        snplist=expand("{{dir}}/ancestry/{{pheno}}/ukb_imp_genome_v3_maf{maf}.pruned.snplist",
+            maf=config['maf'])
     output:
-        "{dir}/ancestry/{pheno}/HapMap{hapmap}.intersection.bed",
-        "{dir}/ancestry/{pheno}/HapMap{hapmap}.intersection.snplist"
+        "{dir}/ancestry/{pheno}/{hapmap}.intersection.bed",
+        "{dir}/ancestry/{pheno}/{hapmap}.intersection.bim",
+        "{dir}/ancestry/{pheno}/{hapmap}.intersection.fam",
+        "{dir}/ancestry/{pheno}/{hapmap}.intersection.snplist"
+    wildcard_constraints:
+        hapmap=config['hapmap']
     shell:
         "plink2 --bed {input.bed} \
             --bim {input.bim} \
@@ -101,7 +125,7 @@ rule extractUKBfromHapmap:
             --make-bed \
             --extract {input.snplist} \
             --write-snplist \
-            --out {wildcards.dir}/ancestry/{wildcards.pheno}/HapMap{wildcards.hapmap}.intersection"
+            --out {wildcards.dir}/ancestry/{wildcards.pheno}/{wildcards.hapmap}.intersection"
 
 rule extractHapmapFromUKB:
     input:
@@ -111,7 +135,9 @@ rule extractHapmapFromUKB:
         snplist=expand("{{dir}}/ancestry/{{pheno}}/{hapmap}.intersection.snplist",
             hapmap=config["hapmap"])
     output:
-        "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.bed"
+        "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.bed",
+        "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.bim",
+        "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.fam"
     shell:
         "plink2 --bed {input.bed} \
             --bim {input.bim} \
@@ -125,11 +151,13 @@ rule compareSNPs:
         ukb_bed="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.bed",
         ukb_bim="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.bim",
         ukb_fam="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.fam",
-        hapmap_bed="{{dir}}/ancestry/{pheno}/{hapmap}.intersection.bed",
+        hapmap_bed="{dir}/ancestry/{pheno}/{hapmap}.intersection.bed",
         hapmap_bim="{dir}/ancestry/{pheno}/{hapmap}.intersection.bim",
         hapmap_fam="{dir}/ancestry/{pheno}/{hapmap}.intersection.fam",
     output:
-        "{dir}/ancestry/{pheno}/compare.{hapmap}.ukb_imp_v3_maf{maf}.pruned.missnp"
+        "{dir}/ancestry/{pheno}/compare.{hapmap}.ukb_imp_genome_v3_maf{maf}.pruned.missnp"
+    wildcard_constraints:
+        hapmap=config['hapmap']
     shell:
         """
         set +e
@@ -138,7 +166,7 @@ rule compareSNPs:
             --fam {input.hapmap_fam} \
             --bmerge {input.ukb_bed} {input.ukb_bim} {input.ukb_fam} \
             --merge-mode 6 \
-            --out {wildcards.dir}/ancestry/{wildcards.pheno}/compare.{wildcards.hapmap}.ukb_imp_v3_maf{wildcards.maf}.pruned
+            --out {wildcards.dir}/ancestry/{wildcards.pheno}/compare.{wildcards.hapmap}.ukb_imp_genome_v3_maf{wildcards.maf}.pruned
         set -e
         """
 
@@ -147,9 +175,12 @@ rule excludeMissnpUKB:
         ukb_bed="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.bed",
         ukb_bim="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.bim",
         ukb_fam="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.fam",
-        missnp="{dir}/ancestry/{pheno}/compare.{hapmap}.ukb_imp_v3_maf{maf}.pruned.missnp",
+        missnp=expand("{{dir}}/ancestry/{{pheno}}/compare.{hapmap}.ukb_imp_v3_maf{{maf}}.pruned.missnp",
+            hapmap=config['hapmap'])
     output:
-        "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.nomissnp.bed"
+        "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.nomissnp.bed",
+        "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.nomissnp.bim",
+        "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.nomissnp.fam"
     shell:
         "plink --bed {input.ukb_bed} \
             --bim {input.ukb_bim} \
@@ -163,25 +194,32 @@ rule excludeMissnpHapmap:
         hapmap_bed="{dir}/ancestry/{pheno}/{hapmap}.intersection.bed",
         hapmap_bim="{dir}/ancestry/{pheno}/{hapmap}.intersection.bim",
         hapmap_fam="{dir}/ancestry/{pheno}/{hapmap}.intersection.fam",
-        missnp="{dir}/ancestry/{pheno}/compare.{hapmap}.ukb_imp_v3_maf{maf}.pruned.missnp",
+        missnp=expand("{{dir}}/ancestry/{{pheno}}/compare.{{hapmap}}.ukb_imp_v3_maf{maf}.pruned.missnp",
+            maf=config['maf'])
     output:
-        "{dir}/ancestry/{pheno}/HapMap{hapmap}.intersection.nomissnp.bed",
+        "{dir}/ancestry/{pheno}/{hapmap}.intersection.nomissnp.bed",
+        "{dir}/ancestry/{pheno}/{hapmap}.intersection.nomissnp.bim",
+        "{dir}/ancestry/{pheno}/{hapmap}.intersection.nomissnp.fam",
+    wildcard_constraints:
+        hapmap=config['hapmap']
     shell:
         "plink --bed {input.hapmap_bed} \
             --bim {input.hapmap_bim} \
             --fam {input.hapmap_fam} \
             --exclude {input.missnp} \
             --make-bed \
-            --out {wildcards.dir}/ancestry/{wildcards.pheno}/HapMap{wildcards.hapmap}.intersection.nomissnp"
+            --out {wildcards.dir}/ancestry/{wildcards.pheno}/{wildcards.hapmap}.intersection.nomissnp"
 
 rule findMismatches:
     input:
         ukb_bim="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.nomissnp.bim",
         hapmap_bim="{dir}/ancestry/{pheno}/{hapmap}.intersection.nomissnp.bim",
     output:
-        flippedAlleles="{dir}/ancestry/{pheno}/compare.{hapmap}.ukb_imp_v3_maf{maf}.pruned.flippedAlleles",
-        same="{dir}/ancestry/{pheno}/compare.{hapmap}.ukb_imp_v3_maf{maf}.pruned.same",
-        keep="{dir}/ancestry/{pheno}/compare.{hapmap}.ukb_imp_v3_maf{maf}.pruned.keep"
+        flippedAlleles="{dir}/ancestry/{pheno}/compare.{hapmap}.ukb_imp_genome_v3_maf{maf}.pruned.flippedAlleles",
+        same="{dir}/ancestry/{pheno}/compare.{hapmap}.ukb_imp_genome_v3_maf{maf}.pruned.same",
+        keep="{dir}/ancestry/{pheno}/compare.{hapmap}.ukb_imp_genome_v3_maf{maf}.pruned.keep"
+    wildcard_constraints:
+        hapmap=config['hapmap']
     shell:
         """
         awk 'FNR==NR {{a[$1$2$4$5$6]; next}} $1$2$4$5$6 in a' {input.ukb_bim} {input.hapmap_bim} > {output.same}
@@ -194,9 +232,12 @@ rule filterUKB:
         ukb_bed="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.nomissnp.bed",
         ukb_bim="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.nomissnp.bim",
         ukb_fam="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.nomissnp.fam",
-        keep="{dir}/ancestry/{pheno}/compare.{hapmap}.ukb_imp_v3_maf{maf}.pruned.keep",
+        keep=expand("{{dir}}/ancestry/{{pheno}}/compare.{hapmap}.ukb_imp_genome_v3_maf{{maf}}.pruned.keep",
+            hapmap=config['hapmap'])
     output:
-        "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.matched.bed"
+        "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.matched.bed",
+        "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.matched.bim",
+        "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.matched.fam"
     shell:
         "plink --bed {input.ukb_bed} \
             --bim {input.ukb_bim} \
@@ -209,11 +250,17 @@ rule filterAndFlipHapmap:
     input:
         hapmap_bed="{dir}/ancestry/{pheno}/{hapmap}.intersection.nomissnp.bed",
         hapmap_bim="{dir}/ancestry/{pheno}/{hapmap}.intersection.nomissnp.bim",
-        hapmap_fam="{dir}/ancestry/{pheno}/{hapmap}.intersection.nomissnp.fa,",
-        keep="{dir}/ancestry/{pheno}/compare.{hapmap}.ukb_imp_v3_maf{maf}.pruned.keep",
-        flipped="{ukb}/ancestry/{pheno}/compare.{hapmap}.ukb_imp_v3_maf{maf}.pruned.flippedAlleles",
+        hapmap_fam="{dir}/ancestry/{pheno}/{hapmap}.intersection.nomissnp.fam",
+        keep=expand("{{dir}}/ancestry/{{pheno}}/compare.{{hapmap}}.ukb_imp_genome_v3_maf{maf}.pruned.keep",
+            maf=config['maf']),
+        flipped=expand("{{dir}}/ancestry/{{pheno}}/compare.{{hapmap}}.ukb_imp_genome_v3_maf{maf}.pruned.flippedAlleles",
+            maf=config['maf'])
     output:
-        "{dir}/ancestry/{pheno}/HapMap{hapmap}.intersection.matched.bed",
+        "{dir}/ancestry/{pheno}/{hapmap}.intersection.matched.bed",
+        "{dir}/ancestry/{pheno}/{hapmap}.intersection.matched.bim",
+        "{dir}/ancestry/{pheno}/{hapmap}.intersection.matched.fam",
+    wildcard_constraints:
+        hapmap=config['hapmap']
     shell:
         "plink --bed {input.hapmap_bed} \
             --bim {input.hapmap_bim} \
@@ -221,7 +268,7 @@ rule filterAndFlipHapmap:
             --extract {input.keep} \
             --update-alleles {input.flipped} \
             --make-bed \
-            --out {wildcards.dir}/ancestry/{wildcards.pheno}/HapMap{wildcards.hapmap}.intersection.matched"
+            --out {wildcards.dir}/ancestry/{wildcards.pheno}/{wildcards.hapmap}.intersection.matched"
 
 rule mergeHapMap:
     input:
@@ -232,7 +279,9 @@ rule mergeHapMap:
         hapmap_bim="{dir}/ancestry/{pheno}/{hapmap}.intersection.matched.bim",
         hapmap_fam="{dir}/ancestry/{pheno}/{hapmap}.intersection.matched.fam",
     output:
-        "{dir}/ancestry/{pheno}/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.bed"
+        "{dir}/ancestry/{pheno}/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.bed",
+        "{dir}/ancestry/{pheno}/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.bim",
+        "{dir}/ancestry/{pheno}/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.fam"
     shell:
         "plink --bed {input.hapmap_bed} \
             --bim {input.hapmap_bim} \
@@ -244,7 +293,7 @@ rule pcaMerge:
     input:
         bed="{dir}/ancestry/{pheno}/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.bed",
         bim="{dir}/ancestry/{pheno}/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.bim",
-        fam="{dir}/ancestry/{pheno}/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.fam",
+        fam="{dir}/ancestry/{pheno}/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.fam"
     output:
         "{dir}/ancestry/{pheno}/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.pca"
     shell:
@@ -260,23 +309,28 @@ rule pcaMerge:
 
 rule plotPCA:
     input:
-        samples="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.matched.fam",
-        pcafile="{dir}/ancestry/{pheno}/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged_pca",
+        samples=expand("{{dir}}/ancestry/{{pheno}}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.matched.fam",
+            maf=config['maf']),
+        pcafile=expand("{{dir}}/ancestry/{{pheno}}/{{hapmap}}_ukb_imp_genome_v3_maf{maf}.pruned.merged.pca",
+            maf=config['maf'])
     output:
-        "{dir}/ancestry/{pheno}/HapMap_UKBB-FD_pca.png",
-        "{dir}/ancestry/{pheno}/European_samples.csv"
+        "{dir}/ancestry/{pheno}/{hapmap}_{pheno}_pca.png",
+        "{dir}/ancestry/{pheno}/European_samples_filtered_by_{hapmap}.txt"
     shell:
-        "Rscript 'ancestry/selectPCA.R' --directory={wildcards.dir}/ancestry \
+        "Rscript 'ancestry/selectPCA.R' \
+            --directory={wildcards.dir}/ancestry/{wildcards.pheno} \
             --pcadata={input.pcafile} \
             --samples={input.samples} \
-            --name=UKBB-FD"
+            --name={wildcards.pheno} \
+            --reference={wildcards.hapmap}"
 
 rule filterEuropeans:
     input:
-        keep="{dir}/ancestry/{pheno}/European_samples.csv",
-        bed="{dir}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
-        bim="{dir}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.bim",
-        fam="{dir}/maf{maf}/ukb_imp_genome_v3_maf{maf}.pruned.fam",
+        keep=expand("{{dir}}/ancestry/{{pheno}}/European_samples_filtered_by_{hapmap}.txt",
+            hapmap=config['hapmap']),
+        bed="{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
+        bim="{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bim",
+        fam="{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.fam",
     output:
         "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.European.fam",
         "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.European.bim",
@@ -300,7 +354,7 @@ rule pcaEuropean:
         "flashpca --bed {input.bed} \
                 --fam {input.fam} \
                 --bim {input.bim} \
-                --ndim 10 \
+                --ndim 50 \
                 --outpc {wildcards.dir}/ancestry/{wildcards.pheno}/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.European.pca \
                 --outvec  {wildcards.dir}/ancestry/{wildcards.pheno}/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.European.eigenvectors \
                 --outload  {wildcards.dir}/ancestry/{wildcards.pheno}/ukb_imp_genome_v3_maf{wildcards.maf}.pruned.European.SNPloadings \
