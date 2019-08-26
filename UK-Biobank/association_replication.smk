@@ -73,18 +73,23 @@ rule prep_replication:
             discovery=config['discovery']),
         dsv_filter=expand("{{dir}}/gwas/{discovery}/Pseudomultitrait_slices_sig5e08_ldFiltered.txt",
             discovery=config['discovery']),
-        rep="{dir}/gwas/{pheno}/bgenie_slices_lm_pseudomt_all.csv"
+        rep_multi="{dir}/gwas/{pheno}/bgenie_slices_lm_pseudomt_all.csv",
+        rep_uni="{dir}/gwas/{pheno}/bgenie_slices_lm_st_genomewide.csv"
     output:
-        rep="{dir}/gwas/{pheno}/bgenie_slices_lm_pseudomt_all_replication.csv",
-        dsv_filter="{dir}/gwas/{pheno}/Pseudomultitrait_discovery_slices_sig5e08_ldFiltered_rsID.txt",
-        rep_filter="{dir}/gwas/{pheno}/bgenie_slices_lm_pseudomt_all_replication_ldFiltered.csv"
+        rep_multi="{dir}/gwas/{pheno}/bgenie_slices_lm_pseudomt_all_replication.csv",
+        rep_uni="{dir}/gwas/{pheno}/bgenie_slices_lm_st_genomewide_replication.csv",
+        dsv="{dir}/gwas/{pheno}/Pseudomultitrait_discovery_slices_sig5e08_rsID.txt",
+        rep_multi_filter="{dir}/gwas/{pheno}/bgenie_slices_lm_pseudomt_all_replication_ldFiltered.csv"
     shell:
         """
-        cut -d, -f 2 {input.dsv} > {output.dsv_filter}
-        awk -F, 'FNR==NR {{a[$2]; next}} $2 in a'{input.dsv} {input.rep} > \
-            {output.rep}
-        awk -F, 'FNR==NR {{a[$0]; next}} $2 in a'{output.dsv_filter} \
-            {input.rep} > {output.rep}
+        cut -d " " -f 2 {input.dsv} > {output.dsv}
+        awk -F, 'FNR==NR {{a[$0]; next}} $2 in a'{output.dsv} {input.rep_multi} > \
+            {output.rep_multi}
+        head -n 1 {input.rep_uni} > {output.rep_uni}
+        awk -F, 'FNR==NR {{a[$0]; next}} $2 in a'{output.dsv} {input.rep_uni} >> \
+            {output.rep_uni}
+        awk -F, 'FNR==NR {{a[$2]; next}} $2 in a'{input.dsv_filter} \
+            {input.rep_multi} > {output.rep_multi_filter}
         """
 
 rule replication:

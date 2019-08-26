@@ -88,10 +88,10 @@ args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 
 if (args$debug) {
     args <- list()
-    args$directory <-"/homes/hannah/data/ukbb/ukb-hrt/gwas"
+    args$directory <-"/homes/hannah/data/ukbb/ukb-hrt/gwas/180628_fractal_dimension"
     args$name <-"slices"
     args$valueMeff <- NULL
-    args$phenofile <- "/homes/hannah/data/ukbb/ukb-hrt/phenotypes/FD_slices_EUnorel.csv"
+    args$phenofile <- "/homes/hannah/data/ukbb/ukb-hrt/phenotypes/180628_fractal_dimension/FD_slices_EUnorel.csv"
     args$verbose <- TRUE
     args$interpolate <- 9
 }
@@ -103,8 +103,12 @@ verbose <- args$verbose
 tags_prefix <- "European_ukb_imp_chr"
 tags_suffix <- "_v3_maf0.001_250kb_r0.6.tags.list"
 tags_dir <- "~/data/ukbb/ukb-hrt/tags/180628_fractal_dimension"
+ldshub_file <- "~/data/ukbb/ukb-hrt/gwas/180628_fractal_dimension/ldc_hub/w_hm3.noMHC.snplist"
 
 ## Read results ####
+if (verbose) message("Read files with phenotypes")
+pheno <- data.table::fread(phenofile, data.table=FALSE,
+                               stringsAsFactors=FALSE)
 if (verbose) message("Read files with genome-wide association results")
 genomewide <- lapply(1:22, bgenie$readBgenieOutput, directory=directory,
                      name=paste("bgenie_", name, "_lm_st_chr", sep=""),
@@ -181,12 +185,8 @@ write.table(sig, paste(directory, "/", name, "_sig5e08_ldFiltered.txt",
 
 ## per trait qq and manhattan plots ####
 # effective number of tests to adjust single-trait assocation p-values by
-if (!is.null(phenofile)) {
-    pheno <- data.table::fread(phenofile, data.table=FALSE,
-                               stringsAsFactors=FALSE)
+if (is.null(args$valueMeff)) {
     valueMeff <- meta$Teff(as.matrix(pheno[,-1]))
-} else if (is.null(args$valueMeff)) {
-    valueMeff <- length(index_logp)
 } else {
     valueMeff <- args$valueMeff
 }
@@ -203,4 +203,27 @@ sigAssociations <- genomewide[sig,]
 write.table(sigAssociations, paste(directory, "/bgenie_", name,
                                    "_lm_st_significant.csv",  sep=""),
             quote=FALSE, col.names=TRUE, row.names=FALSE)
+
+if (verbose) message("Format results for LD score regression")
+ldshub_snps <- data.table::fread(ldshub_file, data.table=FALSE,
+                                 stringsAsFactors=FALSE)
+
+ldsc_single <- sapply(index_beta, function(x,lsnps, N) {
+                   columns <- c(1:7, x:(x+3))
+                   nn <- paste(name, "_",
+                               gsub("_beta", "", colnames(genomewide)[x]),
+                               sep="")
+                   tmp <- bgenie$bgenie2ldsc(genomewide[,columns],
+                                             sumstat="_beta",
+                                             N=N,
+                                             ldshub_snps=lsnps)
+                   message("Write LDSC output for ", nn)
+                   write.table(tmp, file=paste(directory, "/sumstats_", nn,
+                                               ".txt", sep=""),
+                               sep="\t", quote=FALSE, col.names=TRUE,
+                               row.names=FALSE)
+                   system(paste("cd ", directory, "; zip sumstats_", nn, ".zip ",
+                                "sumstats_", nn, ".txt", sep=""))
+                }, N=nrow(pheno), lsnps=ldshub_snps)
+
 
