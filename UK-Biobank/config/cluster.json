@@ -124,4 +124,13 @@
         "output" : "log/{rule}_{wildcards.chr}.out",
         "error" : "log/{rule}_{wildcards.chr}.err"
     },
+    "extract_genotypes" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}_{wildcards.type}",
+        "output" : "log/{rule}_{wildcards.type}.out",
+        "error" : "log/{rule}_{wildcards.type}.err"
+    },
 }
