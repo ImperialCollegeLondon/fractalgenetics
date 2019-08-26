@@ -158,31 +158,37 @@ write.table(concordance,
 slices <- cbind(ukb_sig_slices, dh_sig_slices[,3:4])
 colnames(slices) <- c('rsid', 'slices', 'ukbb_beta', 'ukbb_logp', 'dh_beta',
                       'dh_logp')
-slices$sig <- factor(as.numeric(slices$dh_logp > -log10(0.005)),
-                        labels=c(expression(p >= 0.005), expression(p < 0.005)))
-slices$concordance <- factor(sign(slices$ukbb_beta * slices$dh_beta),
+
+sig_adjust <- round(0.05/args$nloci,3)
+slices$sig <- factor(as.numeric(slices$dh_logp > -log10(sig_adjust)),
+                        labels=c(expression(p >= sig_adjust),
+                                 expression(p < sig_adjust)))
+slices$concordance <- factor(-sign(slices$ukbb_beta * slices$dh_beta),
                              labels=c('yes', 'no'))
 
 write.table(slices, paste(directory, "/", name, "_concordance.txt",
                           sep=""),
             quote=FALSE, col.names=TRUE, row.names=FALSE)
 
-limit <- max(abs(c(slices$ukbb_beta, slices$dh_beta)))
+max_y <- max(abs(slices$dh_beta))
+max_x <- max(abs(slices$ukbb_beta))
 p <- ggplot(data=slices, aes(x=ukbb_beta, y=dh_beta))
 p <- p + geom_point(aes(color=concordance, shape=sig)) +
         smooth$stat_smooth_func(geom="text", method="lm", hjust=0, parse=TRUE,
-                                xpos=0.1, ypos=0.15, vjust=0, color="black") +
-        xlim(c(-limit, limit)) +
-        ylim(c(-limit, limit)) +
+                                xpos=max_x - 1/5*max_x,
+                                ypos=max_y + 1/10*max_y, vjust=0, color="black") +
+        xlim(c(-max_x - 1/5*max_x, max_x + 1/5*max_x)) +
+        ylim(c(-max_y - 1/5*max_y, max_y + 1/5*max_y)) +
         geom_hline(yintercept = 0) +
         geom_vline(xintercept = 0) +
-        xlab(expression(hat(beta)[ukbb])) +
-        ylab(expression(hat(beta)[Digital-Heart])) +
-        scale_color_manual(values=c('#969696', 'black'), guide=FALSE) +
-        scale_shape_manual(values=c(20, 17), name='Digital-Heart',
-                           labels=c(expression(p >= 0.005),
-                                    expression(p < 0.005))) +
+        xlab(expression(hat(beta)[discovery])) +
+        ylab(expression(hat(beta)[replication])) +
+        scale_color_manual(values=c('black', '#969696'), guide=FALSE) +
+        scale_shape_manual(values=c(20, 17), name='Replication',
+                           labels=c(bquote(p>=.(sig_adjust)),
+                                    bquote(p<.(sig_adjust)))) +
         theme_bw()
+
 ggsave(plot=p, paste(directory, "/", name, "_concordance.pdf", sep=""),
        height=5, width=6.5)
 
