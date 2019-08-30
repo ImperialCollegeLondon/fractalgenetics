@@ -133,4 +133,14 @@
         "output" : "log/{rule}_{wildcards.type}.out",
         "error" : "log/{rule}_{wildcards.type}.err"
     },
+    "grs" :
+    {
+        "memory" : "20000",
+        "n" : "8",
+        "resources" : "\"select[mem>20000] rusage[mem=20000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}_{wildcards.region}",
+        "output" : "log/{rule}_{wildcards.region}.out",
+        "error" : "log/{rule}_{wildcards.region}.err"
+    },
 }
