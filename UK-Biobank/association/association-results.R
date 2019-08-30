@@ -55,15 +55,14 @@ stPlots <- function(trait_index, bgenie_result, directory, is.negLog=FALSE,
 option_list <- list(
     optparse$make_option(c("-d", "--directory"), action="store",
                dest="directory",
-               type="character", help="Path to directory with bgenie association
-               results [default: %default].", default=NULL),
-    optparse$make_option(c("-bd", "--basedirectory"), action="store",
-               dest="basedirectory",
                type="character", help="Path to parent directory with all FD
                data [default: %default].", default=NULL),
     optparse$make_option(c("-n", "--name"), action="store", dest="name",
                type="character", help="Name of analysis; has to be the same as
                in naming bgenie files [default: %default].", default=NULL),
+    optparse$make_option(c("-c", "--cohort"), action="store", dest="cohort",
+               type="character", help="Name of cohort; has to be the same as
+               gwas subdirectorys [default: %default].", default=NULL),
     optparse$make_option(c("-p", "--pheno"), action="store", dest="phenofile",
                type="character", help="Path to fd phenotype file; if mEffective
                is not provided, --pheno can be used to estimate --mEffective. If
@@ -92,7 +91,8 @@ args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 
 if (args$debug) {
     args <- list()
-    args$directory <-"/homes/hannah/data/ukbb/ukb-hrt/gwas/180628_fractal_dimension"
+    args$directory <-"/homes/hannah/data/ukbb/ukb-hrt/gwas"
+    args$cohort <- "180628_fractal_dimension"
     args$basedirectory <-"/homes/hannah/data/ukbb/ukb-hrt"
     args$name <-"slices"
     args$valueMeff <- NULL
@@ -102,8 +102,8 @@ if (args$debug) {
 }
 
 directory <- args$directory
-basedirectory <- args$basedirectory
 name <- args$name
+cohort <- args$cohort
 phenofile <- args$phenofile
 verbose <- args$verbose
 tags_prefix <- "European_ukb_imp_chr"
@@ -111,12 +111,14 @@ tags_suffix <- "_v3_maf0.001_250kb_r0.6.tags.list"
 tags_dir <- "~/data/ukbb/ukb-hrt/tags/180628_fractal_dimension"
 ldshub_file <- "~/data/ukbb/ukb-hrt/gwas/180628_fractal_dimension/ldc_hub/w_hm3.noMHC.snplist"
 
+gwasdir <- file.path(directory, "gwas", cohort)
 ## Read results ####
 if (verbose) message("Read files with phenotypes")
 pheno <- data.table::fread(phenofile, data.table=FALSE,
                                stringsAsFactors=FALSE)
 if (verbose) message("Read files with genome-wide association results")
-genomewide <- lapply(1:22, bgenie$readBgenieOutput, directory=directory,
+genomewide <- lapply(1:22, bgenie$readBgenieOutput,
+                     directory=gwasdir,
                      name=paste("bgenie_", name, "_lm_st_chr", sep=""),
                      maf=0.001, biallelicOnly=FALSE)
 genomewide <- do.call(rbind, genomewide)
@@ -130,7 +132,7 @@ ymax <- 'max'
 ## Write combined results ####
 if (verbose) message("Write file with genome-wide association results")
 write.table(genomewide,
-            file=paste(directory, "/bgenie_", name, "_lm_st_genomewide.csv",
+            file=paste(gwasdir, "/bgenie_", name, "_lm_st_genomewide.csv",
                        sep=""),
             sep=",",quote=FALSE, col.names=TRUE, row.names=FALSE)
 
@@ -142,7 +144,7 @@ colnames(multitrait) <- c("CHR", "SNP","BP", "P")
 
 if (verbose) message("Write pseudo-multitrait association results")
 write.table(multitrait,
-            file=paste(directory, "/bgenie_", name, "_lm_pseudomt_all.csv",
+            file=paste(gwasdir, "/bgenie_", name, "_lm_pseudomt_all.csv",
                        sep=""),
             sep=",", quote=FALSE, col.names=TRUE, row.names=FALSE)
 if (name == 'slices') {
@@ -165,12 +167,12 @@ p_manhattan_mt <- plots$manhattan(d=sig,
                     max.y=ymax)
 
 ggplot2::ggsave(plot=p_manhattan_mt, height=4, width=11,
-       file=paste(directory,"/bgenie_", name,
+       file=paste(gwasdir,"/bgenie_", name,
                   "_lm_pseudomt_manhattanplot.pdf", sep=""))
 
 p_qq_mt <- plots$qqplot(multitrait$P, size.text=14, size.title=14)
 ggplot2::ggsave(plot=p_qq_mt, height=7, width=7,
-       file=paste(directory,"/bgenie_", name,
+       file=paste(gwasdir,"/bgenie_", name,
                   "_lm_pseudomt_qqplot.pdf", sep=""))
 
 if (verbose) message("Filter pseudo-multitrait association results for LD")
@@ -185,7 +187,7 @@ multitrait_ld <-
 ldfilter$writeSig(multitrait_ld, threshold=5*10^(-8), directory=directory,
                name="Pseudomultitrait_Slices")
 sig <- genomewide[genomewide$rsid %in% multitrait_ld$sig_no_ld,]
-write.table(sig, paste(directory, "/", name, "_sig5e08_ldFiltered.txt",
+write.table(sig, paste(gwasdir, "/", name, "_sig5e08_ldFiltered.txt",
                               sep=""),
             col.names=TRUE, row.names=FALSE, quote=FALSE)
 
@@ -200,13 +202,13 @@ if (is.null(args$valueMeff)) {
 # plot single-trait GWAS
 if (verbose) message("Plot single-trait association results")
 plots_perTrait <- sapply(index_logp, stPlots, bgenie_result=genomewide, ymin=0.1,
-                         is.negLog=TRUE, directory=directory, Meff=valueMeff,
+                         is.negLog=TRUE, directory=gwasdir, Meff=valueMeff,
                          name=name,  ymax=ymax)
 
 sig <- apply(as.matrix(genomewide[, index_logp]), 1,
              function(x, index) any(x > -log10(5e-8/valueMeff)))
 sigAssociations <- genomewide[sig,]
-write.table(sigAssociations, paste(directory, "/bgenie_", name,
+write.table(sigAssociations, paste(gwasdir, "/bgenie_", name,
                                    "_lm_st_significant.csv",  sep=""),
             quote=FALSE, col.names=TRUE, row.names=FALSE)
 
@@ -224,7 +226,7 @@ ldsc_single <- sapply(index_beta, function(x,lsnps, N) {
                                              N=N,
                                              ldshub_snps=lsnps)
                    message("Write LDSC output for ", nn)
-                   outdir <- file.path(basedirectory, "ldhub")
+                   outdir <- file.path(directory, "ldhub")
                    if(!dir.exists(outdir)) dir.create(outdir)
                    write.table(tmp, file=paste(outdir, "/sumstats_", nn,
                                                ".txt", sep=""),

@@ -122,8 +122,9 @@ rule results:
     shell:
         "Rscript association/association-results.R \
             --pheno {input.pheno} \
+            --cohort {wildcards.pheno} \
             --name {wildcards.analysis} \
-            --directory {wildcards.dir}/gwas/{wildcards.pheno} \
+            --directory {wildcards.dir} \
             --showProgress "
 
 rule functional_enrichment:
