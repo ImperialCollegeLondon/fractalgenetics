@@ -57,6 +57,10 @@ option_list <- list(
                dest="directory",
                type="character", help="Path to directory with bgenie association
                results [default: %default].", default=NULL),
+    optparse$make_option(c("-bd", "--basedirectory"), action="store",
+               dest="basedirectory",
+               type="character", help="Path to parent directory with all FD
+               data [default: %default].", default=NULL),
     optparse$make_option(c("-n", "--name"), action="store", dest="name",
                type="character", help="Name of analysis; has to be the same as
                in naming bgenie files [default: %default].", default=NULL),
@@ -89,6 +93,7 @@ args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 if (args$debug) {
     args <- list()
     args$directory <-"/homes/hannah/data/ukbb/ukb-hrt/gwas/180628_fractal_dimension"
+    args$basedirectory <-"/homes/hannah/data/ukbb/ukb-hrt"
     args$name <-"slices"
     args$valueMeff <- NULL
     args$phenofile <- "/homes/hannah/data/ukbb/ukb-hrt/phenotypes/180628_fractal_dimension/FD_slices_EUnorel.csv"
@@ -97,6 +102,7 @@ if (args$debug) {
 }
 
 directory <- args$directory
+basedirectory <- args$basedirectory
 name <- args$name
 phenofile <- args$phenofile
 verbose <- args$verbose
@@ -218,12 +224,14 @@ ldsc_single <- sapply(index_beta, function(x,lsnps, N) {
                                              N=N,
                                              ldshub_snps=lsnps)
                    message("Write LDSC output for ", nn)
-                   write.table(tmp, file=paste(directory, "/sumstats_", nn,
+                   outdir <- file.path(basedirectory, "ldhub")
+                   if(!dir.exists(outdir)) dir.create(outdir)
+                   write.table(tmp, file=paste(outdir, "/sumstats_", nn,
                                                ".txt", sep=""),
                                sep="\t", quote=FALSE, col.names=TRUE,
                                row.names=FALSE)
-                   system(paste("cd ", directory, "; zip sumstats_", nn, ".zip ",
+                   system(paste("cd ", outdir, "; zip sumstats_", nn, ".zip ",
                                 "sumstats_", nn, ".txt", sep=""))
+                   return(tmp)
                 }, N=nrow(pheno), lsnps=ldshub_snps)
-
 
