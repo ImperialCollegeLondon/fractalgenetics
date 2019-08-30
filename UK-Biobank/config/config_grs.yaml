@@ -1,4 +1,5 @@
 ukbdir: "/homes/hannah/data/ukbb/ukb-hrt"
-genodir: "/homes/hannah/data/ukbb/500K_release_v3"
+genodir: "/nfs/research1/ukbb/500K_release_v3/genotypes/EGAD00010001497"
+dhdir : "/homes/hannah/data/digital-heart"
 pheno: "180628_fractal_dimension"
 
