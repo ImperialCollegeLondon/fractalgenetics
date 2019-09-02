@@ -1,5 +1,6 @@
 # how to run fro ./:
-# snakemake -s association_replication.smk --jobs 5000 --latency-wait 30 --cluster-config config/cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources}
+# snakemake -s association_replication.smk --jobs 5000 --latency-wait 30 --cluster-config config/cluster.json
+# --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources}
 # -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete --use-conda
 
 configfile: "config/config_association.yaml"
@@ -8,17 +9,18 @@ rule all:
     input:
         expand("{ukb}/gwas/{pheno}/bgenie_{analysis}_lm_st_chr{chr}.gz",
             ukb=config["ukbdir"],
-            analysis=['slices'],
+            analysis=['slices', 'summary'],
             pheno=config['pheno'],
             chr=range(1,23)),
         expand("{ukb}/gwas/{pheno}/bgenie_{analysis}_lm_pseudomt_{plot}.pdf",
-            analysis=['slices'],
+            analysis=['summary'],
             plot=['qqplot', 'manhattanplot'],
             pheno=config['pheno'],
             ukb=config["ukbdir"]),
-        expand("{ukb}/gwas/{pheno}/Replication_association_significant_in_discovery.txt",
-            pheno=config['pheno'],
-            ukb=config["ukbdir"]),
+        #expand("{ukb}/gwas/{pheno}/Replication_{analysis}_association_significant_in_discovery.txt",
+        #    analysis=['slices'],
+        #    pheno=config['pheno'],
+        #    ukb=config["ukbdir"]),
 
 
 rule association:
@@ -70,17 +72,17 @@ rule results:
 
 rule prep_replication:
     input:
-        dsv=expand("{{dir}}/gwas/{discovery}/Pseudomultitrait_slices_sig5e08.txt",
+        dsv=expand("{{dir}}/gwas/{discovery}/Pseudomultitrait_{{analysis}}_sig5e08.txt",
             discovery=config['discovery']),
-        dsv_filter=expand("{{dir}}/gwas/{discovery}/Pseudomultitrait_slices_sig5e08_ldFiltered.txt",
+        dsv_filter=expand("{{dir}}/gwas/{discovery}/Pseudomultitrait_{{analysis}}_sig5e08_ldFiltered.txt",
             discovery=config['discovery']),
-        rep_multi="{dir}/gwas/{pheno}/bgenie_slices_lm_pseudomt_all.csv",
-        rep_uni="{dir}/gwas/{pheno}/bgenie_slices_lm_st_genomewide.csv"
+        rep_multi="{dir}/gwas/{pheno}/bgenie_{analysis}_lm_pseudomt_all.csv",
+        rep_uni="{dir}/gwas/{pheno}/bgenie_{analysis}_lm_st_genomewide.csv"
     output:
-        rep_multi="{dir}/gwas/{pheno}/bgenie_slices_lm_pseudomt_all_replication.csv",
-        rep_uni="{dir}/gwas/{pheno}/bgenie_slices_lm_st_genomewide_replication.csv",
-        dsv="{dir}/gwas/{pheno}/Pseudomultitrait_discovery_slices_sig5e08_rsID.txt",
-        rep_multi_filter="{dir}/gwas/{pheno}/bgenie_slices_lm_pseudomt_all_replication_ldFiltered.csv"
+        rep_multi="{dir}/gwas/{pheno}/bgenie_{analysis}_lm_pseudomt_all_replication.csv",
+        rep_uni="{dir}/gwas/{pheno}/bgenie_{analysis}_lm_st_genomewide_replication.csv",
+        dsv="{dir}/gwas/{pheno}/Pseudomultitrait_discovery_{analysis}_sig5e08_rsID.txt",
+        rep_multi_filter="{dir}/gwas/{pheno}/bgenie_{analysis}_lm_pseudomt_all_replication_ldFiltered.csv"
     shell:
         """
         cut -d " " -f 2 {input.dsv} > {output.dsv}
@@ -95,9 +97,9 @@ rule prep_replication:
 
 rule replication:
     input:
-        rep_filter="{dir}/gwas/{pheno}/bgenie_slices_lm_pseudomt_all_replication_ldFiltered.csv"
+        rep_filter="{dir}/gwas/{pheno}/bgenie_{analysis}_lm_pseudomt_all_replication_ldFiltered.csv"
     output:
-        rep="{dir}/gwas/{pheno}/Replication_association_significant_in_discovery.txt"
+        rep="{dir}/gwas/{pheno}/Replication_{analysis}_association_significant_in_discovery.txt"
     params:
         nloci=config['nloci']
     shell:
