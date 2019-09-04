@@ -21,19 +21,48 @@ def assign_replication(wildcards):
         samples="{}/genotype/imputation/combined/genotypes/gencall.combined.clean.related.chr1.sample".format(dd)
         pheno="{}/phenotype/FD/FD_summary_bgenie.txt".format(dd)
         cov="{}/phenotype/FD/FD_covariates_bgenie.txt".format(dd)
-    return({"samples": samples, "pheno": pheno, "cov": cov)
+    return({"samples": samples, "pheno": pheno, "cov": cov})
+
+def assign_geno(wildcards):
+    if wildcards.cohort == "ukb":
+        bim="{}/genotypes/ukb_cal_chr1_v2.bim".format(wildcards.dir)
+        bed="{}/genotypes/ukb_cal_chr1_v2.bed".format(wildcards.dir)
+        fam="{}/rawdata/ukb18545_cal_chr1_v2_s488282.fam".format(wildcards.dir)
+    if wildcards.cohort == "dh":
+        dd="/homes/hannah/data/digital-heart"
+        bim="{}/genotype/QC/combined/gencall.combined.clean.related.bim".format(dd)
+        bed="{}/genotype/QC/combined/gencall.combined.clean.related.bed".format(dd)
+        fam="{}/genotype/QC/combined/gencall.combined.clean.related.fam".format(dd)
+    return({"bim": bim, "fam": fam, "bed": bed})
+
+def readThreshold(wildcards):
+    fname="{}/grs/grs_replication_{}_ukb.summary".format(wildcards.dir,
+        wildcards.region)
+    with open(fname) as f:
+        content = f.readlines()
+        content = [x.strip() for x in content]
+        thr = float(content[1].split("\t")[2])
+    return thr
 
 
 rule all:
     input:
         expand("{ukb}/genotypes/ukb_cal_genome.bim",
-             ukb=config["ukbdir"])
-        expand("{ukb}/grs/{region}_grs_genotyped.summary",
+             ukb=config["ukbdir"]),
+        expand("{ukb}/grs/{region}_grs_new.summary",
              ukb=config["ukbdir"],
              region=['MeanBasalFD', 'MeanApicalFD', 'MeanMidFD']),
-        expand("{ukb}/grs/prsice_pheno_replication_{cohort}.txt",
+        expand("{ukb}/grs/prsice_pheno_replication_{region}_{cohort}.txt",
              ukb=config["ukbdir"],
-             cohort=['ukb', 'dh'])
+             region=['MeanBasalFD', 'MeanApicalFD', 'MeanMidFD'],
+             cohort=['dh', 'ukb']),
+        expand("{ukb}/grs/grs_replication_{region}_{cohort}.summary",
+             ukb=config["ukbdir"],
+             region=['MeanBasalFD', 'MeanApicalFD', 'MeanMidFD'],
+             cohort=['dh', 'ukb']),
+        expand("{ukb}/grs/grs_hf_{region}.summary",
+             ukb=config["ukbdir"],
+             region=['MeanBasalFD', 'MeanApicalFD', 'MeanMidFD'])
 
 rule select_ukb_hf_phenotypes:
     input:
@@ -116,15 +145,15 @@ rule construct_grs:
         gwas="{dir}/grs/prsice_association_summary_{region}.txt",
         pheno="{dir}/grs/prsice_pheno_summary_{region}.txt",
         covs="{dir}/grs/prsice_covariates_summary.txt",
-        heartsamples="{dir}/heart_phenotypes/fd_eid.csv",
+        heartsamples="{dir}/heart_failure_phenotypes/fd_eid.csv",
     params:
         geno=config["genodir"],
     output:
-        results="{dir}/grs/{region}_grs_genotyped.summary"
+        results="{dir}/grs/{region}_grs_new.summary"
     shell:
         """
-        Rscript ~/software/PRSice/PRSice.R --dir {wildcards.dir} \
-            --prsice PRSice \
+        Rscript ~/software/PRSice-2.2.7/PRSice.R --dir {wildcards.dir} \
+            --prsice ~/software/PRSice-2.2.7/bin/PRSice \
             --base {input.gwas} \
             --A1 a_0 \
             --A2 a_1 \
@@ -141,13 +170,12 @@ rule construct_grs:
             --ignore-fid \
             --binary-target F \
             --allow-inter \
-            --perm 10000 \
             --cov {input.covs} \
             --cov-factor sex \
-            --out {wildcards.dir}/grs/{wildcards.region}_grs_genotyped \
+            --out {wildcards.dir}/grs/{wildcards.region}_grs_new \
             --print-snp \
-            --thread 8 \
-            --memory 15Gb \
+            --thread 4 \
+            --memory 10Gb \
             --seed 101 \
             """
 
@@ -155,8 +183,7 @@ rule format_replication_prsice:
     input:
         unpack(assign_replication)
     output:
-        pheno="{dir}/grs/prsice_pheno_replication_{cohort}.txt",
-        cov="{dir}/grs/prsice_covariates_replication_{cohort}.txt",
+        pheno="{dir}/grs/prsice_pheno_replication_{region}_{cohort}.txt",
     shell:
         """
         Rscript grs/format-replication-prsice.R \
@@ -170,23 +197,19 @@ rule format_replication_prsice:
 
 rule replication_grs:
     input:
-        bim=expand("{{dir}}/genotypes/ukb_cal_chr{chr}_v2.bim",
-            chr=range(1,23)),
-        bed=expand("{{dir}}/genotypes/ukb_cal_chr{chr}_v2.bed",
-            chr=range(1,23)),
-        fam="{dir}/rawdata/ukb18545_cal_chr1_v2_s488282.fam",
+        unpack(assign_geno),
         gwas="{dir}/grs/prsice_association_summary_{region}.txt",
-        pheno="{dir}/grs/prsice_pheno_summary_{region}.txt",
-        covs="{dir}/grs/prsice_covariates_summary.txt",
-        heartsamples="{dir}/heart_phenotypes/fd_eid.csv",
+        pheno="{dir}/grs/prsice_pheno_replication_{region}_{cohort}.txt",
+        covs="{dir}/grs/prsice_covariates_replication_{cohort}.txt",
     params:
         geno=config["genodir"],
+        prefix=lambda wildcards: config["prefix"][wildcards.cohort]
     output:
-        results="{dir}/grs/{region}_grs_genotyped.summary"
+        results="{dir}/grs/grs_replication_{region}_{cohort}.summary"
     shell:
         """
-        Rscript ~/software/PRSice/PRSice.R --dir {wildcards.dir} \
-            --prsice PRSice \
+        Rscript ~/software/PRSice-2.2.6.R --dir {wildcards.dir} \
+            --prsice ~/software/PRSice-2.2.6/bin/PRSice \
             --base {input.gwas} \
             --A1 a_0 \
             --A2 a_1 \
@@ -196,17 +219,15 @@ rule replication_grs:
             --snp rsid \
             --stat beta \
             --beta \
-            --target {wildcards.dir}/genotypes/ukb_cal_chr#_v2,{input.fam} \
-            --keep {input.heartsamples} \
+            --target {params.prefix},{input.fam} \
             --type bed \
             --pheno {input.pheno} \
             --ignore-fid \
             --binary-target F \
             --allow-inter \
-            --perm 10000 \
             --cov {input.covs} \
             --cov-factor sex \
-            --out {wildcards.dir}/grs/{wildcards.region}_grs_genotyped \
+            --out {wildcards.dir}/grs/grs_replication_{wildcards.region}_{wildcards.cohort} \
             --print-snp \
             --thread 8 \
             --memory 15Gb \
@@ -248,19 +269,20 @@ rule hf_grs:
             chr=range(1,23)),
         bed=expand("{{dir}}/genotypes/ukb_cal_chr{chr}_v2.bed",
             chr=range(1,23)),
-        fam="{dir}/rawdata/ukb18545_cal_chr1_v2_s488282.fam",
+        fam="{dir}/rawdata/ukb40616_cal_chr1_v2_s488282.fam",
         gwas="{dir}/grs/prsice_association_summary_{region}.txt",
-        pheno="{dir}/grs/prsice_pheno_summary_{region}.txt",
-        covs="{dir}/grs/prsice_covariates_summary.txt",
-        heartsamples="{dir}/heart_phenotypes/fd_eid.csv",
+        pheno="{dir}/grs/prsice_heart_failures_ukb.txt",
+        covs="{dir}/grs/prsice_covariates_heart_failures_ukb.txt",
     params:
         geno=config["genodir"],
+        thr=lambda wildcards: config["thr"][wildcards.region]
+        #thr=0.1
     output:
-        results="{dir}/grs/{region}_grs_genotyped.summary"
+        results="{dir}/grs/grs_hf_{region}.summary"
     shell:
         """
-        Rscript ~/software/PRSice/PRSice.R --dir {wildcards.dir} \
-            --prsice PRSice \
+        Rscript ~/software/PRSice-2.2.6.R --dir {wildcards.dir} \
+            --prsice ~/software/PRSice-2.2.6/bin/PRSice \
             --base {input.gwas} \
             --A1 a_0 \
             --A2 a_1 \
@@ -270,19 +292,21 @@ rule hf_grs:
             --snp rsid \
             --stat beta \
             --beta \
+            --no-full \
+            --fastscore \
+            --no-clump \
+            --bar-levels {params.thr} \
             --target {wildcards.dir}/genotypes/ukb_cal_chr#_v2,{input.fam} \
-            --keep {input.heartsamples} \
             --type bed \
             --pheno {input.pheno} \
+            --pheno-col hf,cad,nicm,sz_nicm,aragam_nicm \
             --ignore-fid \
-            --binary-target F \
-            --allow-inter \
-            --perm 10000 \
+            --binary-target T,T,T,T,T \
             --cov {input.covs} \
             --cov-factor sex \
-            --out {wildcards.dir}/grs/{wildcards.region}_grs_genotyped \
+            --out {wildcards.dir}/grs/grs_hf_{wildcards.region} \
             --print-snp \
             --thread 8 \
             --memory 15Gb \
             --seed 101 \
-            """
+        """
