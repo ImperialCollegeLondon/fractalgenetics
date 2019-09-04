@@ -2,4 +2,10 @@ ukbdir: "/homes/hannah/data/ukbb/ukb-hrt"
 genodir: "/nfs/research1/ukbb/500K_release_v3/genotypes/EGAD00010001497"
 dhdir : "/homes/hannah/data/digital-heart"
 pheno: "180628_fractal_dimension"
-
+prefix:
+  dh: "/homes/hannah/data/digital-heart/genotype/QC/combined/gencall.combined.clean.related"
+  ukb: "/homes/hannah/data/ukbb/ukb-hrt/genotypes/ukb_cal_chr#_v2"
+thr:
+  MeanApicalFD: "5.005e-05"
+  MeanMidFD: "5e-08"
+  MeanBasalFD: "5e-08"
