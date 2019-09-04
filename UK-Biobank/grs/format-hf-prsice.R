@@ -43,6 +43,9 @@ option_list <- list(
     optparse$make_option(c("-cov", "--covariates"), action="store",
                dest="covfile", type="character", help="Path to heart failure
                covariates file; [default:%default].", default=NULL),
+    optparse$make_option(c("-s", "--samples"), action="store",
+               dest="samplesfile", type="character", help="Path to fam samples
+               file; [default:%default].", default=NULL),
     optparse$make_option(c("--showProgress"), action="store_true",
                dest="verbose",
                default=FALSE, type="logical", help="If set, progress messages
@@ -60,7 +63,7 @@ if (args$debug) {
     args <- list()
     args$outdir <- file.path(directory, "grs")
     args$samplesfile <- file.path(directory, "rawdata",
-                              "ukb40616_imp_chr1_v3_s487317.sample")
+                              "ukb40616_cal_chr1_v2_s488282.fam")
     args$covfile <- file.path(directory, "heart_failure_phenotypes",
                               "heart_failure_covariates.csv")
     args$hf <- file.path(directory, "heart_failure_phenotypes", "hf_eid.csv")
@@ -78,7 +81,7 @@ if (args$debug) {
 
 ## Read files ####
 ## IDs of samples in ukb with hear failure phenotypes (application 40616)
-if (verbose) message("Read all sample ids of heart failure phenotypes")
+if (args$verbose) message("Read all sample ids of heart failure phenotypes")
 hf <- data.table::fread(args$hf, data.table=FALSE, stringsAsFactors=FALSE)
 icm <- data.table::fread(args$icm, data.table=FALSE, stringsAsFactors=FALSE)
 nicm <- data.table::fread(args$nicm, data.table=FALSE, stringsAsFactors=FALSE)
@@ -91,13 +94,14 @@ cad <- data.table::fread(args$cad, data.table=FALSE, stringsAsFactors=FALSE)
 if (args$verbose) message("Read files with heart failure covariates")
 covs_hf_norelated <- data.table::fread(args$covfile, sep=",", data.table=FALSE,
                                        stringsAsFactors=FALSE)
+colnames(covs_hf_norelated)[1] <- "IID"
 overview_id <- readRDS(args$qcid)
 
 if (args$verbose) message("Read genotype sample ids")
 ## heart failure phenotypes (application 40616)
 samples <- data.table::fread(args$samplesfile, data.table=FALSE, skip=2,
-                             stringsAsFactors=FALSE,
-                             col.names=c("ID_1", "ID_2", "missing", "sex"))
+                             stringsAsFactors=FALSE)[,1:2]
+colnames(samples) <- c("FID", "IID")
 
 ###############
 ## analysis ###
@@ -111,12 +115,12 @@ failures <- list(hf=hf, cad=cad, icm=icm, nicm=nicm, sz_nicm=sz_nicm,
 formated <- lapply(seq_along(failures), function(x) {
         tmp <- failures[[x]]
         tmp$dummy <- rep(1, nrow(tmp))
-        all <- merge(samples, tmp, by=1, all.x=TRUE, sort=FALSE)
-        all <- all[match(samples$ID_1, all[,1]),ncol(all)]
+        all <- merge(samples, tmp, by="IID", all.x=TRUE, sort=FALSE)
+        all <- all[match(samples$IID, all$IID),ncol(all)]
         all[is.na(all)] <- 0
         return(all)
 })
-failures_df <- data.frame(IID=samples$ID_1, do.call(cbind, formated))
+failures_df <- data.frame(IID=samples$IID, do.call(cbind, formated))
 colnames(failures_df)[-1] <- names(failures)
 failures_prsice <- failures_df
 
@@ -127,9 +131,9 @@ write.table(failures_prsice, file=file.path(args$outdir,
             sep=" ", quote=FALSE, col.names=TRUE, row.names=FALSE)
 
 # match covs with geno samples file
-covs_all <- merge(samples[,1], covs_hf_norelated, by=1, all.x=TRUE, sort=FALSE)
-covs_all <- covs_all[match(samples$ID_1, covs_all[,1]),]
-colnames(covs_all)[1] <- "IID"
+covs_all <- merge(samples, covs_hf_norelated, by="IID", all.x=TRUE,
+                  sort=FALSE)
+covs_all <- covs_all[match(samples$IID, covs_all$IID),-2]
 write.table(covs_all, file=file.path(args$outdir,
                                  "prsice_covariates_heart_failures_ukb.txt"),
             sep=" ", quote=FALSE, col.names=TRUE, row.names=FALSE)
