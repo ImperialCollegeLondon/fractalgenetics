@@ -97,7 +97,7 @@ colnames(select_ethnicity) <- "ethnicity"
 # genetic principal components: field 22009
 select_pca <- bb%>%
   select(starts_with("f.22009"))
-colnames(select_pca) <- paste("PC", 1:ncol(select_pca))
+colnames(select_pca) <- paste("PC", 1:ncol(select_pca), sep="")
 
 # genetic kinship to other participants: field 22021
 select_kinship <- bb%>%
