@@ -7,9 +7,9 @@ configfile: "config/config_grs.yaml"
 
 def assign_linker(wildcards):
     if wildcards.type == "fd" or wildcards.type == "ukb_replication":
-        return "{}/rawdata/ukb18545_imp_chr1_v3_s487378.sample".format(wildcards.dir)
+        return "{}/rawdata/ukb18545_cal_chr1_v2_s488282.sample".format(wildcards.dir)
     else:
-        return "{}/rawdata/ukb40616_imp_chr1_v3_s487317.sample".format(wildcards.dir)
+        return "{}/rawdata/ukb40616_cal_chr1_v2_s488282.sample".format(wildcards.dir)
 
 def assign_replication(wildcards):
     if wildcards.cohort == "ukb":
@@ -56,10 +56,10 @@ rule all:
              ukb=config["ukbdir"],
              region=['MeanBasalFD', 'MeanApicalFD', 'MeanMidFD'],
              cohort=['dh', 'ukb']),
-        expand("{ukb}/grs/grs_replication_{region}_{cohort}.summary",
-             ukb=config["ukbdir"],
-             region=['MeanBasalFD', 'MeanApicalFD', 'MeanMidFD'],
-             cohort=['dh', 'ukb']),
+        #expand("{ukb}/grs/grs_replication_{region}_{cohort}.summary",
+        #     ukb=config["ukbdir"],
+        #     region=['MeanBasalFD', 'MeanApicalFD', 'MeanMidFD'],
+        #     cohort=['dh', 'ukb']),
         expand("{ukb}/grs/grs_hf_{region}.summary",
              ukb=config["ukbdir"],
              region=['MeanBasalFD', 'MeanApicalFD', 'MeanMidFD'])
@@ -240,9 +240,11 @@ rule format_hf_prsice:
         nicm="{dir}/heart_failure_phenotypes/nicm_eid.csv",
         icm="{dir}/heart_failure_phenotypes/icm_eid.csv",
         cad="{dir}/heart_failure_phenotypes/cad_eid.csv",
-        aragam_nicm="{dir}/heart_failure_phenotypes/aragam_nicm_eid.csv",
-        sz_nicm="{dir}/heart_failure_phenotypes/sz_nicm_eid.csv",
-        ids="{dir}/heart_failure_phenotypes/heart_failure_samples_id.rds"
+        aragamnicm="{dir}/heart_failure_phenotypes/aragam_nicm_eid.csv",
+        sznicm="{dir}/heart_failure_phenotypes/sz_nicm_eid.csv",
+        ids="{dir}/heart_failure_phenotypes/heart_failure_samples_id.rds",
+        cov="{dir}/heart_failure_phenotypes/heart_failure_covariates.csv",
+        samples="{dir}/rawdata/ukb40616_cal_chr1_v2_s488282.fam"
     output:
         pheno="{dir}/grs/prsice_heart_failures_ukb.txt",
         cov="{dir}/grs/prsice_covariates_heart_failures_ukb.txt",
@@ -299,9 +301,9 @@ rule hf_grs:
             --target {wildcards.dir}/genotypes/ukb_cal_chr#_v2,{input.fam} \
             --type bed \
             --pheno {input.pheno} \
-            --pheno-col hf,cad,nicm,sz_nicm,aragam_nicm \
+            --pheno-col hf,icm,cad,nicm,sz_nicm,aragam_nicm \
             --ignore-fid \
-            --binary-target T,T,T,T,T \
+            --binary-target T,T,T,T,T,T \
             --cov {input.covs} \
             --cov-factor sex \
             --out {wildcards.dir}/grs/grs_hf_{wildcards.region} \
