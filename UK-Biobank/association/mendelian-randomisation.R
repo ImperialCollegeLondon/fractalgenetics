@@ -295,12 +295,12 @@ exposure_per_area <- lapply(seq_along(unique_per_area), function(test_area) {
     area_exposure$id.exposure <- 'FD'
     area_exposure$exposure <- 'FD'
     write.table(area_exposure, paste(directory, '/',
-                                  names(combined_per_area)[test_area],
+                                  names(unique_per_area)[test_area],
                             "_association_results.txt", sep=""),
                 sep=' ', col.names=TRUE, row.names=FALSE, quote=FALSE)
     return(area_exposure)
 })
-names(exposure_per_area) <- names(combined_per_area)
+names(exposure_per_area) <- names(unique_per_area)
 
 
 ## MR base: `two-sample` MR with Biobank data ####
