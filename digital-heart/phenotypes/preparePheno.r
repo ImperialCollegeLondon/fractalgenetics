@@ -1,7 +1,7 @@
 #################
 ## libraries ####
 #################
-options(import.path=c("/homes/hannah/analysis/fd",
+options(import.path=c("/homes/hannah/analysis/fractalgenetics",
                       "/homes/hannah/projects"))
 options(bitmapType = 'cairo', device = 'pdf')
 
@@ -9,7 +9,7 @@ modules::import_package('ggplot2', attach=TRUE)
 modules::import_package('GGally', attach=TRUE)
 plinkqc <- modules::import_package('plinkQC')
 optparse <- modules::import_package('optparse')
-autofd <- modules::import('AutoFD_interpolation')
+autofd <- modules::import('fractal-analysis-processing')
 
 
 ## functions ####
