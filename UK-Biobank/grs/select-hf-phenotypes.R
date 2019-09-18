@@ -429,21 +429,21 @@ dm_eid <- df[dm_total_unique,1]
 eid <- df[,1]
 
 write.table(hf_eid, file=file.path(args$outdir, "hf_eid.csv"), sep=",",
-            quote=FALSE, col.names=FALSE, row.names=FALSE)
+            quote=FALSE, col.names="IID", row.names=FALSE)
 write.table(nicm_eid, file=file.path(args$outdir, "nicm_eid.csv"), sep=",",
-            quote=FALSE, col.names=FALSE, row.names=FALSE)
+            quote=FALSE, col.names="IID", row.names=FALSE)
 write.table(icm_eid, file=file.path(args$outdir, "icm_eid.csv"), sep=",",
-            quote=FALSE, col.names=FALSE, row.names=FALSE)
+            quote=FALSE, col.names="IID", row.names=FALSE)
 write.table(cad_eid, file=file.path(args$outdir, "cad_eid.csv"), sep=",",
-            quote=FALSE, col.names=FALSE, row.names=FALSE)
+            quote=FALSE, col.names="IID", row.names=FALSE)
 write.table(aragam_nicm_eid, file=file.path(args$outdir, "aragam_nicm_eid.csv"),
             sep=",",
-            quote=FALSE, col.names=FALSE, row.names=FALSE)
+            quote=FALSE, col.names="IID", row.names=FALSE)
 write.table(sz_nicm_eid, file=file.path(args$outdir, "sz_nicm_eid.csv"), sep=",",
-            quote=FALSE, col.names=FALSE, row.names=FALSE)
+            quote=FALSE, col.names="IID", row.names=FALSE)
 write.table(dm_eid, file=file.path(args$outdir, "dm_eid.csv"), sep=",",
-            quote=FALSE, col.names=FALSE, row.names=FALSE)
+            quote=FALSE, col.names="IID", row.names=FALSE)
 write.table(eid, file=file.path(args$outdir, "eid.csv"), sep=",",
-            quote=FALSE, col.names=FALSE, row.names=FALSE)
+            quote=FALSE, col.names="IID", row.names=FALSE)
 
 

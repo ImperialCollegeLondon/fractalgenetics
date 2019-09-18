@@ -107,7 +107,7 @@ colnames(samples) <- c("FID", "IID")
 ## analysis ###
 ###############
 
-if (verbose) message("Format results for grs with PRSice")
+if (args$verbose) message("Format results for grs with PRSice")
 ## construct and write heart failure phenotypes and covariate files ####
 failures <- list(hf=hf, cad=cad, icm=icm, nicm=nicm, sz_nicm=sz_nicm,
                  aragam_nicm=aragam_nicm)
@@ -125,7 +125,7 @@ colnames(failures_df)[-1] <- names(failures)
 failures_prsice <- failures_df
 
 # set IIDs with missing covariates/related/non-white to NA
-failures_prsice[!failures_prsice$IID %in% covs_hf_norelated$eid, -1] <- NA
+failures_prsice[!failures_prsice$IID %in% covs_hf_norelated$IID, -1] <- NA
 write.table(failures_prsice, file=file.path(args$outdir,
                                  "prsice_heart_failures_ukb.txt"),
             sep=" ", quote=FALSE, col.names=TRUE, row.names=FALSE)
