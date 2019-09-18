@@ -1,3 +1,4 @@
 genodir: "/nfs/research1/ukbb/500K_release_v3/imputed/EGAD00010001474"
 ukbdir: "/homes/hannah/data/ukbb/ukb-hrt"
 maf: "0.001"
+pheno: "190402_fractal_dimension_26k"

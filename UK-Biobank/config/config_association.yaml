@@ -5,4 +5,7 @@ maf: "0.001"
 kbwindow : 250
 r2 : 0.6
 maf_kinship: "0.1"
+pheno: "190402_fractal_dimension_26k"
+discovery: "180628_fractal_dimension"
+nloci: 16
 

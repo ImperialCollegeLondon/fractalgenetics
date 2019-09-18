@@ -2,7 +2,7 @@
 
 Fractal analysis tool for computation of LV/RV fractal characteristics, using LVSA series from CMR. Supports DICOMs/NIFTIs.
 
-![Overview](/images/imageOverview.png?raw=true)
+![Overview](https://github.com/UK-Digital-Heart-Project/fracAnalyse/blob/master/images/imageOverview.png?raw=true)
 
 ## Getting Started
 
@@ -38,7 +38,7 @@ ROIs can be defined using ellipse or polygonal tools
 
 1. Click either ROI (Ellipse) or ROI (Polygon) as appropriate and adjust ROI such that it outside of LV endocardial border 
 
-![ROI (Ellipse)](/images/imageROI.png?raw=true)
+![ROI (Ellipse)](https://github.com/UK-Digital-Heart-Project/fracAnalyse/blob/master/images/imageROI.png?raw=true)
 
 2. Double click to confirm ROI placement
 
