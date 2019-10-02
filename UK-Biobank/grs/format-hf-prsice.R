@@ -112,6 +112,12 @@ if (args$verbose) message("Format results for grs with PRSice")
 failures <- list(hf=hf, cad=cad, icm=icm, nicm=nicm, sz_nicm=sz_nicm,
                  aragam_nicm=aragam_nicm)
 
+controls <- covs_hf_norelated$IID[!covs_hf_norelated$IID %in% unique(unlist(failures))]
+write.table(controls, file=file.path(directory, "heart_failure_phenotypes",
+                                     "controls_eid.csv"),
+            sep=",", quote=FALSE, col.names="IID", row.names=FALSE)
+
+
 formated <- lapply(seq_along(failures), function(x) {
         tmp <- failures[[x]]
         tmp$dummy <- rep(1, nrow(tmp))
