@@ -133,6 +133,60 @@
         "output" : "log/{rule}_{wildcards.type}.out",
         "error" : "log/{rule}_{wildcards.type}.err"
     },
+    "all_samples_genotypes" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}.out",
+        "error" : "log/{rule}.err"
+    },
+    "extract_sig_genotypes_plink" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}_{wildcards.type}",
+        "output" : "log/{rule}_{wildcards.type}.out",
+        "error" : "log/{rule}_{wildcards.type}.err"
+    },
+    "merge" :
+    {
+        "memory" : "5000",
+        "resources" : "\"select[mem>5000] rusage[mem=5000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}_{wildcards.type}",
+        "output" : "log/{rule}_{wildcards.type}.out",
+        "error" : "log/{rule}_{wildcards.type}.err"
+    },
+    "prepare_merge" :
+    {
+        "memory" : "1000",
+        "resources" : "\"select[mem>1000] rusage[mem=1000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}_{wildcards.type}",
+        "output" : "log/{rule}_{wildcards.type}.out",
+        "error" : "log/{rule}_{wildcards.type}.err"
+    },
+    "missing" :
+    {
+        "memory" : "1000",
+        "resources" : "\"select[mem>1000] rusage[mem=1000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}_{wildcards.type}",
+        "output" : "log/{rule}_{wildcards.type}.out",
+        "error" : "log/{rule}_{wildcards.type}.err"
+    },
+    "association_cc" :
+    {
+        "memory" : "10000",
+        "resources" : "\"select[mem>10000] rusage[mem=10000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}_{wildcards.type}",
+        "output" : "log/{rule}_{wildcards.type}.out",
+        "error" : "log/{rule}_{wildcards.type}.err"
+    },
     "construct_grs" :
     {
         "memory" : "10000",
