@@ -27,25 +27,9 @@ rule all:
         expand("{dir}/grs/genotypes/controls_{type}_covariates.txt",
             dir=config["dir"],
             type=["hf", "cad", "icm", "nicm", "sz_nicm"]),
-        expand("{dir}/grs/genotypes/controls_{type}_sigSNPs.clean.assoc.logistic.all",
+        expand("{dir}/grs/genotypes/controls_{type}_sigSNPs.clean.assoc.logistic.all.sig",
             dir=config["dir"],
             type=["hf", "cad", "icm", "nicm", "sz_nicm"]),
-       # expand("{dir}/{diagnosis}.controls.{type}.sigSNPs.dosage",
-       #     diagnosis=['HVOL', 'DCM'],
-       #     type=['Pseudomultitrait_Slices_sig5e08'],
-       #     type=['Pseudomultitrait_Slices_sig5e08', 'GCC', 'random'],
-       #     dir=config["dir"]),
-       # expand("{dir}/HVOL.DCM.controls.{type}.sigSNPs.{suffix}",
-       #     suffix=['bed', 'bim', 'fam'],
-       #     type=['Pseudomultitrait_Slices_sig5e08'],
-       #     #type=['Pseudomultitrait_Slices_sig5e08', 'GCC', 'random'],
-       #     dir=config["dir"]),
-       # expand("{dir}/HVOL.DCM.controls.{type}.sigSNPs.clean.model.perm.{suffix}",
-       #     suffix=['sig', 'sig.genotyped'],
-       #     type=['Pseudomultitrait_Slices_sig5e08'],
-       #     #type=['Pseudomultitrait_Slices_sig5e08', 'GCC', 'random'],
-       #     dir=config["dir"])
-
 
 
 rule all_samples:
@@ -214,43 +198,23 @@ rule association_cc:
             paste {output.logist} -  > {output.combined}
         """
 
-rule casecontrol:
-    input:
-        both_bed="{dir}/HVOL.DCM.controls.{type}.sigSNPs.clean.bed",
-        both_bim="{dir}/HVOL.DCM.controls.{type}.sigSNPs.clean.bim",
-        both_fam="{dir}/HVOL.DCM.controls.{type}.sigSNPs.clean.fam",
-        cov="{dir}/HVOL.DCM.controls.{type}.covariates.txt"
-    output:
-        cc="{dir}/HVOL.DCM.controls.{type}.sigSNPs.clean.model",
-        perm="{dir}/HVOL.DCM.controls.{type}.sigSNPs.clean.model.best.perm",
-        combined="{dir}/HVOL.DCM.controls.{type}.sigSNPs.clean.model.all"
-    shell:
-        """
-        plink --bfile {wildcards.dir}/HVOL.DCM.controls.{wildcards.type}.sigSNPs.clean \
-            --model mperm=50000 \
-            --allow-extra-chr \
-            --allow-no-sex \
-            --ci 0.95 \
-            --out {wildcards.dir}/HVOL.DCM.controls.{wildcards.type}.sigSNPs.clean
-        awk 'FNR==NR {{a[$2]=$3;next}} $2 in a {{print $0,a[$2]}}' \
-            {output.perm} {output.cc} > {output.combined}
-        """
 
 
 rule significant:
     input:
-        cc="{dir}/HVOL.DCM.controls.{type}.sigSNPs.clean.model.all",
-        genotyped=expand('{dir}/gencall.combined.bim',
-            dir=config['genodir'])
+        cc="{dir}/controls_{type}_sigSNPs.clean.assoc.logistic.all",
+        genotyped=expand('{dir}/ukb_cal_genome.bim',
+            dir=config['genotyped'])
     params:
-        sigloci=17
+        sigloci=16
     output:
-        sig="{dir}/HVOL.DCM.controls.{type}.sigSNPs.clean.model.perm.sig",
-        geno="{dir}/HVOL.DCM.controls.{type}.sigSNPs.clean.model.perm.sig.genotyped"
+        sig="{dir}/controls_{type}_sigSNPs.clean.assoc.logistic.all.sig",
+        geno="{dir}/controls_{type}_sigSNPs.clean.assoc.logistic.all.sig.genotyped"
     shell:
         """
-        awk 'FNR==NR && ($11*{params.sigloci}) < 0.05' {input.cc} > {output.sig}
+        head -n 1 {input.cc} > {output.geno}
+        awk 'FNR==NR && ($10*{params.sigloci}) < 0.05' {input.cc} > {output.sig}
         awk 'FNR==NR {{a[$2]=$0; next}} $2 in a {{print a[$2]}}' {output.sig} \
-            {input.genotyped} > {output.geno}
+            {input.genotyped} >> {output.geno}
         """
 
