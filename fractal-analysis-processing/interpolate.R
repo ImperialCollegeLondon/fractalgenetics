@@ -1,18 +1,17 @@
 # Code to interpolate missing values and fit FDs to a set number of slices
 # Tim Dawes, Hannah Meyer,  May 2018
 
-fracDecimate <- function(interpNoSlices=10, cut.off=3, data=NULL, filename=NULL,
-                         id.col.name="Folder", interactive=FALSE, verbose=TRUE,
-                         nonFD=c("NA","NaN","Meagre blood pool",
-                                 "Sparse myocardium",
-                                 "FD measure failed", "No mask present","")) {
+fracDecimate <- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL,
+    id.col.name="Folder", interactive=FALSE, verbose=TRUE,
+    nonFD=c("NA","NaN","Meagre blood pool", "Sparse myocardium",
+            "FD measure failed", "No mask present","")) {
 
     # private functions
-    is.this.an.FD.value <- function(vec) {
+    is.this.an.FD.value <- function(vec, nonFD) {
         !(is.na(vec) | vec %in% nonFD)
     }
     interpolateSlices <- function(slices, interpNoSlices) {
-        xs.orig <- which(is.this.an.FD.value(slices))
+        xs.orig <- which(is.this.an.FD.value(slices, nonFD=nonFD))
         ys.orig <- as.numeric(as.character(slices[xs.orig]))
         tmp <- ksmooth(xs.orig, ys.orig, kernel="normal", bandwidth=1.5,
                        range.x=range(xs.orig), n.points=interpNoSlices)
@@ -59,7 +58,7 @@ fracDecimate <- function(interpNoSlices=10, cut.off=3, data=NULL, filename=NULL,
     }
 
     # Work out how many viable slices are present in each subject
-    no.of.values <- colSums(apply(FR.all, 1, is.this.an.FD.value))
+    no.of.values <- colSums(apply(FR.all, 1, is.this.an.FD.value, nonFD=nonFD))
 
     if (interactive) {
         hist(no.of.values, col="blue", xlab="No.of.slices/subject",

@@ -1,0 +1,6 @@
+dir: "/homes/hannah/data/ukbb/ukb-hrt"
+sigdir: "/homes/hannah/data/ukbb/ukb-hrt/gwas/180628_fractal_dimension"
+genodir: "/homes/hannah/data/ukbb/500K_release_v3"
+genotyped: "/homes/hannah/data/ukbb/ukb-hrt/genotypes"
+pheno: "190402_fractal_dimension_26k"
+

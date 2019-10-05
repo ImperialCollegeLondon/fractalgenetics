@@ -65,9 +65,9 @@ args <- optparse$parse_args(OptionParser(option_list=option_list))
 if (args$debug) {
     args <- list()
     args$outdir <- "~/data/digital-heart/phenotype/FD"
-    args$pheno <- "~/data/digital-heart/phenotype/FD/20191709_DCM_FD_all.csv"
+    args$pheno <- "~/data/digital-heart/phenotype/FD/20191002_DCM_FD_all.csv"
     args$interpolate <- 9
-    args$cov <- "~/data/digital-heart/phenotype/2Dphenotype/20160705_GenScan.txt"
+    args$cov <- "~/data/digital-heart/phenotype/2Dphenotype/20160412_All_BRU_format.txt"
     args$samples <- "~/data/digital-heart/genotype/imputation/combined/genotypes/gencall.combined.clean.related.chr1.sample"
     args$europeans <- "~/data/digital-heart/genotype/QC/combined/DCM.gencall.combined.clean.related.fam"
     args$path2plink <- "/homes/hannah/bin/plink"
@@ -124,7 +124,8 @@ dataFD <- dataFD[,grepl("Slice.\\d{1,2}", colnames(dataFD))]
 colnames(dataFD) <- gsub("Slice.(.*)", "Slice\\1", colnames(dataFD))
 
 # Exclude individuals where less than 6 slices were measured
-NaN_values <- c("Sparse myocardium", "Meagre blood pool","FD measure failed")
+NaN_values <- c("Sparse myocardium", "Meagre blood pool","FD measure failed",
+                "No mask present")
 fd_notNA <- apply(dataFD, 1,  function(x) {
                 length(which(!(is.na(x) | x %in% NaN_values))) > 5
             })
@@ -166,7 +167,7 @@ covariates$sex <- as.numeric(as.factor(covariates$sex))
 covariates$bmi <- covariates$weight/(covariates$height/100)^2
 covariates$bsa <- sqrt(covariates$weight * covariates$height/3600)
 rownames(covariates) <- covariates$IID
-
+covariates <- covariates[!apply(covariates, 1, function(x) any(x==0)),]
 covariates <- dplyr::select(covariates, sex, age, weight, height, bmi)
 covariates <- covariates[rownames(covariates) %in% rownames(dataFD),]
 
@@ -237,11 +238,12 @@ ggsave(plot=p, file=paste(args$outdir, "/pairs_fdcovariates_DCM.png", sep=""),
        height=12, width=12, units="in")
 
 # Regress covariates
-fd_reg <- sapply(2:12, function(x) {
+fd_reg <- sapply(2:13, function(x) {
+    cat(x)
     df <- data.frame(trait=fd_all[,x], fd_all[,14:18])
     lm(trait ~ ., data=df)$residuals
 })
-colnames(fd_reg) <- colnames(fd_all)[2:12]
+colnames(fd_reg) <- colnames(fd_all)[2:13]
 rownames(fd_reg) <- fd_all$Row.names
 
 # merge FD measures and genotypes
@@ -432,8 +434,3 @@ p <- ggplot(combined_slices_snps,
     xlab("Genotype") +
     theme_bw()
  print(p)
-
-
-
-
-
