@@ -16,6 +16,13 @@ smooth <- modules::import('utils/smoothAddR2')
 plinkqc <- modules::import_package('plinkQC')
 
 
+makeCall <- function(genotype) {
+    x <- rep(1, length(genotype))
+    x[genotype < 0.5] <- 0
+    x[genotype >= 1.5] <- 2
+    return(x)
+}
+
 #################################
 ## parameters and input data ####
 #################################
@@ -241,3 +248,192 @@ rownames(fd_reg) <- fd_all$Row.names
 fd_geno <- merge(fd_reg, genotypes, by=0)
 write.table(fd_geno, file=paste(args$outdir, "/DCM_FD_genotypes.csv", sep=""),
             sep=',', col.names=NA, row.names=TRUE, quote=FALSE)
+
+lead_snps <- c("rs6587924",
+               "rs35770803",
+               "rs1892027",
+               "rs71394376",
+               "rs4677294",
+               "rs1918978",
+               "rs10076436",
+               "rs3130976",
+               "rs9320648",
+               "rs6981461",
+               "rs35006907",
+               "rs7132327",
+               "rs71105784",
+               "rs17608766",
+               "rs113394178",
+               "rs3788488",
+               "rs11570470",
+               "rs117154502",
+               "rs78033733")
+fd_geno_lead <- merge(fd_reg, genotypes[,colnames(genotypes) %in% lead_snps],
+                      by=0)
+write.table(fd_geno_lead, file=paste(args$outdir,
+                                     "/DCM_FD_genotypes_lead_snps.csv", sep=""),
+            sep=',', col.names=NA, row.names=TRUE, quote=FALSE)
+
+fd_geno_lead <- read.table(file=paste(args$outdir,
+                                      "/DCM_FD_genotypes_lead_snps.csv", sep=""),
+                           sep=',', header=TRUE)
+snp_cols <- grepl("^rs", colnames(fd_geno_lead))
+fd_geno_lead_hard <- fd_geno_lead
+fd_geno_lead_hard[, snp_cols] <- apply(fd_geno_lead_hard[, snp_cols], 2,
+                                       makeCall)
+fd_geno_lead_hard <- fd_geno_lead_hard[,-1]
+fd_geno_lead_hard$Row.names <- as.character(fd_geno_lead_hard$Row.names)
+colnames(fd_geno_lead_hard)[1] <- "IID"
+
+##
+ukbgeno_all <-  data.table::fread("~/Dropbox/FD paper/Pseudomultitrait_slices_sig5e08_genotypes.dosage.gz", data.table=FALSE)
+ukbgeno <- ukbgeno_all
+ukbgeno <- dplyr::filter(ukbgeno, rsid %in% lead_snps)
+rownames(ukbgeno) <- ukbgeno$rsid
+ukbgeno <- ukbgeno[, -c(1:6)]
+ukbgeno <- t(ukbgeno)
+ukbgeno_hard <- apply(ukbgeno,2,makeCall)
+rownames(ukbgeno_hard) <- rownames(ukbgeno)
+
+ukbslices <-  data.table::fread("~/data/ukbb/ukb-hrt/phenotypes/180628_fractal_dimension/FD_slices_EUnorel.csv", data.table=FALSE)
+ukbsummary <-  data.table::fread("~/data/ukbb/ukb-hrt/phenotypes/180628_fractal_dimension/FD_summary_EUnorel.csv", data.table=FALSE)
+ukbpheno <- merge(ukbsummary, ukbslices, by=1)
+ukbcovs <-  data.table::fread("~/data/ukbb/ukb-hrt/phenotypes/180628_fractal_dimension/FD_covariates_EUnorel.csv", data.table=FALSE)
+ukbreg <- apply(ukbpheno[,-1],2, function(x) {
+    df <- data.frame(trait=x, ukbcovs)
+    lm(trait ~ ., data=df)$residuals
+})
+rownames(ukbreg) <- ukbpheno[,1]
+ukball <- merge(ukbreg, ukbgeno_hard, by=0)
+colnames(ukball)[1] <- "IID"
+
+
+## combine datasets
+common_dh <- fd_geno_lead_hard[,colnames(fd_geno_lead_hard) %in% colnames(ukball)]
+common_ukb <- ukball[,colnames(ukball) %in% colnames(fd_geno_lead_hard)]
+
+common_dh$study <- "DCM"
+common_ukb$study <- "UKB"
+combined <- rbind(common_dh, common_ukb)
+saveRDS(combined, "~/data/digital-heart/gwas/FD/ukb_DCM_FD_regressed.rds")
+
+
+## reformat data
+combined_snps <- pivot_longer(combined, cols=starts_with("rs"),
+                              values_to="genotype", names_to="rsID")
+combined_slices <- pivot_longer(combined, cols=starts_with("Slice") ,
+                                values_to="FD", names_to="Pheno") %>%
+    select(-starts_with("Mean"))
+combined_regions <-  pivot_longer(combined, cols=starts_with("Mean") ,
+                                  values_to="FD", names_to="Pheno") %>%
+    select(-starts_with("Slice"))
+combined_slices_snps <- pivot_longer(combined_snps, cols=starts_with("Slice") ,
+                                     values_to="FD", names_to="Pheno") %>%
+    select(-starts_with("Mean"))
+combined_regions_snps <- pivot_longer(combined_snps, cols=starts_with("Mean") ,
+                                      values_to="FD", names_to="Pheno") %>%
+    select(-starts_with("Slice"))
+
+
+
+
+# plot combined distribution of FD along heart
+combined_slices$Slice <- as.numeric(gsub("Slice_", "", combined_slices$Pheno))
+combined_slices$Location <- "Apical section"
+combined_slices$Location[combined_slices$Slice<= 3] <- "Basal section"
+combined_slices$Location[combined_slices$Slice <= 6 &
+                             combined_slices$Slice > 3] <- "Mid section"
+combined_slices$Location <- factor(combined_slices$Location,
+                                levels=c("Basal section", "Mid section",
+                                         "Apical section"))
+
+p_fd <- ggplot(data=combined_slices)
+p_fd + geom_boxplot(aes(x=Pheno, y=FD, color=Location, fill=study)) +
+    scale_color_manual(values=c('#67a9cf','#1c9099','#016c59')) +
+    labs(x="Slice", y="FD") +
+    theme_bw()
+
+
+
+
+## test associations
+common_snps <-  colnames(select(slices, starts_with("rs")))
+
+## joint pheno and all SNP effects
+lmm_slices <- lme(as.formula(paste("FD ~ ",
+                                 paste(c(common_snps, "study"), collapse="+"))),
+                random = ~ 1|Pheno,
+                data=combined_slices, control = lmeControl(opt = "optim"))
+
+lmm_regions <- lme(as.formula(paste("FD ~ ",
+                                 paste(c(common_snps, "study"), collapse="+"))),
+                random = ~ 1|Pheno,
+                data=combined_regions, control = lmeControl(opt = "optim"))
+
+
+## single pheno and all SNP effects
+test <- filter(combined_slices,  Pheno == "Slice_4")
+lm_slice <- lm(as.formula(paste("FD ~ ",
+                               paste(c(common_snps, "study"), collapse="+"))),
+                data=test)
+summary(lm_both)$coefficients
+
+test <- filter(combined_regions,  Pheno == "MeanMidFD")
+lm_region <- lm(as.formula(paste("FD ~ ",
+                                paste(c(common_snps, "study"), collapse="+"))),
+               data=test)
+summary(lm_region)$coefficients
+
+## joint pheno and single snp effects
+sapply(common_snps, function(x) {
+    lmm_slices <- lme(as.formula(paste("FD ~ ",
+                                   paste(c(x, "study"), collapse="+"))),
+                  random = ~ 1|Pheno,
+                  data=combined_slices, control = lmeControl(opt = "optim"))
+    summary(lmm_slices)$tTable[3,5]
+})
+
+sapply(common_snps, function(x) {
+lmm_regions <- lme(as.formula(paste("FD ~ ",
+                                    paste(c(common_snps, "study"), collapse="+"))),
+                   random = ~ 1|Pheno,
+                   data=combined_regions, control = lmeControl(opt = "optim"))
+    summary(lmm_slices)$tTable[3,5]
+})
+
+## Visualise models
+test <- filter(combined_slices_snps, rsID  == "rs17608766",  Pheno == "Slice_4")
+p <- ggplot(test)
+p + geom_boxplot(aes(y=FD, x= as.factor(genotype),fill=study)) +
+    scale_fill_brewer(type="qual", palette = 2) +
+    ylab("FD on slice 4") +
+    xlab("Genotype") +
+    theme_bw()
+
+p <- ggplot(test)
+p + geom_boxplot(aes(y=FD, x= as.factor(study),fill=study)) +
+    scale_fill_brewer(type="qual", palette = 2) +
+    facet_wrap(~as.factor(genotype)) +
+    ylab("FD all slices") +
+    xlab("Genotype") +
+    theme_bw()
+
+p <- ggplot(combined_slices_snps,
+            aes(x=as.factor(genotype), y=FD, color=study)) +
+    geom_violin(aes(y=FD, x= as.factor(genotype)),
+                position = position_dodge(width = 0.9)) +
+    scale_color_brewer(type="qual", palette = 2) +
+    stat_summary(fun.y=median, geom="point", aes(color=study),
+                 position = position_dodge(width = 0.9),
+                 shape=20) +
+    stat_summary(fun.data=mean_sdl, geom="pointrange", aes(color=study),
+                 position = position_dodge(width = 0.9),shape=20) +
+    ylab("All FD") +
+    xlab("Genotype") +
+    theme_bw()
+ print(p)
+
+
+
+
+
