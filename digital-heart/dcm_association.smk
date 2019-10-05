@@ -156,42 +156,20 @@ rule association:
             paste {output.logist} -  > {output.combined}
         """
 
-rule casecontrol:
-    input:
-        both_bed="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.bed",
-        both_bim="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.bim",
-        both_fam="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.fam",
-        cov="{dir}/HVOL.DCM.FD.{type}.covariates.txt"
-    output:
-        cc="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.model",
-        perm="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.model.best.perm",
-        combined="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.model.all"
-    shell:
-        """
-        plink --bfile {wildcards.dir}/HVOL.DCM.FD.{wildcards.type}.sigSNPs.clean \
-            --model mperm=50000 \
-            --allow-extra-chr \
-            --allow-no-sex \
-            --ci 0.95 \
-            --out {wildcards.dir}/HVOL.DCM.FD.{wildcards.type}.sigSNPs.clean
-        awk 'FNR==NR {{a[$2]=$3;next}} $2 in a {{print $0,a[$2]}}' \
-            {output.perm} {output.cc} > {output.combined}
-        """
-
 
 rule significant:
     input:
-        cc="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.model.all",
+        combined="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.assoc.logistic.all"
         genotyped=expand('{dir}/gencall.combined.bim',
             dir=config['genodir'])
     params:
-        sigloci=17
+        sigloci=16
     output:
-        sig="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.model.perm.sig",
-        geno="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.model.perm.sig.genotyped"
+        sig="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.assoc.logistic.all.sig",
+        geno="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.assoc.logistic.all.sig.genotyped"
     shell:
         """
-        awk 'FNR==NR && ($11*{params.sigloci}) < 0.05' {input.cc} > {output.sig}
+        awk 'FNR==NR && ($11*{params.sigloci}) < 0.05' {input.combined} > {output.sig}
         awk 'FNR==NR {{a[$2]=$0; next}} $2 in a {{print a[$2]}}' {output.sig} \
             {input.genotyped} > {output.geno}
         """
