@@ -1,16 +1,16 @@
 # Code to interpolate missing values and fit FDs to a set number of slices
 # Tim Dawes, Hannah Meyer,  May 2018
 
-fracDecimate <- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL,
-    id.col.name="Folder", interactive=FALSE, verbose=TRUE) {
+fracDecimate <- function(interpNoSlices=10, cut.off=3, data=NULL, filename=NULL,
+                         id.col.name="Folder", interactive=FALSE, verbose=TRUE,
+                         nonFD=c("NA","NaN","Meagre blood pool",
+                                 "Sparse myocardium",
+                                 "FD measure failed", "No mask present","")) {
 
     # private functions
     is.this.an.FD.value <- function(vec) {
-        nonFD <- c("NA","NaN","Meagre blood pool", "Sparse myocardium",
-            "FD measure failed", "")
         !(is.na(vec) | vec %in% nonFD)
     }
-
     interpolateSlices <- function(slices, interpNoSlices) {
         xs.orig <- which(is.this.an.FD.value(slices))
         ys.orig <- as.numeric(as.character(slices[xs.orig]))
