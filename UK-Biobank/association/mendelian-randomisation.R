@@ -205,9 +205,9 @@ slices_sig$SNPID <- paste(slices_sig$chr, ":", slices_sig$pos, "_",
                           slices_sig$a_0, "_", slices_sig$a_1, sep="")
 
 ## genotypes of ld-filtered, significant genome-wide association results ####
-cmd=paste("zcat ", directory,
-          "/gwas/Pseudomultitrait_slices_sig5e08_genotypes.dosage.gz", sep="")
-geno_sig <- data.table::fread(cmd=cmd, stringsAsFactors=FALSE, data.table=FALSE)
+geno_sig <- data.table::fread(file.path(directory,
+                              "gwas/Pseudomultitrait_slices_sig5e08_genotypes.dosage"),
+                                  stringsAsFactors=FALSE, data.table=FALSE)
 geno_sig$SNPID <- paste(geno_sig$chromosome, ":", geno_sig$position, "_",
                         geno_sig$alleleA, "_", geno_sig$alleleB, sep="")
 geno_sig <- geno_sig[geno_sig$SNPID %in% slices_sig$SNPID,]
@@ -308,25 +308,33 @@ token <- googleAuthR::gar_auth(paste(directory, "/MR/mrbase.oauth", sep=''))
 access <- token$credentials$access_token
 
 #SV ('UKB-b:6025'), QRS duration ('UKB-b:2240'), HR ('1056'), SBP ('UKB-a:360')
-outcomes <- c('UKB-b:6025', 'UKB-b:2240', 'UKB-a:360')
-names(outcomes) <- c("SV", "QRS", "SBP")
+# DBP ('UKB-a:359')
+outcomes <- c('UKB-b:6025', 'UKB-b:2240', 'UKB-a:359', 'UKB-a:360')
+names(outcomes) <- c("SV", "QRS", "DBP", "SBP")
 
 basalMRbase <- getMRdata(data_exposure=exposure_per_area[[1]],
-                       outcomes=outcomes, access=access)
+                       outcomes=as.vector(outcomes), access=access)
 midMRbase <- getMRdata(data_exposure=exposure_per_area[[2]],
-                       outcomes=outcomes, access=access)
+                       outcomes=as.vector(outcomes), access=access)
 apicalMRbase <- getMRdata(data_exposure=exposure_per_area[[3]],
-                          outcomes=outcomes, access=access)
+                          outcomes=as.vector(outcomes), access=access)
 
 MRbase <- list(basal=basalMRbase, mid=midMRbase, apical=apicalMRbase)
 saveRDS(MRbase, paste(directory, "/MR/MRbase.rds", sep=""))
 
-MRbase_results <- lapply(MRbase, function(x) {
-    MRanalysis(x$exposure,
-               x$outcome[sapply(x$outcome$id.outcome, function(x) {
-                   any(grepl(x,outcomes))
-                   }) ,])
+
+MRbase <- lapply(MRbase, function(x) {
+    #x$exposure <-x$exposure[x$exposure$SNP != "rs117953218",]
+    x$outcome <-x$outcome[x$outcome$SNP != "rs117953218",]
+    #x$outcome$beta.outcome <- x$outcome$beta.outcome * (-1)
+    return(x)
 })
+
+MRbase_results <- lapply(MRbase, function(x) {
+    MRanalysis(x$exposure, x$outcome)
+})
+
+
 
 mr_tables <- lapply(seq_along(MRbase_results), function(x) {
     region <- MRbase_results[[x]]
@@ -360,12 +368,12 @@ panel_plots <- lapply(mr_plots, function(x) x$all_plots)
 
 #SBP ('UKB-a:360'), SV ('UKB-b:6025'), QRS duration ('UKB-b:2240')
 
-panels_sbp <- lapply(panel_plots, function(x) x[[1]])
+panels_sbp <- lapply(panel_plots, function(x) x[[3]])
 p_panels_sbp <- cowplot::plot_grid(plotlist=panels_sbp, nrow=3)
 ggsave(plot=p_panels_sbp, paste(directory, "/MR/MR_panels_SBP.pdf", sep=""),
        height=20, width=12)
 
-panels_qrs <- lapply(panel_plots, function(x) x[[2]])
+panels_qrs <- lapply(panel_plots, function(x) x[[3]])
 p_panels_qrs <- cowplot::plot_grid(plotlist=panels_qrs, nrow=3)
 ggsave(plot=p_panels_qrs, paste(directory, "/MR/MR_panels_QRS.pdf", sep=""),
        height=20, width=12)
@@ -376,7 +384,7 @@ ggsave(plot=p_panels_sv, paste(directory, "/MR/MR_panels_SV.pdf", sep=""),
        height=20, width=12)
 
 
-forrests_sbp <- lapply(mr_plots, function(x) x$forrest[[1]] + theme_bw() +
+forrests_sbp <- lapply(mr_plots, function(x) x$forrest[[3]] + theme_bw() +
                            scale_x_continuous(limits=c(-1,4)) +
                            theme(legend.position='none',
                                  axis.title.x = element_blank()))
@@ -384,7 +392,7 @@ p_forrests_sbp <- cowplot::plot_grid(plotlist=forrests_sbp, ncol=3)
 ggsave(plot=p_forrests_sbp, paste(directory, "/MR/MR_forrest_SBP.pdf", sep=""),
        height=4, width=12)
 
-p_basal_forrest_sbp <- mr_plots[[1]]$forrest[[1]] +
+p_basal_forrest_sbp <- mr_plots[[1]]$forrest[[3]] +
     theme_bw() +
     theme(legend.position='none')
 

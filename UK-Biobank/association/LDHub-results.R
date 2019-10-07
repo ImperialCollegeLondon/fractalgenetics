@@ -303,6 +303,9 @@ rg_ld_summary$heart[rg_ld_summary$trait2 %in% heart_pheno$ukbb_name] <- 1
 heart_summary <- filter(rg_ld_summary, heart == 1) %>%
     droplevels
 heart_summary$name <- heart_pheno$name
+heart_summary$rg <- as.numeric(heart_summary$rg)
+heart_summary$direction <- as.factor(sign(heart_summary$rg))
+heart_summary$magnitude <- abs(heart_summary$rg)
 
 rg_summary <- ggplot()
 rg_summary <- rg_summary + geom_point(data=rg_ld_summary,
@@ -332,26 +335,36 @@ ggsave(plot=rg_summary, filename=file.path(directory, "Rg_summary_manhattan.pdf"
 rgh_summary <- ggplot()
 rgh_summary <- rgh_summary +
     geom_point(data=heart_summary,
-               aes(x=-log10(p), y=name, color=trait1, size=as.numeric(rg))) +
+               aes(x=-log10(p), y=name, color=trait1, size=magnitude,
+                   shape=direction)) +
     scale_color_manual(values=c('#67a9cf','#1c9099','#016c59'),
                        name="Region") +
-    scale_size_continuous(name="Genetic correlation", limits=c(-0.45, 0.3)) +
+    scale_size_continuous(name="Magnitude of genetic correlation",
+                          limits=c(0, 0.45),
+                          breaks=seq(0.1, 0.4, 0.1),
+                          label=seq(0.1, 0.4, 0.1)) +
+    scale_shape_discrete(name="Direction of genetic correlation") +
     theme_bw() +
     theme(strip.background = element_rect(fill="white"),
           axis.title.y = element_blank(),
           legend.position="bottom",
           legend.box="vertical")
 ggsave(plot=rgh_summary, filename=file.path(directory, "Rg_summary_heart.pdf"),
-       width=8, height=6)
+       width=9, height=6)
 
 sig_heart_summary <- filter(heart_summary,p < 5*10^-2)# %>% droplevels
 rgh_sig_summary <- ggplot()
 rgh_sig_summary <- rgh_sig_summary +
     geom_point(data=sig_heart_summary,
-               aes(x=-log10(p), y=name, color=trait1, size=as.numeric(rg))) +
+               aes(x=-log10(p), y=name, color=trait1, size=magnitude,
+                   shape=direction)) +
     scale_color_manual(values=c('#67a9cf','#1c9099','#016c59'),
-                       name="Region") +
-    scale_size_continuous(name="Genetic correlation", limits=c(-0.3, 0.3)) +
+                       guide=FALSE,name="Region") +
+    scale_size_continuous(name="Magnitude of genetic correlation",
+                          limits=c(0, 0.45),
+                          breaks=seq(0.1, 0.4, 0.1),
+                          label=seq(0.1, 0.4, 0.1)) +
+    scale_shape_discrete(name="Direction of genetic correlation") +
     theme_bw() +
     theme(strip.background = element_rect(fill="white"),
           axis.title.y = element_blank(),
@@ -359,7 +372,7 @@ rgh_sig_summary <- rgh_sig_summary +
           legend.box="vertical")
 ggsave(plot=rgh_sig_summary,
        filename=file.path(directory, "Rg_sig_summary_heart.pdf"),
-       width=6, height=5)
+       width=7, height=5)
 
 
 sig_summary <- filter(rg_ld_summary,p < 5*10^-2) %>% droplevels
@@ -391,3 +404,9 @@ rgsig_summary <- rgsig_summary + geom_point(data=sig_summary,
 ggsave(plot=rgsig_summary,
        filename=file.path(directory, "Rg_summary_sig_heart.pdf"),
        width=12, height=10)
+
+write.table(rg_ld_summary, file.path(directory, "Rg_summary_all.csv"),
+            sep=",", col.names=TRUE, row.names=FALSE, quote=FALSE)
+
+write.table(rg_ld_summary, file.path(directory, "Rg_summary_sig.csv"),
+            sep=",", col.names=TRUE, row.names=FALSE, quote=FALSE)
