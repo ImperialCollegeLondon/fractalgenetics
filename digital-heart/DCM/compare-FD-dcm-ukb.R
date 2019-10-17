@@ -6,7 +6,8 @@ options(import.path=c("~/analysis/fractalgenetics",
 options(bitmapType = 'cairo', device = 'pdf')
 
 
-modules::import_package('ggplot2', attach=TRUE)
+modules::import_package('tidyverse', attach=TRUE)
+modules::import_package('dplyr', attach=TRUE)
 optparse <- modules::import_package('optparse')
 autofd <- modules::import('fractal-analysis-processing')
 
@@ -20,6 +21,9 @@ option_list <- list(
     make_option(c("--dcm"), action="store", dest="dcm",
                 type="character", help="Path to file with DCM per slice FD
                 [default: %default].", default=NULL),
+    make_option(c("-i", "--interpolate"), action="store", dest="interpolate",
+                type="integer", help="Number of slices to interpolate to
+               [default: %default].", default=9),
     make_option(c("--ukb"), action="store", dest="ukb",
                 type="character", help="Path to file with UKB per slice FD
                 [default: %default].", default=NULL),
@@ -47,7 +51,7 @@ if (args$debug) {
 DCM_slices <-  data.table::fread(args$dcm, data.table=FALSE)
 
 ## ukb FD measurments ####
-UKB_slices <-  data.table::fread(args$ukb, data.table=FALSE)
+UKB_slices <-  data.table::fread(args$ukb, data.table=FALSE)[,-1]
 
 ################
 ## analysis ####
@@ -56,7 +60,7 @@ UKB_slices <-  data.table::fread(args$ukb, data.table=FALSE)
 ## combine datasets ####
 DCM_slices$study <- "DCM"
 UKB_slices$study <- "UKB"
-combined <- rbind(DCM_slices, UKB_slices[,-1])
+combined <- rbind(DCM_slices, UKB_slices)
 saveRDS(combined, file.path(args$outdir, "ukb_DCM_FD.rds"))
 
 
@@ -82,7 +86,7 @@ p_fd <- p_fd + geom_boxplot(aes(x=Slice, y=FD, color=Location, fill=study)) +
     theme_bw()
 
 ggsave(plot=p_fd,
-       file=paste(args$outdir, "/FDAlongHeart_DCM_UKB_slices",
+       file=paste(args$dir, "/FDAlongHeart_DCM_UKB_all_slices",
                   args$interpolate, ".pdf", sep=""),
        height=2, width=5, units="in")
 
