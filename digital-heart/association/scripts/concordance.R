@@ -2,7 +2,6 @@
 ### Libraries and functions ###
 ###############################
 options(import.path=c("/homes/hannah/projects/GWAS",
-                      "/homes/hannah/GWAS/analysis/fd",
                       "/homes/hannah/projects"))
 options(bitmapType = 'cairo', device = 'pdf')
 
@@ -44,7 +43,7 @@ args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 if (args$debug) {
     args <- list()
     args$directory <- "~/data/digital-heart/gwas/FD"
-    args$ukbdir <- "~/data/ukbb/ukb-hrt/gwas"
+    args$ukbdir <- "~/data/ukbb/ukb-hrt/gwas/180628_fractal_dimension"
     args$name <- 'slices'
     args$verbose <- TRUE
 }
@@ -159,6 +158,9 @@ slices <- cbind(ukb_sig_slices, dh_sig_slices[,3:4])
 colnames(slices) <- c('rsid', 'slices', 'ukbb_beta', 'ukbb_logp', 'dh_beta',
                       'dh_logp')
 
+slices$dh_p <- 10^-(slices$dh_logp)
+slices$ukbb_p <- 10^-(slices$ukbb_logp)
+
 sig_adjust <- round(0.05/args$nloci,3)
 slices$sig <- factor(as.numeric(slices$dh_logp > -log10(sig_adjust)),
                         labels=c(expression(p >= sig_adjust),
@@ -168,7 +170,7 @@ slices$concordance <- factor(-sign(slices$ukbb_beta * slices$dh_beta),
 
 write.table(slices, paste(directory, "/", name, "_concordance.txt",
                           sep=""),
-            quote=FALSE, col.names=TRUE, row.names=FALSE)
+            quote=FALSE, col.names=TRUE, row.names=FALSE, sep="\t")
 
 max_y <- max(abs(slices$dh_beta))
 max_x <- max(abs(slices$ukbb_beta))
