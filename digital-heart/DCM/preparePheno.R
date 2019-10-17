@@ -68,7 +68,7 @@ if (args$debug) {
     args$samples <- "~/data/digital-heart/genotype/imputation/combined/genotypes/gencall.combined.clean.related.chr1.sample"
     args$europeans <- "~/data/digital-heart/genotype/QC/combined/DCM.gencall.combined.clean.related.fam"
     args$path2plink <- "/homes/hannah/bin/plink"
-    args$genodir <- "/homes/hannah/data/digital-heart/genotype/QC/combined"
+    args$genodir <- "~/data/digital-heart/genotype/QC/combined"
 }
 
 #############
@@ -166,7 +166,7 @@ FDi <- autofd$interpolate$fracDecimate(data=dataFD,
                                        id.col.name='rownames')
 
 write.table(FDi, file.path(args$outdir, "FD_slices_EUnorel.csv"),
-            col.names=TRUE, row.names=FALSE, quote=FALSE)
+            col.names=TRUE, row.names=TRUE, quote=FALSE)
 
 # summary fd measurements
 summaryFDi <- data.frame(t(apply(as.matrix(FDi), 1,
