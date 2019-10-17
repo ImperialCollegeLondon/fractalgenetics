@@ -19,25 +19,25 @@ Fstat <- function(r2, nsample, ninstruments) {
 }
 
 ## Burgess 2016 Genetic Epidemiology
-findlowerlimitF <- function(f, ninstruments, nsample) {	
-    lambda <- f*ninstruments*(nsample-2)/nsample-ninstruments	
-    lower <- f - 1	
-    while (pf(lower, df1=ninstruments, df2=nsample, ncp=lambda) > 0.05) {	
-        lower <- lower-1	
-    }	
-    upper <- lower + 1	
-    while (abs(pf((lower+upper)/2, df1=ninstruments, df2=nsample, 
-                  ncp=lambda)-0.05) > 0.0001) {	
+findlowerlimitF <- function(f, ninstruments, nsample) {
+    lambda <- f*ninstruments*(nsample-2)/nsample-ninstruments
+    lower <- f - 1
+    while (pf(lower, df1=ninstruments, df2=nsample, ncp=lambda) > 0.05) {
+        lower <- lower-1
+    }
+    upper <- lower + 1
+    while (abs(pf((lower+upper)/2, df1=ninstruments, df2=nsample,
+                  ncp=lambda)-0.05) > 0.0001) {
         if (pf((lower+upper)/2, df1=ninstruments, df2=nsample,
-               ncp=lambda) > 0.05) {	
-            upper = (lower+upper)/2	
-        }	
+               ncp=lambda) > 0.05) {
+            upper = (lower+upper)/2
+        }
         if (pf((lower+upper)/2, df1=ninstruments, df2=nsample,
-               ncp=lambda) <0.05) {	
-            lower = (lower+upper)/2	
-        }	
-    }	
-    return((lower+upper)/2)	
+               ncp=lambda) <0.05) {
+            lower = (lower+upper)/2
+        }
+    }
+    return((lower+upper)/2)
 }
 
 estimateI2 <- function(y,s) {
@@ -53,7 +53,7 @@ estimateI2 <- function(y,s) {
 
 getMRdata <- function(filename_exposure, data_exposure=NULL, outcomes=NULL,
                       access, name='FD', data_outcome=NULL,
-                      filename_outcome=NULL, 
+                      filename_outcome=NULL,
                       sep = " ", phenotype_col = "Phenotype", snp_col = "SNP",
                       beta_col = "beta", se_col = "se", eaf_col = "eaf",
                       effect_allele_col = "effect_allele", pval_col='pval',
@@ -117,11 +117,11 @@ MRanalysis <- function(exposure_dat, outcome_dat,
     per_study_F$samplesize.outcome <- dat$samplesize.outcome[!duplicated(dat$outcome)]
     per_study_F$r2 <- directionality_results$snp_r2.exposure
     per_study_F$Fstat <- Fstat(per_study_F$r2, per_study_F$samplesize.exposure,
-                                  per_study_F$ninstruments) 
+                                  per_study_F$ninstruments)
     per_study_F$lowerBound <- apply(as.matrix(per_study_F[,-1]), 1, function(x){
         findlowerlimitF(x[5], x[1], x[2])
     })
-    
+
     if (verbose) message("MR I^2 analysis")
     weighted_beta <- dat$beta.exposure/dat$se.outcome
     weighted_se <- dat$se.exposure/dat$se.outcome
@@ -139,14 +139,14 @@ plotMR <- function(dat, mr_results) {
                                             "mr_weighted_median",
                                             "mr_weighted_mode"))
     p_forrest <- mr_forest_plot(res_single)
-    
+
     res_loo <- mr_leaveoneout(dat)
     p_loo <- mr_leaveoneout_plot(res_loo)
-    
+
     p_funnel <- mr_funnel_plot(res_single)
     legendMR <- cowplot::get_legend(p_funnel[[1]] + theme_bw() +
                                         theme(legend.position='left') )
-    
+
     all_plots <- lapply(seq_along(p_forrest), function(x) {
         mr <- p_mr[[x]] + theme_bw()  + theme(legend.position='none')
         forrest <- p_forrest[[x]] + theme_bw() + theme(legend.position='none')
@@ -205,9 +205,9 @@ slices_sig$SNPID <- paste(slices_sig$chr, ":", slices_sig$pos, "_",
                           slices_sig$a_0, "_", slices_sig$a_1, sep="")
 
 ## genotypes of ld-filtered, significant genome-wide association results ####
-cmd=paste("zcat ", directory,
-          "/gwas/Pseudomultitrait_slices_sig5e08_genotypes.dosage.gz", sep="")
-geno_sig <- data.table::fread(cmd=cmd, stringsAsFactors=FALSE, data.table=FALSE)
+geno_sig <- data.table::fread(file.path(directory,
+                              "gwas/Pseudomultitrait_slices_sig5e08_genotypes.dosage"),
+                                  stringsAsFactors=FALSE, data.table=FALSE)
 geno_sig$SNPID <- paste(geno_sig$chromosome, ":", geno_sig$position, "_",
                         geno_sig$alleleA, "_", geno_sig$alleleB, sep="")
 geno_sig <- geno_sig[geno_sig$SNPID %in% slices_sig$SNPID,]
@@ -307,20 +307,24 @@ names(exposure_per_area) <- names(unique_per_area)
 token <- googleAuthR::gar_auth(paste(directory, "/MR/mrbase.oauth", sep=''))
 access <- token$credentials$access_token
 
-#SV, QRS duration, HR
-outcomes <- c('UKB-b:6025', 'UKB-b:2240', '1056')
+#SV ('UKB-b:6025'), QRS duration ('UKB-b:2240'), HR ('1056'), SBP ('UKB-a:360')
+# DBP ('UKB-a:359')
+outcomes <- c('UKB-b:6025', 'UKB-b:2240', 'UKB-a:360')
+names(outcomes) <- c("SV", "QRS", "SBP")
 
 basalMRbase <- getMRdata(data_exposure=exposure_per_area[[1]],
-                       outcomes=outcomes, access=access)
+                       outcomes=as.vector(outcomes), access=access)
 midMRbase <- getMRdata(data_exposure=exposure_per_area[[2]],
-                       outcomes=outcomes, access=access)
+                       outcomes=as.vector(outcomes), access=access)
 apicalMRbase <- getMRdata(data_exposure=exposure_per_area[[3]],
-                          outcomes=outcomes, access=access)
+                          outcomes=as.vector(outcomes), access=access)
 
 MRbase <- list(basal=basalMRbase, mid=midMRbase, apical=apicalMRbase)
 saveRDS(MRbase, paste(directory, "/MR/MRbase.rds", sep=""))
 
-MRbase_results <- lapply(MRbase, function(x) MRanalysis(x$exposure, x$outcome))
+MRbase_results <- lapply(MRbase, function(x) {
+    MRanalysis(x$exposure, x$outcome)
+})
 
 mr_tables <- lapply(seq_along(MRbase_results), function(x) {
     region <- MRbase_results[[x]]
@@ -350,36 +354,57 @@ mr_plots <- lapply(MRbase_results, function(region) {
     tmp <- plotMR(dat, res)
 })
 
-panels_hr <- lapply(panel_plots, function(x) x[[1]])
-p_panels_hr <- cowplot::plot_grid(plotlist=panels_hr, nrow=3)
-ggsave(plot=p_panels_hr, paste(directory, "/MR/MR_panels_HR.pdf", sep=""),
+panel_plots <- lapply(mr_plots, function(x) x$all_plots)
+
+#SBP ('UKB-a:360'), SV ('UKB-b:6025'), QRS duration ('UKB-b:2240')
+
+panels_sbp <- lapply(panel_plots, function(x) x[[1]])
+p_panels_sbp <- cowplot::plot_grid(plotlist=panels_sbp, nrow=3)
+ggsave(plot=p_panels_sbp, paste(directory, "/MR/MR_panels_SBP.pdf", sep=""),
        height=20, width=12)
 
-panels_qrs <- lapply(panel_plots, function(x) x[[4]])
+panels_qrs <- lapply(panel_plots, function(x) x[[2]])
 p_panels_qrs <- cowplot::plot_grid(plotlist=panels_qrs, nrow=3)
 ggsave(plot=p_panels_qrs, paste(directory, "/MR/MR_panels_QRS.pdf", sep=""),
        height=20, width=12)
 
-panel_plots <- lapply(mr_plots, function(x) x$all_plots)
-panels_sv <- lapply(panel_plots, function(x) x[[5]])
+panels_sv <- lapply(panel_plots, function(x) x[[3]])
 p_panels_sv <- cowplot::plot_grid(plotlist=panels_sv, nrow=3)
 ggsave(plot=p_panels_sv, paste(directory, "/MR/MR_panels_SV.pdf", sep=""),
        height=20, width=12)
 
 
+forrests_sbp <- lapply(mr_plots, function(x) x$forrest[[1]] + theme_bw() +
+                           scale_x_continuous(limits=c(-2,4)) +
+                           theme(legend.position='none',
+                                 axis.title.x = element_blank()))
+p_forrests_sbp <- cowplot::plot_grid(plotlist=forrests_sbp, ncol=3)
+ggsave(plot=p_forrests_sbp, paste(directory, "/MR/MR_forrest_SBP.pdf", sep=""),
+       height=4, width=12)
+
+p_basal_forrest_sbp <- mr_plots[[1]]$forrest[[1]] +
+    theme_bw() +
+    theme(legend.position='none')
+
+ggsave(plot=p_basal_forrest_sbp, paste(directory,
+                                       "/MR/MR_forrest_basal_SBP.pdf", sep=""),
+       height=4, width=4)
+
+forrests_qrs <- lapply(mr_plots, function(x) x$forrest[[2]] + theme_bw() +
+                           scale_x_continuous(limits=c(-2,4)) +
+                           theme(legend.position='none',
+                                 axis.title.x = element_blank()))
+p_forrests_qrs <- cowplot::plot_grid(plotlist=forrests_qrs, ncol=3)
+ggsave(plot=p_forrests_qrs, paste(directory, "/MR/MR_forrest_QRS.pdf", sep=""),
+       height=4, width=12)
+
 forrests_sv <- lapply(mr_plots, function(x) x$forrest[[3]] + theme_bw() +
-                          scale_x_continuous(limits=c(-1,4)) +
+                          scale_x_continuous(limits=c(-2,4)) +
                           theme(legend.position='none',
                               axis.title.x = element_blank()))
 p_forrests_sv <- cowplot::plot_grid(plotlist=forrests_sv, ncol=3)
 ggsave(plot=p_forrests_sv, paste(directory, "/MR/MR_forrest_SV.pdf", sep=""),
        height=4, width=12)
 
-forrests_qrs <- lapply(mr_plots, function(x) x$forrest[[2]] + theme_bw() +
-                          scale_x_continuous(limits=c(-1,4)) +
-                          theme(legend.position='none',
-                                axis.title.x = element_blank()))
-p_forrests_qrs <- cowplot::plot_grid(plotlist=forrests_qrs, ncol=3)
-ggsave(plot=p_forrests_qrs, paste(directory, "/MR/MR_forrest_QRS.pdf", sep=""),
-       height=4, width=12)
+
 

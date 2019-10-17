@@ -10,7 +10,6 @@ fracDecimate <- function (interpNoSlices=10, cut.off=3, data=NULL, filename=NULL
     is.this.an.FD.value <- function(vec, nonFD) {
         !(is.na(vec) | vec %in% nonFD)
     }
-
     interpolateSlices <- function(slices, interpNoSlices) {
         xs.orig <- which(is.this.an.FD.value(slices, nonFD=nonFD))
         ys.orig <- as.numeric(as.character(slices[xs.orig]))
