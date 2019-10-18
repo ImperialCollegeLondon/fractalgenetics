@@ -1,13 +1,13 @@
 # FD processing
 R code for post-processing of FD values output by
-[AutoFD](automated-fractal-analysis).
+[AutoFD](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/automated-fractal-analysis).
 
 1. fracDecimateFD.R (fracDecimate function)
     Interpolation of FD values to a common number of slices across individuals.
 1. summaryFD.R (summaryStatistics function)
     Summary statistics of FD values per individual: mean global FD, mean and max
     Apical FD, mean and max Basal FD. This is an R version of the matlab
-    function [FDstatististics](automated-fractal-analysis/pft_JC_FDStatistics.m).
+    function [FDstatististics](https://github.com/ImperialCollegeLondon/fractalgenetics/blob/master/automated-fractal-analysis/pft_JC_FDStatistics.m).
     The function has been tested for equivalent output in
     [tests](fractal-analysis-processing/tests).
 1. radial-registration.R
@@ -79,5 +79,5 @@ max Basal FD
 ### radial-registration.R
 A detailed example of how to run radial co-registration of myocard and
 trabeculation outline based on intermediate files generated in
-[AutoFD](automated-fractal-analysis) can be found
+[AutoFD](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/automated-fractal-analysis) can be found
 [here](fractal-analysis-processing/tests/radial-registration/test-registration.R).
