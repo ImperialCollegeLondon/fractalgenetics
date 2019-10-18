@@ -3,7 +3,7 @@
 ### 1. genotypes.smk
 Work-flow for converting biobank genotype data in .bgen format to plink format,
 minor-allele frequency and ld-filtering of variants.
-![genotypes workflow][genotypes]
+![genotypes workflow](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/UK-Biobank/dag/genotypes_dag.png)
 
 Application-specific (18545) filtering of samples from 500k genotypes in first
 step to speed up computation. Parameters for filtering, file names and target
@@ -34,5 +34,3 @@ Scripts called by [association.smk](UK-Biobank/association.smk) can be found in 
 ## config
 Config files for snakemake files job and config files for job submission to lsf cluster system with rule-specific requirements ([cluster.json](UK-Biobank/config/cluster.json)).
 
-[genotypes]:
-https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/UK-Biobank/dag/genotypes_dag.png
