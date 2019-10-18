@@ -1,10 +1,15 @@
 # Trabeculation GWAS in UKB cohort
 
 ### 1. genotypes.smk
-Work-flow for converting biobank genotype data in .bgen format to plink format, minor-allele frequency and ld-filtering
-of variants. Application-specific (18545) filtering of samples from 500k genotypes in first step to speed up computation.
-Parameters for filtering, file names and target directories are supplied in config/config_conversion.yaml.
-Requires plink [v1.9](https://www.cog-genomics.org/plink2) and [v2](https://www.cog-genomics.org/plink/2.0/).
+Work-flow for converting biobank genotype data in .bgen format to plink format,
+minor-allele frequency and ld-filtering of variants.
+![genotypes workflow][genotypes]
+
+Application-specific (18545) filtering of samples from 500k genotypes in first
+step to speed up computation. Parameters for filtering, file names and target
+directories are supplied in config/config_conversion.yaml.
+Requires plink [v1.9](https://www.cog-genomics.org/plink2) and
+[v2](https://www.cog-genomics.org/plink/2.0/).
 
 ### 2. ancestry.smk
 Work-flow for estimating kinship and ancestry of sample cohort. Takes ld-pruned, maf-filtered files from [genotypes.smk](UK-Biobank/genotypes.smk).
@@ -28,3 +33,6 @@ Scripts called by [association.smk](UK-Biobank/association.smk) can be found in 
 
 ## config
 Config files for snakemake files job and config files for job submission to lsf cluster system with rule-specific requirements ([cluster.json](UK-Biobank/config/cluster.json)).
+
+[genotypes]:
+https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/UK-Biobank/dag/genotypes_dag.pdf
