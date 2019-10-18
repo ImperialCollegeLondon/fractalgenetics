@@ -35,4 +35,4 @@ Scripts called by [association.smk](UK-Biobank/association.smk) can be found in 
 Config files for snakemake files job and config files for job submission to lsf cluster system with rule-specific requirements ([cluster.json](UK-Biobank/config/cluster.json)).
 
 [genotypes]:
-https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/UK-Biobank/dag/genotypes_dag.pdf
+https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/UK-Biobank/dag/genotypes_dag.png

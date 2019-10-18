@@ -4,13 +4,13 @@ snakemake -s ancestry.smk \
         ~/data/ukbb/ukb-hrt/ancestry/180628_fractal_dimension/ukb_imp_genome_v3_maf0.1.pruned.European.pca \
         ~/data/ukbb/ukb-hrt/ancestry/180628_fractal_dimension/HapMapIII_CGRCh37_180628_fractal_dimension_pca.png \
         ~/data/ukbb/ukb-hrt/ancestry/180628_fractal_dimension/ukb_imp_genome_v3_maf0.1.pruned.kinship.rel |
-            dot -Tpdf > ancestry_dag.pdf
+            dot -Tpng > ancestry_dag.png
 
-snakemake -s ancestry.smk \
+snakemake -s genotypes.smk \
         --rulegraph \
         ~/data/ukbb/ukb-hrt/maf0.1/180628_fractal_dimension/ukb_imp_genome_v3_maf0.1.pruned.bed \
         ~/data/ukbb/ukb-hrt/maf0.1/190402_fractal_dimension_26k/ukb_imp_genome_v3_maf0.1.pruned.bed |
-            dot -Tpdf > genotypes_dag.pdf
+            dot -Tpng > genotypes_dag.png
 
 snakemake -s phenotypes_discovery.smk \
         --rulegraph \
