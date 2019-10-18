@@ -19,17 +19,17 @@ Fractal analysis requires Matlab, [MATLAB Compiler Runtime (MCR) 2016b](https://
 ## Content
 
 ### 1. [Automated-fractal-analysis](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/automated-fractal-analysis)
-Automated fractal analysis of segmented cardiac images based using pre-exisiting image segmentations to determine a region of interest within the myocardium.
+Automated fractal analysis of segmented cardiac images using pre-exisiting image segmentations to determine a region of interest within the myocardium.
 
 ### 2. [Fractal-analysis-processing](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/fractal-analysis-processing)
 Code for post-processing of fractal-analysis results including interpolation of FD values to a common number of slices across individuals, summary statistics of FD values per individual and a collection of functions for co-registration of myocardial and trabeculation outlines.
 
 ### 3. [UK-Biobank](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/UK-Biobank)
-Trabeculation GWAS in UKB cohort (discovery cohort) containing analysis pipelines for genotype and phenotype processing,
-GWAS, GWAS results processing, functional enrichement and Mendelian randomisation analyses.
+Trabeculation GWAS in UK Biobank containing analysis pipelines for genotype and phenotype processing,
+GWAS, GWAS results processing, functional enrichement, Mendelian randomisation analyses and LDhub analyses in discovery and replication study.
 
 ### 4. [UK Digital Heart Project](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/digital-heart)
-Trabeculation GWAS in the UK Digital Heart Project cohort (second validation cohort) containing analysis pipelines for genotype and phenotype processing, GWAS and GWAS results processing.
+Trabeculation GWAS in the UK Digital Heart Project cohort (second replication cohort) containing analysis pipelines for genotype and phenotype processing, GWAS and GWAS results processing.
 
 ### 5. [Finite element modelling](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/Finite-element-modelling)
 Finite element modeling input files (Abaqus Standard, SIMULIA, Dessault Systemes)for the simulation of 5 consecutive cardiac cycles of the left ventricle, starting from the ventricular reference configuration (zero ventricular pressure).
