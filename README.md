@@ -17,23 +17,21 @@ Genetic association testing requires [Bgenie](https://jmarchini.org/bgenie/) v1.
 Fractal analysis requires Matlab, [MATLAB Compiler Runtime (MCR) 2016b](https://uk.mathworks.com/products/compiler/matlab-runtime.html) and [Ghostscript](https://www.ghostscript.com/). Finite element modeling was conducted with [Abaqus/Standard, Simulia](https://www.3ds.com/products-services/simulia/products/abaqus/abaqusstandard/).
 
 ## Content
-### 1. fractal-analysis
-Fractal analysis tool for computation of left ventricular/right ventricular fractal characteristics, using LVSA series from cardiac magnetic resonance images.
 
-### 2. automated-fractal-analysis
-Automated fractal analysis of segmented cardiac images based on the [FracAnalyse](fractal-analysis) software. It uses pre-exisiting image segmentations to determine a region of interest within the myocardium for fractal analysis.
+### 1. [Automated-fractal-analysis](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/automated-fractal-analysis)
+Automated fractal analysis of segmented cardiac images based using pre-exisiting image segmentations to determine a region of interest within the myocardium.
 
-### 3. fractal-analysis-processing
+### 2. [Fractal-analysis-processing](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/fractal-analysis-processing)
 Code for post-processing of fractal-analysis results including interpolation of FD values to a common number of slices across individuals, summary statistics of FD values per individual and a collection of functions for co-registration of myocardial and trabeculation outlines.
 
-### 4. UK-Biobank
+### 3. [UK-Biobank](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/UK-Biobank)
 Trabeculation GWAS in UKB cohort (discovery cohort) containing analysis pipelines for genotype and phenotype processing,
 GWAS, GWAS results processing, functional enrichement and Mendelian randomisation analyses.
 
-### 5. digital-heart
-Trabeculation GWAS in Digital-heart project cohort (validation cohort) containing analysis pipelines for genotype and phenotype processing, GWAS and GWAS results processing.
+### 4. [UK Digital Heart Project](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/digital-heart)
+Trabeculation GWAS in the UK Digital Heart Project cohort (second validation cohort) containing analysis pipelines for genotype and phenotype processing, GWAS and GWAS results processing.
 
-### 6. Finite element modelling
+### 5. [Finite element modelling](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/Finite-element-modelling)
 Finite element modeling input files (Abaqus Standard, SIMULIA, Dessault Systemes)for the simulation of 5 consecutive cardiac cycles of the left ventricle, starting from the ventricular reference configuration (zero ventricular pressure).
 
 
