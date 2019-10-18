@@ -15,12 +15,12 @@ snakemake -s genotypes.smk \
 snakemake -s phenotypes_discovery.smk \
         --rulegraph \
         ~/data/ukbb/ukb-hrt/phenotypes/180628_fractal_dimension/FD_slices_bgenie.txt |
-            dot -Tpdf > phenotypes_discovery_dag.pdf
+            dot -Tpng > phenotypes_discovery_dag.png
 
 snakemake -s phenotypes_replication.smk \
         --rulegraph \
         ~/data/ukbb/ukb-hrt/phenotypes/190402_fractal_dimension_26k/FD_slices_bgenie.txt |
-            dot -Tpdf > phenotypes_replication_dag.pdf
+            dot -Tpng > phenotypes_replication_dag.png
 
 snakemake -s association_discovery.smk \
         --rulegraph \
@@ -31,9 +31,9 @@ snakemake -s association_discovery.smk \
         ~/data/ukbb/ukb-hrt/ldhub/180628_fractal_dimension/Rg_summary_all.csv \
         ~/data/ukbb/ukb-hrt/GTEX/180628_fractal_dimension/gTEX_geneexpression.pdf \
         ~/data/ukbb/ukb-hrt/annotation/180628_fractal_dimension/Functional_enrichment_summary.pdf |
-            dot -Tpdf > association_discovery_dag.pdf
+            dot -Tpng > association_discovery_dag.png
 
 snakemake -s association_replication.smk \
         --rulegraph \
         ~/data/ukbb/ukb-hrt/gwas/190402_fractal_dimension_26k/Replication_slices_association_significant_in_discovery.txt |
-            dot -Tpdf > association_replication_dag.pdf
+            dot -Tpng > association_replication_dag.png
