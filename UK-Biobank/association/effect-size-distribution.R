@@ -43,7 +43,7 @@ verbose <- args$verbose
 
 ## ld-filtered, significant genome-wide association results ukb ####
 slices_sig <- read.table(paste(directory,
-                               "/gwas/Pseudomultitrait_Slices_sig5e08_ldFiltered.txt",
+                               "/gwas/Pseudomultitrait_slices_sig5e08_ldFiltered.txt",
                                sep=""),
                          sep=",", stringsAsFactors=FALSE, header=TRUE)
 # LD filter misses these two SNPs, manually remove

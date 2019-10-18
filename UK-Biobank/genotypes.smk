@@ -29,14 +29,10 @@ rule all:
              maf=config["maf"],
              pheno=config["pheno"],
              chr=range(1,23)),
-         expand("{ukb}/maf{maf}/{pheno}/ukb_imp_v3_kinship.rel",
-             pheno=config["pheno"],
+        expand("{ukb}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
+             ukb=config["ukbdir"],
              maf=config["maf"],
-             ukb=config["ukbdir"]),
-         expand("{ukb}/maf{maf}/{pheno}/ukb_imp_v3_pca",
-             pheno=config["pheno"],
-             maf=config["maf"],
-             ukb=config["ukbdir"])
+             pheno=config["pheno"]),
 
 rule getSamples:
     input:
@@ -74,8 +70,8 @@ rule filterMaf:
         bim="{dir}/plink/{pheno}/ukb_imp_chr{chr}_v3.bim",
         fam="{dir}/plink/{pheno}/ukb_imp_chr{chr}_v3.fam",
     output:
-        "{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.bed"
-        "{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.bim"
+        "{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.bed",
+        "{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.bim",
         "{dir}/maf{maf}/{pheno}/ukb_imp_chr{chr}_v3_maf{maf}.fam"
     shell:
         "plink2 --bed {input.bed} \
@@ -188,32 +184,3 @@ rule mergeFiles:
             --make-bed \
             --out {wildcards.dir}/maf{wildcards.maf}/{wildcards.pheno}/ukb_imp_genome_v3_maf{wildcards.maf}.pruned"
 
-rule kinship:
-    input:
-        bed="{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
-        bim="{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bim",
-        fam="{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.fam",
-    output:
-        "{dir}/maf{maf}/{pheno}/ukb_imp_v3_kinship.rel"
-    shell:
-        "plink2 --bed {input.bed} \
-                --fam {input.fam} \
-                --bim {input.bim} \
-                --maf 0.1 \
-                --make-rel square \
-                --out {wildcards.dir}/{wildcards.pheno}/ukb_imp_v3_kinship.rel"
-
-rule pca:
-    input:
-        bed="{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bed",
-        bim="{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.bim",
-        fam="{dir}/maf{maf}/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.fam",
-    output:
-        "{dir}/maf{maf}/{pheno}/ukb_imp_v3_pca"
-    shell:
-        "flashpca --bed {input.bed} \
-                --fam {input.fam} \
-                --bim {input.bim} \
-                --ndim 50 \
-                --outpc {wildcards.dir}/{wildcards.pheno}/ukb_imp_v3_pca \
-                --suffix _ukb_imp_v3.txt"

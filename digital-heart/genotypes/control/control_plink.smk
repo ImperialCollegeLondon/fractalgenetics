@@ -6,7 +6,7 @@ configfile: "config/config_control.yaml"
 
 rule all:
     input:
-        expand("{dir}/control/plink_HVOL.{name}.combined.{suffix}_batch.assoc.linear",
+        expand("{dir}/control/plink_HVOL.{name}.combined.{suffix}_lm_qqplot.pdf",
             dir=config["controldir"],
             name=config["name"],
             suffix=config["suffix"]),

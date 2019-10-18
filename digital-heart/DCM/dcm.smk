@@ -13,18 +13,20 @@ rule all:
         expand("{dir}/{diagnosis}.FD.{type}.sigSNPs.dosage",
             diagnosis=['HVOL', 'DCM'],
             type=['Pseudomultitrait_Slices_sig5e08'],
-            #type=['Pseudomultitrait_Slices_sig5e08', 'GCC', 'random'],
             dir=config["dir"]),
         expand("{dir}/HVOL.DCM.FD.{type}.sigSNPs.{suffix}",
             suffix=['bed', 'bim', 'fam'],
             type=['Pseudomultitrait_Slices_sig5e08'],
-            #type=['Pseudomultitrait_Slices_sig5e08', 'GCC', 'random'],
             dir=config["dir"]),
         expand("{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.model.perm.{suffix}",
             suffix=['sig', 'sig.genotyped'],
-            type=['Pseudomultitrait_Slices_sig5e08'],
-            #type=['Pseudomultitrait_Slices_sig5e08', 'GCC', 'random'],
-            dir=config["dir"])
+            type=['Pseudomultitrait_slices_sig5e08'],
+            dir=config["dir"]),
+        expand("{dir}/phenotype/FD/FD_slices_EUnorel.csv",
+            dir=config["dir"]),
+        expand("{ukb}/DCM/FDAlongHeart_DCM_UKB_all_slices{interpolate}.pdf",
+            ukb=config['ukbdir'],
+            interpolate=config["interpolate"])
 
 rule extract:
     input:
@@ -34,10 +36,6 @@ rule extract:
         sample=expand("{dir}/genotypes/{name}.chr1.sample",
             name=config['name'],
             dir=config['imputedir']),
-        rsids=expand('{dir}/{{type}}_qctool.IDs',
-            dir=config['sigdir']),
-        update=expand('{dir}/{{type}}_qctool.toUpdate',
-            dir=config['sigdir']),
         diagnosis=expand('{dir}/European.{{diagnosis}}.gencall.combined.qctool.IDs',
             dir=config['genodir'])
     output:
@@ -91,7 +89,7 @@ rule merge:
 rule covariates:
     input:
         fam="{dir}/HVOL.DCM.FD.{type}.sigSNPs.fam",
-        cov=expand("{dir}/20160412_All_BRU_format.txt",
+        cov=expand("{dir}/2Dphenotype/20160412_All_BRU_format.txt",
             dir=config['phenodir']
             )
     output:
@@ -159,7 +157,7 @@ rule association:
 
 rule significant:
     input:
-        combined="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.assoc.logistic.all"
+        combined="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.assoc.logistic.all",
         genotyped=expand('{dir}/gencall.combined.bim',
             dir=config['genodir'])
     params:
@@ -173,6 +171,46 @@ rule significant:
         awk 'FNR==NR {{a[$2]=$0; next}} $2 in a {{print a[$2]}}' {output.sig} \
             {input.genotyped} > {output.geno}
         """
+
+rule process_FD:
+    input:
+        pheno="{dir}/phenotype/FD/20191002_DCM_FD_all.csv",
+        covs="{dir}/phenotype/2Dphenotype/20160412_All_BRU_format.txt",
+        samples="{dir}/genotype/imputation/combined/genotypes/gencall.combined.clean.related.chr1.sample",
+        europeans="{dir}/genotype/QC/combined/DCM.gencall.combined.clean.related.fam",
+    output:
+        "{dir}/phenotype/FD/FD_summary_EUnorel.csv",
+        "{dir}/phenotype/FD/FD_slices_EUnorel.csv",
+    params:
+        interpolate=config['interpolate'],
+        genodir=config['genodir'],
+        plink=config['plink']
+    shell:
+        "Rscript 'preparePheno.r' \
+            --outdir {wildcards.dir}/phenotype/FD \
+            --cov {input.covs} \
+            --pheno {input.pheno} \
+            --samples {input.samples} \
+            --relatedness {input.relatedness} \
+            --europeans {input.europeans} \
+            --interpolate {params.interpolate}"
+
+rule fd_ukb_dcm:
+    input:
+        ukb=expand("{{ukb}}/phenotypes/{pheno}/FD_slices_EUnorel.csv",
+            pheno=config['discovery']),
+        dcm=expand("{dh}/FD/FD_slices_EUnorel.csv",
+            dh=config['phenodir'])
+    output:
+        "{ukb}/DCM/FDAlongHeart_DCM_UKB_all_slices{interpolate}.pdf"
+    shell:
+        "Rscript 'compare-FD-dcm-ukb.R' \
+            --dir {wildcards.ukb}/DCM \
+            --dcm {input.dcm} \
+            --interpolate {wildcards.interpolate} \
+            --ukb {input.ukb}"
+
+
 #### example cluster call #####
 # snakemake -s impute.smk --jobs 5000 --latency-wait 30 --cluster-config config/cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources}
 # -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete --use-conda

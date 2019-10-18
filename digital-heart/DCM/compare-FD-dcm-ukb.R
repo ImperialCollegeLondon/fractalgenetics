@@ -37,7 +37,7 @@ args <- optparse$parse_args(OptionParser(option_list=option_list))
 
 if (args$debug) {
     args <- list()
-    args$dir <- "~/data/ukbb/DCM"
+    args$dir <- "~/data/ukbb/ukb-hrt/DCM"
     args$dcm <- "~/data/digital-heart/phenotype/FD/FD_slices_EUnorel.csv"
     args$ukb <- "~/data/ukbb/ukb-hrt/phenotypes/180628_fractal_dimension/FD_slices_EUnorel.csv"
     args$interpolate <- 9
@@ -75,7 +75,7 @@ FDalongHeart$Location[as.numeric(FDalongHeart$Slice) <= 3] <- "Basal section"
 FDalongHeart$Location[as.numeric(FDalongHeart$Slice) <= 6 &
                           as.numeric(FDalongHeart$Slice) > 3] <- "Mid section"
 FDalongHeart$Location <- factor(FDalongHeart$Location,
-                                levels=c("Basal section", "Mid section",
+                               levels=c("Basal section", "Mid section",
                                          "Apical section"))
 
 p_fd <- ggplot(data=FDalongHeart)

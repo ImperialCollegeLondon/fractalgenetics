@@ -112,6 +112,9 @@ tags_dir <- "~/data/ukbb/ukb-hrt/tags/180628_fractal_dimension"
 ldshub_file <- "~/data/ukbb/ukb-hrt/gwas/180628_fractal_dimension/ldc_hub/w_hm3.noMHC.snplist"
 
 gwasdir <- file.path(directory, "gwas", cohort)
+ldhubdir <- file.path(directory, "ldhub", cohort)
+if(!dir.exists(ldhubdir)) dir.create(ldhubdir)
+
 ## Read results ####
 if (verbose) message("Read files with phenotypes")
 pheno <- data.table::fread(phenofile, data.table=FALSE,
@@ -184,7 +187,7 @@ multitrait_ld <-
                               tags_suffix=tags_suffix,
                               matchBy="SNP", tags_ID="SNP",
                               tagsSplit="|")
-ldfilter$writeSig(multitrait_ld, threshold=5*10^(-8), directory=directory,
+ldfilter$writeSig(multitrait_ld, threshold=5*10^(-8), directory=gwasdir,
                name="Pseudomultitrait_Slices")
 sig <- genomewide[genomewide$rsid %in% multitrait_ld$sig_no_ld,]
 write.table(sig, paste(gwasdir, "/", name, "_sig5e08_ldFiltered.txt",
@@ -216,7 +219,7 @@ if (verbose) message("Format results for LD score regression")
 ldshub_snps <- data.table::fread(ldshub_file, data.table=FALSE,
                                  stringsAsFactors=FALSE)
 
-ldsc_single <- sapply(index_beta, function(x,lsnps, N) {
+ldsc_single <- sapply(index_beta, function(x, lsnps, N) {
                    columns <- c(1:7, x:(x+3))
                    nn <- paste(name, "_",
                                gsub("_beta", "", colnames(genomewide)[x]),
@@ -226,13 +229,11 @@ ldsc_single <- sapply(index_beta, function(x,lsnps, N) {
                                              N=N,
                                              ldshub_snps=lsnps)
                    message("Write LDSC output for ", nn)
-                   outdir <- file.path(directory, "ldhub")
-                   if(!dir.exists(outdir)) dir.create(outdir)
-                   write.table(tmp, file=paste(outdir, "/sumstats_", nn,
+                   write.table(tmp, file=paste(ldhubdir, "/sumstats_", nn,
                                                ".txt", sep=""),
                                sep="\t", quote=FALSE, col.names=TRUE,
                                row.names=FALSE)
-                   system(paste("cd ", outdir, "; zip sumstats_", nn, ".zip ",
+                   system(paste("cd ", ldhubdir, "; zip sumstats_", nn, ".zip ",
                                 "sumstats_", nn, ".txt", sep=""))
                    return(tmp)
                 }, N=nrow(pheno), lsnps=ldshub_snps)

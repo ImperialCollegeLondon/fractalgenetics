@@ -9,15 +9,8 @@ rule all:
         expand("{ukb}/gwas/{pheno}/bgenie_{analysis}_lm_st_chr{chr}.gz",
             ukb=config["ukbdir"],
             pheno=config['discovery'],
-            #analysis=['slices', 'summary'],
-            analysis=['slices'],
+            analysis=['slices', 'summary'],
             chr=range(1,23)),
-        expand("{ukb}/gwas/{pheno}/bgenie_{analysis}_lm_pseudomt_{plot}.pdf",
-            #analysis=['slices', 'summary'],
-            analysis=['slices'],
-            pheno=config['discovery'],
-            plot=['qqplot', 'manhattanplot'],
-            ukb=config["ukbdir"]),
         expand("{ukb}/tags/{pheno}/European_ukb_imp_chr{chr}_v3_maf{maf}_{kb}kb_r{r2}.tags.list",
             ukb=config["ukbdir"],
             pheno=config['discovery'],
@@ -25,31 +18,33 @@ rule all:
             kb=config['kbwindow'],
             r2=config['r2'],
             chr=range(1,23)),
+        expand("{ukb}/gwas/{pheno}/Pseudomultitrait_{analysis}_sig5e08_ldFiltered.txt",
+            ukb=config["ukbdir"],
+            analysis=['slices', 'summary'],
+            pheno=config['discovery']),
         expand("{ukb}/gwas/{pheno}/Pseudomultitrait_{analysis}_sig5e08_genotypes.dosage.gz",
             ukb=config["ukbdir"],
-            #analysis=['slices', 'summary'],
             analysis=['slices'],
             pheno=config['discovery']),
         expand("{ukb}/gwas/{pheno}/Distribution_{analysis}_beta.pdf",
-            #analysis=['slices', 'summary'],
             analysis=['slices'],
             pheno=config['discovery'],
             ukb=config["ukbdir"]),
-        expand("{ukb}/gwas/{pheno}/Significant_per_{analysis}.csv",
-            #analysis=['slices', 'summary'],
-            analysis=['slices'],
+        expand("{ukb}/MR/{pheno}/MRbase_{analysis}.rds",
+            analysis=['summary'],
             pheno=config['discovery'],
             ukb=config["ukbdir"]),
-        #expand("{ukb}/MR/{pheno}/MRbase_{analysis}.rds",
-        #    #analysis=['slices', 'summary'],
-        #    analysis=['summary'],
-        #    pheno=config['discovery'],
-        #    ukb=config["ukbdir"]),
-        #expand("{ukb}/annotation/{pheno}/Functional_enrichment_{analysis}.pdf",
-        #    #analysis=['slices', 'summary'],
-        #    analysis=['summary'],
-        #    ukb=config["ukbdir"],
-        #    pheno=config['discovery'])
+        expand("{ukb}/annotation/{pheno}/Functional_enrichment_{analysis}.pdf",
+            analysis=['summary'],
+            ukb=config["ukbdir"],
+            pheno=config['discovery']),
+        expand("{ukb}/ldhub/{pheno}/Rg_{analysis}_all.csv",
+            analysis=['summary'],
+            ukb=config["ukbdir"],
+            pheno=config['discovery']),
+        expand("{ukb}/GTEX/{pheno}/gTEX_geneexpression.pdf",
+            ukb=config["ukbdir"],
+            pheno=config['discovery'])
 
 rule generateSNPfiles:
     input:
@@ -118,7 +113,8 @@ rule results:
         "{dir}/gwas/{pheno}/bgenie_{analysis}_lm_pseudomt_qqplot.pdf",
         "{dir}/gwas/{pheno}/bgenie_{analysis}_lm_pseudomt_manhattanplot.pdf",
         "{dir}/gwas/{pheno}/bgenie_{analysis}_lm_st_genomewide.csv",
-        "{dir}/gwas/{pheno}/Pseudomultitrait_{analysis}_sig5e08.txt"
+        "{dir}/gwas/{pheno}/Pseudomultitrait_{analysis}_sig5e08.txt",
+        "{dir}/gwas/{pheno}/Pseudomultitrait_{analysis}_sig5e08_ldFiltered.txt",
     shell:
         "Rscript association/association-results.R \
             --pheno {input.pheno} \
@@ -129,14 +125,14 @@ rule results:
 
 rule functional_enrichment:
     input:
-        "{dir}/gwas/bgenie_{analysis}_lm_st_genomewide.csv",
+        "{dir}/gwas/{pheno}/bgenie_{analysis}_lm_st_genomewide.csv",
     output:
         "{dir}/annotation/{pheno}/Functional_enrichment_{analysis}.pdf",
         "{dir}/annotation/{pheno}/Functional_enrichment_{analysis}_all.pdf",
     shell:
         "Rscript association/functional-enrichment.R \
             --name {wildcards.analysis} \
-            --directory {wildcards.dir}/gwas \
+            --directory {wildcards.dir}/gwas/{wildcards.pheno} \
             --showProgress "
 
 rule extract_genotypes:
@@ -145,7 +141,7 @@ rule extract_genotypes:
             chr=range(1,23),
             geno=config["genodir"]),
         samples="{dir}/rawdata/ukb18545_imp_chr1_v3_s487378.sample",
-        fdsamples="{dir}/phenotypes/FD_{analysis}_EUnorel.csv",
+        fdsamples="{dir}/phenotypes/{pheno}/FD_{analysis}_EUnorel.csv",
         sig="{dir}/gwas/{pheno}/Pseudomultitrait_{analysis}_sig5e08.txt"
     output:
         bimbam="{dir}/gwas/{pheno}/Pseudomultitrait_{analysis}_sig5e08_genotypes.dosage.gz",
@@ -166,22 +162,49 @@ rule extract_genotypes:
 
 rule effect:
     input:
-        instruments="{dir}/gwas/{pheno}/Pseudomultitrait_{analysis}_sig5e08_ldFiltered.txt",
+        "{dir}/gwas/{pheno}/Pseudomultitrait_{analysis}_sig5e08_ldFiltered.txt"
     output:
         "{dir}/gwas/{pheno}/Distribution_{analysis}_beta.pdf",
     shell:
         "Rscript association/effect-size-distribution.R \
-            --directory {wildcards.dir} \
+            --directory {wildcards.dir}/gwas/{wildcards.pheno} \
             --showProgress "
 rule mr:
     input:
-        instruments="{dir}/gwas/{pheno}/Pseudomultitrait_{analysis}_sig5e08_ldFiltered.txt",
-        bimbam="{dir}/gwas/{pheno}/Pseudomultitrait_{analysis}_sig5e08_genotypes.dosage.gz",
+        instruments="{dir}/gwas/{pheno}/Pseudomultitrait_slices_sig5e08_ldFiltered.txt",
+        bimbam="{dir}/gwas/{pheno}/Pseudomultitrait_slices_sig5e08_genotypes.dosage.gz",
         oauth="{dir}/MR/mrbase.oauth"
     output:
-        "{dir}/gwas/{pheno}/Significant_per_{analysis}.csv",
         "{dir}/MR/{pheno}/MRbase_{analysis}.rds"
     shell:
         "Rscript association/mendelian-randomisation.R \
-            --directory {wildcards.dir} \
+            --gwasdir {wildcards.dir}/gwas/{wildcards.pheno} \
+            --mrdir {wildcards.dir}/MR/{wildcards.pheno} \
+            --showProgress "
+
+rule ldhub:
+    input:
+        "{dir}/gwas/{pheno}/bgenie_{analysis}_lm_st_genomewide.csv",
+        "{dir}/ldhub/{pheno}/sumstats_{analysis}_MeanBasalFD.txt",
+        "{dir}/ldhub/{pheno}/sumstats_{analysis}_MeanMidFD.txt",
+        "{dir}/ldhub/{pheno}/sumstats_{analysis}_MeanApicalFD.txt",
+    output:
+        "{dir}/ldhub/{pheno}/Rg_{analysis}_all.csv"
+    shell:
+        "Rscript association/LDhub-results.R \
+            --directory {wildcards.dir}/ldhub/{wildcards.pheno} \
+            --showProgress "
+
+rule gtex:
+    input:
+        "{dir}/gwas/{pheno}/bgenie_slices_lm_st_genomewide.csv",
+        expand("{{dir}}/GTEX/{{pheno}}/expression_atlas-homo_sapiens_{loci}.tsv",
+            loci=["C4A", "GOSR2", "MTSS1", "PDZRN3", "PKP1", "SAP30L",
+                  "SSXP10", "TDH", "ZNF358"])
+    output:
+        "{dir}/GTEX/{pheno}/gTEX_geneexpression.pdf"
+    shell:
+        "Rscript association/gtex-expression.R \
+            --prefix expression_atlas-homo_sapiens \
+            --directory {wildcards.dir}/GTEX/{wildcards.pheno} \
             --showProgress "

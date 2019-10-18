@@ -26,7 +26,7 @@ sig_loci <- sig_loci[!sig_loci$rsid %in% c('rs71394376', 'rs71105784'),]
 
 ## genotypes of associated loci ####
 genotypes <- data.table::fread(paste(directory, "/gwas/",
-                                     "Pseudomultitrait_slices_sig5e08_genotypes.dosage", 
+                                     "Pseudomultitrait_slices_sig5e08_genotypes.dosage",
                                      sep=""),
                                stringsAsFactors=FALSE, data.table=FALSE)
 geno <- genotypes[,-c(1,2,4,5,6)]

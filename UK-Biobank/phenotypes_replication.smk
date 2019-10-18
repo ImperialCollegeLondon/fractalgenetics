@@ -13,12 +13,9 @@ rule all:
             ukb=config["ukbdir"]),
         expand("{ukb}/rawdata/ukb22219.r",
             ukb=config["ukbdir"]),
-        expand("{ukb}/phenotypes/{pheno}/FD_phenotypes_bgenie.csv",
+        expand("{ukb}/phenotypes/{pheno}/FD_slices_bgenie.csv",
             pheno=config["pheno"],
             ukb=config["ukbdir"]),
-        expand("{ukb}/phenotypes/{pheno}/FD_covariates_bgenie.csv",
-            pheno=config["pheno"],
-            ukb=config["ukbdir"])
 
 rule formatUKB:
     input:
@@ -57,15 +54,15 @@ rule processUKB:
         europeans="{dir}/phenotypes/{pheno}/European_samples_filtered_by_HapMapIII_CGRCh37_replication.txt",
         pcs="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf0.1.pruned.European.pca"
     output:
-        "{dir}/phenotypes/{pheno}/FD_bgenie.csv",
+        "{dir}/phenotypes/{pheno}/FD_slices_bgenie.txt",
         "{dir}/phenotypes/{pheno}/FD_covariates_bgenie.csv"
     shell:
         "Rscript 'phenotypes/preparePheno.r' \
-            -u={wildcards.dir}/rawdata \
-            -o={wildcards.dir}/phenotypes/{wildcards.pheno} \
-            -p={input.pheno} \
-            -s={input.samples} \
-            -r={input.relatedness} \
-            -e={input.europeans} \
-            -pcs={input.pcs}"
+            --ukbdir {wildcards.dir}/rawdata \
+            --outdir {wildcards.dir}/phenotypes/{wildcards.pheno} \
+            --pheno {input.pheno} \
+            --samples {input.samples} \
+            --relatedness {input.relatedness} \
+            --europeans {input.europeans} \
+            --pcs {input.pcs}"
 

@@ -6,14 +6,11 @@ configfile: "config/config_phenotypes.yaml"
 
 rule all:
     input:
-        expand("{dir}/phenotypes/FD_phenotypes_bgenie.txt",
+        expand("{dir}/phenotypes/FD_slices_bgenie.txt",
             dir=config["dir"]),
-        expand("{dir}/phenotypes/FD_covariates_bgenie.txt",
-            dir=config["dir"])
 
 rule formatPhenotypes:
     input:
-        outdir="{dir}/phenotype/FD",
         pheno="{dir}/phenotype/FD/20181116_HVOLSegmentations_FD.csv",
         cov="{dir}/phenotype/2Dphenotype/20160705_GenScan.txt",
         samples="{dir}/genotype/imputation/combined/genotypes/gencall.combined.clean.related.chr1.sample",
@@ -22,11 +19,10 @@ rule formatPhenotypes:
         path2plink="/homes/hannah/bin/plink",
         genodir="{dir}/genotype/QC/combined"
     output:
-        "{dir}/phenotypes/FD_phenotypes_bgenie.txt",
-        "{dir}/phenotypes/FD_covariates_bgenie.txt"
+        "{dir}/phenotypes/FD/FD_slices_bgenie.txt",
     shell:
         "Rscript 'phenotypes/preparePheno.r' -gd={input.genodir} \
-            -o={input.outdir} \
+            -o={wildcards.dir}/phenotype/FD \
             -c={input.cov} \
             -p={input.pheno} \
             -s={input.samples} \
