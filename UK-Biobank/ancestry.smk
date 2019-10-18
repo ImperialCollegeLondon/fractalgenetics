@@ -1,4 +1,4 @@
-# how to run fro ./:
+# how to run from ./:
 # snakemake -s ancestry.smk --jobs 5000 --latency-wait 200 --cluster-config config/cluster.json 
 # --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources} -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete
 
@@ -10,24 +10,22 @@ rule all:
             ukb=config["ukbdir"],
             pheno=config["pheno"],
             maf=config["maf"]),
-        #expand("{ukb}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.kinship.rel",
         expand("{ukb}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.kinship.rel",
             ukb=config["ukbdir"],
             pheno=config["pheno"],
             maf=config["maf"]),
-        #expand("{ukb}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.pca",
-        #    ukb=config["ukbdir"],
-        #    pheno=config["pheno"],
-        #    maf=config["maf"]),
+        expand("{ukb}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.pca",
+            ukb=config["ukbdir"],
+            pheno=config["pheno"],
+            maf=config["maf"]),
         expand("{ukb}/ancestry/{pheno}/{hapmap}_ukb_imp_genome_v3_maf{maf}.pruned.merged.pca",
             ukb=config["ukbdir"],
             pheno=config["pheno"],
             maf=config["maf"],
             hapmap=config["hapmap"]),
-        expand("{ukb}/ancestry/{pheno}/{hapmap}_UKBB-FD_maf{maf}_pca.png",
+        expand("{ukb}/ancestry/{pheno}/{hapmap}_{pheno}_pca.png",
             pheno=config["pheno"],
             ukb=config["ukbdir"],
-            maf=config["maf"],
             hapmap=config["hapmap"]),
         expand("{ukb}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.European.pca",
             pheno=config["pheno"],
@@ -175,7 +173,7 @@ rule excludeMissnpUKB:
         ukb_bed="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.bed",
         ukb_bim="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.bim",
         ukb_fam="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.fam",
-        missnp=expand("{{dir}}/ancestry/{{pheno}}/compare.{hapmap}.ukb_imp_v3_maf{{maf}}.pruned.missnp",
+        missnp=expand("{{dir}}/ancestry/{{pheno}}/compare.{hapmap}.ukb_imp_genome_v3_maf{{maf}}.pruned.missnp",
             hapmap=config['hapmap'])
     output:
         "{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf{maf}.pruned.intersection.nomissnp.bed",
@@ -194,7 +192,7 @@ rule excludeMissnpHapmap:
         hapmap_bed="{dir}/ancestry/{pheno}/{hapmap}.intersection.bed",
         hapmap_bim="{dir}/ancestry/{pheno}/{hapmap}.intersection.bim",
         hapmap_fam="{dir}/ancestry/{pheno}/{hapmap}.intersection.fam",
-        missnp=expand("{{dir}}/ancestry/{{pheno}}/compare.{{hapmap}}.ukb_imp_v3_maf{maf}.pruned.missnp",
+        missnp=expand("{{dir}}/ancestry/{{pheno}}/compare.{{hapmap}}.ukb_imp_genome_v3_maf{maf}.pruned.missnp",
             maf=config['maf'])
     output:
         "{dir}/ancestry/{pheno}/{hapmap}.intersection.nomissnp.bed",
