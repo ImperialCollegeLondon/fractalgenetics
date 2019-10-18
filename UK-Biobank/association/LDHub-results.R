@@ -99,7 +99,7 @@ args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 
 if (args$debug) {
     args <- list()
-    args$directory <- "~/data/ukbb/ukb-hrt/ldhub"
+    args$directory <- "~/data/ukbb/ukb-hrt/ldhub/180628_fractal_dimension"
     args$verbose <- TRUE
 }
 
