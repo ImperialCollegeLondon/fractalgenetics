@@ -9,7 +9,7 @@ R code for post-processing of FD values output by
     Apical FD, mean and max Basal FD. This is an R version of the matlab
     function [FDstatististics](https://github.com/ImperialCollegeLondon/fractalgenetics/blob/master/automated-fractal-analysis/pft_JC_FDStatistics.m).
     The function has been tested for equivalent output in
-    [tests](fractal-analysis-processing/tests).
+    [tests](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/fractal-analysis-processing/tests).
 1. radial-registration.R
     Collection of functions for co-registration of myocardial and trabeculation
     outline to closest enclosing circle. Functions include transformation of
@@ -80,4 +80,4 @@ max Basal FD
 A detailed example of how to run radial co-registration of myocard and
 trabeculation outline based on intermediate files generated in
 [AutoFD](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/automated-fractal-analysis) can be found
-[here](fractal-analysis-processing/tests/radial-registration/test-registration.R).
+[here](https://github.com/ImperialCollegeLondon/fractalgenetics/blob/master/fractal-analysis-processing/tests/radial-registration/test-registration.R).
