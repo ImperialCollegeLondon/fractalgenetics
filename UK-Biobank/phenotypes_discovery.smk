@@ -1,5 +1,5 @@
 # how to run fro ./:
-# snakemake -s phenotypes.smk --jobs 5000 --latency-wait 30 --cluster-config config/cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources} -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete
+# snakemake -s phenotypes_discovery.smk --jobs 5000 --latency-wait 30 --cluster-config config/cluster.json --cluster 'bsub -J {cluster.name} -q {cluster.queue} -n {cluster.n} -R {cluster.resources} -M {cluster.memory}  -o {cluster.output} -e  {cluster.error}' --keep-going --rerun-incomplete
 
 configfile: "config/config_phenotypes.yaml"
 
@@ -13,10 +13,10 @@ rule all:
             ukb=config["ukbdir"]),
         expand("{ukb}/rawdata/ukb22219.r",
             ukb=config["ukbdir"]),
-        expand("{ukb}/phenotypes/FD_phenotypes_bgenie.csv",
-            ukb=config["ukbdir"]),
-        expand("{ukb}/phenotypes/FD_covariates_bgenie.csv",
-            ukb=config["ukbdir"])
+        expand("{ukb}/phenotypes/{pheno}/FD_{analysis}_bgenie.csv",
+            ukb=config["ukbdir"],
+            analysis=["slices", "summary"],
+            pheno=config["discovery"]),
 
 rule formatUKB:
     input:
@@ -36,22 +36,22 @@ rule formatUKB:
 
 rule processUKB:
     input:
-        ukbdir="{dir}/rawdata",
-        outdir="{dir}/phenotypes",
+        dec="{dir}/rawdata/ukb22219.enc_ukb",
         pheno="{dir}/rawdata/{pheno}.csv",
         samples="{dir}/rawdata/ukb18545_imp_chr1_v3_s487378.sample",
         relatedness="{dir}/rawdata/ukb18545_rel_s488346.dat",
-        europeans="{dir}/ancestry/European_samples.csv",
-        pcs="{dir}/ancestry/ukb_imp_genome_v3_maf0.1.pruned.European.pca"
+        europeans="{dir}/ancestry/{pheno}/European_samples_filtered_by_HapMapIII_CGRCh37.txt",
+        pcs="{dir}/ancestry/{pheno}/ukb_imp_genome_v3_maf0.1.pruned.European.pca"
     output:
-        "{dir}/phenotypes/{pheno}_bgenie.csv",
-        "{dir}/phenotypes/{pheno}_covariates_bgenie.csv"
+        "{dir}/phenotypes/{pheno}/FD_summary_bgenie.txt",
+        "{dir}/phenotypes/{pheno}/FD_slices_bgenie.txt",
     shell:
-        "Rscript 'phenotypes/preparePheno.r' -u={input.ukbdir} \
-            -o={input.outdir} \
-            -p={input.pheno} \
-            -s={input.samples} \
-            -r={input.relatedness} \
-            -e={input.europeans} \
-            -pcs={input.pcs}"
+        "Rscript 'phenotypes/preparePheno.r' \
+            --ukbdir {wildcards.dir}/rawdata \
+            --outdir {wildcards.dir}/phenotypes/{wildcards.pheno} \
+            --pheno {input.pheno} \
+            --samples {input.samples} \
+            --relatedness {input.relatedness} \
+            --europeans {input.europeans} \
+            --pcs {input.pcs}"
 
