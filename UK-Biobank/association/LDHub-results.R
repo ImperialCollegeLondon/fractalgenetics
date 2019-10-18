@@ -1,9 +1,11 @@
 #################
 ## libraries ####
 #################
+options(bitmapType = 'cairo', device = 'pdf')
 
-library(ggplot2)
-library(dplyr)
+modules::import_package('dplyr', attach=TRUE)
+modules::import_package('ggplot2', attach=TRUE)
+optparse <- modules::import_package('optparse')
 
 getHeritability <- function(fn, pheno) {
     if (file.exists(fn)) {
@@ -76,20 +78,38 @@ getGeneticCorrelation <- function(fn, pheno) {
 # correlation estimates.
 # These files are read below.
 
-directory <-"~/data/ukbb/ukb-hrt/ldhub"
-interpolate <- 9
-regions <- c("MeanApicalFD", "MeanMidFD", "MeanBasalFD")
+## command line arguments ####
+option_list <- list(
+    optparse$make_option(c("--directory"), action="store",
+                         dest="directory", type="character",
+                         help="Path to directory with LDhub results
+                         default: %default].", default=NULL),
+    optparse$make_option(c("--showProgress"), action="store_true",
+                         dest="verbose",
+                         default=FALSE, type="logical",
+                         help="If set, progress messages about analyses are
+                         printed to standard out ", "[default: %default]."),
+    optparse$make_option(c("--debug"), action="store_true",
+                         dest="debug", default=FALSE, type="logical",
+                         help="If set, predefined arguments are used to test the
+                         script", "[default: %default].")
+)
+
+args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
+
+if (args$debug) {
+    args <- list()
+    args$directory <- "~/data/ukbb/ukb-hrt/ldhub"
+    args$verbose <- TRUE
+}
+
+directory <- args$directory
+verbose <- args$verbose
+regions <-  c("MeanApicalFD", "MeanMidFD", "MeanBasalFD")
+
+
 
 # from heritability.log
-heritability_slices <- lapply(1:interpolate, function(pheno) {
-    fn <- paste(directory, "/sumstats_slices_Slice_", pheno, "-h2.log", sep="")
-    getHeritability(fn, pheno)
-})
-h2_slices <- do.call(rbind, heritability_slices)
-write.table(h2_slices, file.path(directory,
-                                 "LDscore_heritability_estimates_slices.csv"),
-            sep=",", col.names=TRUE, row.names=FALSE, quote=FALSE)
-
 heritability_summary <- lapply(regions, function(pheno) {
     fn <- paste(directory, "/sumstats_summary_", pheno, "-h2.log", sep="")
     getHeritability(fn, pheno)
@@ -100,13 +120,6 @@ write.table(h2_summary, file.path(directory,
             sep=",", col.names=TRUE, row.names=FALSE, quote=FALSE)
 
 # from rg.csv
-rg_ld_slices <- lapply(1:interpolate, function(slice) {
-    fn <- paste(directory, "/sumstats_slices_Slice_", slice, "_rg.results.csv",
-                sep="")
-    getGeneticCorrelation(fn)
-})
-rg_ld_slices <- do.call(rbind, rg_ld_slices)
-
 rg_ld_summary <- lapply(regions, function(pheno) {
     fn <- paste(directory, "/sumstats_summary_", pheno, "_rg.results.csv",
                 sep="")
@@ -189,96 +202,6 @@ write.table(heart_pheno,
 ## analysis ####
 ################
 
-## Depict heritability estimates per slice ####
-h2_slices$region <- "Mid"
-h2_slices$region[h2_slices$pheno <=3] <- "Basal"
-h2_slices$region[h2_slices$pheno >=7] <- "Apical"
-h2_slices$region <- factor(h2_slices$region, levels=c("Basal", "Mid", "Apical"))
-
-h_slices <- ggplot(data=h2_slices, aes(x=pheno, y=h2, color=region))
-h_slices <- h_slices + geom_point() +
-    geom_pointrange(aes(ymin=h2-h2_se, ymax=h2+h2_se)) +
-    scale_x_continuous(labels=1:interpolate, breaks=1:interpolate) +
-    scale_color_manual(values=c('#67a9cf','#1c9099','#016c59'),
-                       name="Region") +
-    xlab("Slice") +
-    ylab("Additive heritability") +
-    theme_bw()
-ggsave(plot=h_slices, filename=file.path(directory, "heritability_slices.pdf"),
-       width=5, height=3)
-
-## Depict genetic correlation estimates in 'manhattan plot';
-## any heart-related traits highlighted in magenta
-rg_ld_slices$heart <- 0
-rg_ld_slices$heart[rg_ld_slices$trait2 %in% heart_pheno$ukbb_name] <- 1
-heart_slices <- filter(rg_ld_slices, heart == 1) %>%
-    droplevels
-heart_slices$name <- heart_pheno$name
-
-rg_slices <- ggplot()
-rg_slices <- rg_slices + geom_point(data=rg_ld_slices,
-                                    aes(x=pos, y=-log10(p), color=Category),
-                    size=0.5) +
-    geom_point(data=filter(rg_ld_slices, heart == 1), aes(x=pos, y=-log10(p)),
-               color='#dd1c77', size=0.5) +
-    scale_x_discrete(labels=NULL) +
-    facet_wrap(~trait1, nrow=interpolate) +
-    scale_color_manual(values=c('#a6cee3','#1f78b4','#b2df8a','#33a02c',
-                                '#fb9a99', '#e31a1c','#fdbf6f','#ff7f00',
-                                '#cab2d6','#6a3d9a', '#ffff99','#b15928',
-                                '#8dd3c7','#ffffb3','#bebada', '#fb8072',
-                                '#80b1d3','#fdb462','#b3de69','#fccde5',
-                                '#d9d9d9','#bc80bd','#ccebc5','#ffed6f')) +
-    xlab("LD Hub traits") +
-    theme_bw() +
-    theme(strip.background = element_rect(fill="white"))
-
-ggsave(plot=rg_slices, filename=file.path(directory, "Rg_slices_manhattan.pdf"),
-       width=8, height=10)
-
-rgh_slices <- ggplot()
-rgh_slices <- rgh_slices + geom_point(data=heart_slices,
-                                      aes(x=-log10(p), y=name, color=trait1)) +
-    scale_color_manual(values=c('#1b9e77','#d95f02','#7570b3','#e7298a',
-                                '#66a61e','#e6ab02','#a6761d', "#e41a1c",
-                                "#377eb8"),
-                       name="Slice") +
-    theme_bw() +
-    theme(strip.background = element_rect(fill="white"),
-          axis.title.y = element_blank())
-          #axis.text.x = element_text(angle=45, hjust=1, vjust=1))
-ggsave(plot=rgh_slices, filename=file.path(directory, "Rg_slices_heart.pdf"),
-       width=8, height=10)
-
-
-sig_slices <- filter(rg_ld_slices,p < 5*10^-4) %>% droplevels
-sig_slices$rg <- as.numeric(sig_slices$rg)
-
-rgsig_slices <- ggplot()
-rgsig_slices <- rgsig_slices + geom_point(data=sig_slices, aes(x=rg, y=trait2,
-                                          color=Category, size=-log10(p))) +
-    geom_point(data=filter(sig_slices, heart == 1), aes(x=rg, y=trait2,
-                                                        size=-log10(p)),
-               color='#dd1c77') +
-    facet_wrap(~trait1, ncol=interpolate) +
-    scale_color_manual(values=c('#a6cee3','#1f78b4','#b2df8a','#33a02c',
-                                '#fb9a99', '#e31a1c','#fdbf6f','#ff7f00',
-                                '#cab2d6','#6a3d9a','#ffff99','#b15928',
-                                '#8dd3c7','#ffffb3','#bebada', '#fb8072',
-                                '#80b1d3','#fdb462','#b3de69','#fccde5',
-                                '#d9d9d9','#bc80bd','#ccebc5','#ffed6f')) +
-    scale_size(range=c(0.2, 3)) +
-    xlab("Genetic correlation") +
-    ylab("") +
-    theme_bw() +
-    theme(strip.background = element_rect(fill="white"),
-          legend.position = 'bottom',
-          legend.box = "vertical",
-          plot.margin = unit(c(5.5,12,5.5,5.5), "pt"))
-ggsave(plot=rgsig_slices, filename=file.path(directory,
-                                             "Rg_slices_sig_heart.pdf"),
-       width=12, height=10)
-
 ## Depict heritability estimates per region ####
 h2_summary$region <- gsub("Mean(.*)FD", "\\1", h2_summary$pheno)
 h2_summary$region <- factor(h2_summary$region,
@@ -329,7 +252,8 @@ rg_summary <- rg_summary + geom_point(data=rg_ld_summary,
           legend.box = "vertical",
           plot.margin = unit(c(5.5,12,5.5,5.5), "pt"))
 
-ggsave(plot=rg_summary, filename=file.path(directory, "Rg_summary_manhattan.pdf"),
+ggsave(plot=rg_summary,
+       filename=file.path(directory, "Rg_summary_manhattan.pdf"),
        width=10, height=6)
 
 rgh_summary <- ggplot()
