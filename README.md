@@ -1,7 +1,6 @@
 [![DOI](https://zenodo.org/badge/166986710.svg)](https://zenodo.org/badge/latestdoi/166986710)
 
-# Genomic analysis reveals a functional role for myocardial trabeculae in adults
-
+# Fractal properties of heart muscle offer insights into genomic determinants of cardiovascular function
 The endocardial surface of the adult human hearts consists of a complex network of muscular trabeculae. Thought to be a remnant of embryonic development, it remains uknown why these complex structures still persistent in the adult organ. Here, we use population genomics, image-based intermediate phenotyping and *in silico* modelling to determine the effect of this complex cardiovascular trait on function.
 
 The full study is available on [BioRxiv](https://www.biorxiv.org/content/10.1101/553651v1).
