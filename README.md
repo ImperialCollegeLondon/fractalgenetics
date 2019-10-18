@@ -12,7 +12,7 @@ The following repository contains all data analysis and processing scripts appli
 Data processing and analysis is embedded into different [snakemake](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) (v5.1.5) workflows.
 Genetics analyses require
 plink [v1.9](https://www.cog-genomics.org/plink2) and [v2](https://www.cog-genomics.org/plink/2.0/) as well as [flashpca](https://github.com/gabraham/flashpca).
-Data visualisation and processing is done in [R](https://www.r-project.org/), version 3.4.1.
+Data visualisation and processing is done in [R](https://www.r-project.org/), version 3.6.1.
 Genetic association testing requires [Bgenie](https://jmarchini.org/bgenie/) v1.3.
 Fractal analysis requires Matlab, [MATLAB Compiler Runtime (MCR) 2016b](https://uk.mathworks.com/products/compiler/matlab-runtime.html) and [Ghostscript](https://www.ghostscript.com/). Finite element modeling was conducted with [Abaqus/Standard, Simulia](https://www.3ds.com/products-services/simulia/products/abaqus/abaqusstandard/).
 
