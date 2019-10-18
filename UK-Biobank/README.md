@@ -22,7 +22,7 @@ Parameters for filtering, file names and target directories are supplied in conf
 Requires plink [v1.9](https://www.cog-genomics.org/plink2) and [flashpca](https://github.com/gabraham/flashpca).
 
 <p align="center"> 
-<img src="https://github.com/ImperialCollegeLondon/fractalgenetics/blob/master/UK-Biobank/dag/ancestry_dag.png" height="600">
+<img src="https://github.com/ImperialCollegeLondon/fractalgenetics/blob/master/UK-Biobank/dag/ancestry_dag.png" height="700">
 </p>
 
 ### 3. phenotypes.smk
@@ -33,7 +33,8 @@ for association with the FD phenotypes and saves relevant data in bgenie format 
 Scripts called by [phenotypes.smk](UK-Biobank/phenotypes.smk) can be found in [phenotypes](UK-Biobank/phenotypes).
 
 <p align="center"> 
-<img src="https://github.com/ImperialCollegeLondon/fractalgenetics/blob/master/UK-Biobank/dag/phenotypes_dag.png" height="400">
+<img src="https://github.com/ImperialCollegeLondon/fractalgenetics/blob/master/UK-Biobank/dag/phenotypes_discovery_dag.png" height="100">
+  <img src="https://github.com/ImperialCollegeLondon/fractalgenetics/blob/master/UK-Biobank/dag/phenotypes_replication_dag.png" height="100">
 </p>
 
 ### 4. association.smk
@@ -42,8 +43,8 @@ Functional enrichement analysis depends on [GARFIELD2](https://www.ebi.ac.uk/bir
 Scripts called by [association.smk](UK-Biobank/association.smk) can be found in [association](UK-Biobank/association).
 
 <p align="center"> 
-<img src="https://github.com/ImperialCollegeLondon/fractalgenetics/blob/master/UK-Biobank/dag/association_discovery_dag.png" height="400">
-  <img src="https://github.com/ImperialCollegeLondon/fractalgenetics/blob/master/UK-Biobank/dag/association_replication_dag.png" height="400">
+<img src="https://github.com/ImperialCollegeLondon/fractalgenetics/blob/master/UK-Biobank/dag/association_discovery_dag.png" height="300">
+  <img src="https://github.com/ImperialCollegeLondon/fractalgenetics/blob/master/UK-Biobank/dag/association_replication_dag.png" height="300">
 </p>
 
 ## config
