@@ -8,7 +8,8 @@ options(bitmapType = 'cairo', device = 'pdf')
 
 modules::import_package('tidyverse', attach=TRUE)
 modules::import_package('dplyr', attach=TRUE)
-optparse <- modules::import_package('optparse')
+modules::import_package('ggplot2', attach=TRUE)
+modules::import_package('optparse', attach=TRUE)
 autofd <- modules::import('fractal-analysis-processing')
 
 #################################
@@ -48,7 +49,7 @@ if (args$debug) {
 #############
 
 ## DCM FD measurements ####
-DCM_slices <-  data.table::fread(args$dcm, data.table=FALSE)
+DCM_slices <-  data.table::fread(args$dcm, data.table=FALSE)[,-1]
 
 ## ukb FD measurments ####
 UKB_slices <-  data.table::fread(args$ukb, data.table=FALSE)[,-1]
@@ -77,6 +78,7 @@ FDalongHeart$Location[as.numeric(FDalongHeart$Slice) <= 6 &
 FDalongHeart$Location <- factor(FDalongHeart$Location,
                                levels=c("Basal section", "Mid section",
                                          "Apical section"))
+FDalongHeart$study <- as.factor(FDalongHeart$study)
 
 p_fd <- ggplot(data=FDalongHeart)
 p_fd <- p_fd + geom_boxplot(aes(x=Slice, y=FD, color=Location, fill=study)) +
@@ -90,4 +92,15 @@ ggsave(plot=p_fd,
                   args$interpolate, ".pdf", sep=""),
        height=2, width=5, units="in")
 
+lmm_study <- nlme::lme(FD ~ study, random=~1|Slice, data=FDalongHeart)
+p.value  <- 2*pt(-abs(-53.48570), df=165617, log=TRUE)
+
+tTable <- summary(lmm_study)$tTable %>%
+    as_tibble %>%
+    select(-`p-value`)
+
+tTable$log_pvalues <- 2*pt(-abs(tTable$`t-value`), df=tTable$DF, log=TRUE)
+write.table(tTable,
+            file.path(args$dir, "LMM_fixed_study_random_slices_tTable.csv"),
+            sep=",", col.names=TRUE, row.names=FALSE)
 
