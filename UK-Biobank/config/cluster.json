@@ -69,6 +69,25 @@
         "output" : "log/{rule}_GWAS.out",
         "error" : "log/{rule}_GWAS.err"
     },
+    "association_strain" :
+    {
+        "memory" : "50000",
+        "n" : "8",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}_{wildcards.chr}_{wildcards.analysis}",
+        "output" : "log/{rule}_{wildcards.chr}_{wildcards.analysis}.out",
+        "error" : "log/{rule}_{wildcards.chr}_{wildcards.analysis}.err"
+    },
+    "results_strain" :
+    {
+        "memory" : "50000",
+        "resources" : "\"select[mem>50000] rusage[mem=50000] span[hosts=1]\"",
+        "queue" : "research-rh7",
+        "name" : "{rule}",
+        "output" : "log/{rule}_GWAS.out",
+        "error" : "log/{rule}_GWAS.err"
+    },
     "covariatesResults" :
     {
         "memory" : "50000",
