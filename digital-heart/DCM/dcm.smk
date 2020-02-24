@@ -9,24 +9,51 @@ configfile: "config/config_dcm.yaml"
 ##### target rules #####
 rule all:
     input:
-        # rule/combine.smk
-        expand("{dir}/{diagnosis}.FD.{type}.sigSNPs.dosage",
-            diagnosis=['HVOL', 'DCM'],
-            type=['Pseudomultitrait_Slices_sig5e08'],
-            dir=config["dir"]),
-        expand("{dir}/HVOL.DCM.FD.{type}.sigSNPs.{suffix}",
-            suffix=['bed', 'bim', 'fam'],
-            type=['Pseudomultitrait_Slices_sig5e08'],
-            dir=config["dir"]),
-        expand("{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.model.perm.{suffix}",
+        expand("{dir}/gwas/DCM/HVOL.DCM.FD.{type}.sigSNPs.clean.assoc.logistic.all.{suffix}",
             suffix=['sig', 'sig.genotyped'],
-            type=['Pseudomultitrait_slices_sig5e08'],
+            type=['Pseudomultitrait_Slices_sig5e08'],
             dir=config["dir"]),
-        expand("{dir}/phenotype/FD/FD_slices_EUnorel.csv",
-            dir=config["dir"]),
-        expand("{ukb}/DCM/FDAlongHeart_DCM_UKB_all_slices{interpolate}.pdf",
-            ukb=config['ukbdir'],
-            interpolate=config["interpolate"])
+        #expand("{ukb}/DCM/FDAlongHeart_DCM_UKB_all_slices{interpolate}.pdf",
+        #    ukb=config['ukbdir'],
+        #    interpolate=config["interpolate"])
+
+rule process_FD:
+    input:
+        pheno="{dir}/phenotype/FD/20191002_DCM_FD_all.csv",
+        covs="{dir}/phenotype/2Dphenotype/20160412_All_BRU_format.txt",
+        samples="{dir}/genotype/imputation/combined/genotypes/gencall.combined.clean.related.chr1.sample",
+        europeans="{dir}/genotype/QC/combined/DCM.gencall.combined.clean.related.fam",
+    output:
+        "{dir}/phenotype/FD/FD_summary_EUnorel.csv",
+        "{dir}/phenotype/FD/FD_slices_EUnorel.csv",
+    params:
+        interpolate=config['interpolate'],
+        genodir=config['genodir'],
+        plink=config['plink']
+    shell:
+        "Rscript 'preparePheno.r' \
+            --outdir {wildcards.dir}/phenotype/FD \
+            --cov {input.covs} \
+            --pheno {input.pheno} \
+            --samples {input.samples} \
+            --europeans {input.europeans} \
+            --interpolate {params.interpolate}"
+
+rule fd_ukb_dcm:
+    input:
+        ukb=expand("{{ukb}}/phenotypes/{pheno}/FD_slices_EUnorel.csv",
+            pheno=config['discovery']),
+        dcm=expand("{dh}/FD/FD_slices_EUnorel.csv",
+            dh=config['phenodir'])
+    output:
+        "{ukb}/DCM/FDAlongHeart_DCM_UKB_all_slices{interpolate}.pdf"
+    shell:
+        "Rscript 'compare-FD-dcm-ukb.R' \
+            --dir {wildcards.ukb}/DCM \
+            --dcm {input.dcm} \
+            --interpolate {wildcards.interpolate} \
+            --ukb {input.ukb}"
+
 
 rule extract:
     input:
@@ -36,6 +63,10 @@ rule extract:
         sample=expand("{dir}/genotypes/{name}.chr1.sample",
             name=config['name'],
             dir=config['imputedir']),
+        rsids=expand('{dir}/gwas/180628_fractal_dimension/Pseudomultitrait_slices_sig5e08_qctool.IDs',
+            dir=config['ukbdir']),
+        update=expand('{dir}/gwas/180628_fractal_dimension/Pseudomultitrait_slices_sig5e08_qctool.toUpdate',
+            dir=config['ukbdir']),
         diagnosis=expand('{dir}/European.{{diagnosis}}.gencall.combined.qctool.IDs',
             dir=config['genodir'])
     output:
@@ -132,12 +163,29 @@ rule missing:
             --out {wildcards.dir}/HVOL.DCM.FD.{wildcards.type}.sigSNPs.clean
         """
 
+rule freq:
+    input:
+        both_bed="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.bed",
+        both_bim="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.bim",
+        both_fam="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.fam",
+    output:
+        freq="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.frq"
+    shell:
+        """
+        plink --bfile {wildcards.dir}/HVOL.DCM.FD.{wildcards.type}.sigSNPs.clean \
+            --freq \
+            --allow-extra-chr \
+            --allow-no-sex \
+            --out {wildcards.dir}/HVOL.DCM.FD.{wildcards.type}.sigSNPs.clean
+        """
+
 rule association:
     input:
         both_bed="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.bed",
         both_bim="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.bim",
         both_fam="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.fam",
-        cov="{dir}/HVOL.DCM.FD.{type}.covariates.txt"
+        cov="{dir}/HVOL.DCM.FD.{type}.covariates.txt",
+        freq="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.frq"
     output:
         logist="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.assoc.logistic",
         perm="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.assoc.logistic.perm",
@@ -145,15 +193,23 @@ rule association:
     shell:
         """
         plink --bfile {wildcards.dir}/HVOL.DCM.FD.{wildcards.type}.sigSNPs.clean \
-            --logistic hide-covar perm \
+            --logistic beta hide-covar perm \
             --covar {input.cov} \
             --allow-extra-chr \
             --allow-no-sex \
+            --ci 0.95 \
+            --seed 45908 \
             --out {wildcards.dir}/HVOL.DCM.FD.{wildcards.type}.sigSNPs.clean
-        tr -s ' ' < {output.perm} | sed 's/ //' | tr ' ' '\t' | cut -f 3,4 | \
-            paste {output.logist} -  > {output.combined}
+        tr -s ' ' < {output.perm} | sed 's/ //' | cut -d " " -f 3,4 \
+            > {output.perm}.tmp
+        tr -s ' ' < {output.logist} | sed 's/ //' | \
+            cut -d " " --complement -f 4  > {output.logist}.tmp
+        tr -s ' ' < {input.freq} | sed 's/ //' | \
+            cut -d " " -f 3,4,5  > {input.freq}.tmp
+        paste -d " "  {output.logist}.tmp {output.perm}.tmp {input.freq}.tmp \
+            > {output.combined}
+        rm {output.perm}.tmp {output.logist}.tmp {input.freq}.tmp
         """
-
 
 rule significant:
     input:
@@ -167,48 +223,10 @@ rule significant:
         geno="{dir}/HVOL.DCM.FD.{type}.sigSNPs.clean.assoc.logistic.all.sig.genotyped"
     shell:
         """
-        awk 'FNR==NR && ($11*{params.sigloci}) < 0.05' {input.combined} > {output.sig}
+        awk 'FNR==NR && $12 < 0.05' {input.combined} > {output.sig}
         awk 'FNR==NR {{a[$2]=$0; next}} $2 in a {{print a[$2]}}' {output.sig} \
             {input.genotyped} > {output.geno}
         """
-
-rule process_FD:
-    input:
-        pheno="{dir}/phenotype/FD/20191002_DCM_FD_all.csv",
-        covs="{dir}/phenotype/2Dphenotype/20160412_All_BRU_format.txt",
-        samples="{dir}/genotype/imputation/combined/genotypes/gencall.combined.clean.related.chr1.sample",
-        europeans="{dir}/genotype/QC/combined/DCM.gencall.combined.clean.related.fam",
-    output:
-        "{dir}/phenotype/FD/FD_summary_EUnorel.csv",
-        "{dir}/phenotype/FD/FD_slices_EUnorel.csv",
-    params:
-        interpolate=config['interpolate'],
-        genodir=config['genodir'],
-        plink=config['plink']
-    shell:
-        "Rscript 'preparePheno.r' \
-            --outdir {wildcards.dir}/phenotype/FD \
-            --cov {input.covs} \
-            --pheno {input.pheno} \
-            --samples {input.samples} \
-            --relatedness {input.relatedness} \
-            --europeans {input.europeans} \
-            --interpolate {params.interpolate}"
-
-rule fd_ukb_dcm:
-    input:
-        ukb=expand("{{ukb}}/phenotypes/{pheno}/FD_slices_EUnorel.csv",
-            pheno=config['discovery']),
-        dcm=expand("{dh}/FD/FD_slices_EUnorel.csv",
-            dh=config['phenodir'])
-    output:
-        "{ukb}/DCM/FDAlongHeart_DCM_UKB_all_slices{interpolate}.pdf"
-    shell:
-        "Rscript 'compare-FD-dcm-ukb.R' \
-            --dir {wildcards.ukb}/DCM \
-            --dcm {input.dcm} \
-            --interpolate {wildcards.interpolate} \
-            --ukb {input.ukb}"
 
 
 #### example cluster call #####
