@@ -166,9 +166,13 @@ plotMR <- function(dat, mr_results) {
 
 ## command line arguments ####
 option_list <- list(
-    optparse$make_option(c("-d", "--directory"), action="store",
-               dest="directory",
-               type="character", help="Path ukbb root data rootdirectory
+    optparse$make_option(c("--gwasdir"), action="store",
+               dest="gwasdir",
+               type="character", help="Path the ukbb gwas directory
+                [default: %default].", default=NULL),
+    optparse$make_option(c("--mrdir"), action="store",
+               dest="mrdir",
+               type="character", help="Path to output MR directory
                 [default: %default].", default=NULL),
     optparse$make_option(c("--showProgress"), action="store_true",
                dest="verbose",
@@ -185,17 +189,16 @@ args <- optparse$parse_args(optparse$OptionParser(option_list=option_list))
 
 if (args$debug) {
     args <- list()
-    args$directory <- "~/data/ukbb/ukb-hrt"
+    args$gwasdir <- "~/data/ukbb/ukb-hrt/gwas/180628_fractal_dimension"
+    args$mrdir <- "~/data/ukbb/ukb-hrt/MR/180628_fractal_dimension"
     args$verbose <- TRUE
-    args$Teff <- 6.6
 }
 directory <- args$directory
-Teff <- args$Teff
 verbose <- args$verbose
 
 ## ld-filtered, significant genome-wide association results ukb ####
-slices_sig <- read.table(paste(directory,
-                               "/gwas/Pseudomultitrait_Slices_sig5e08_ldFiltered.txt",
+slices_sig <- read.table(paste(gwasdir,
+                               "/Pseudomultitrait_Slices_sig5e08_ldFiltered.txt",
                                sep=""),
                          sep=",", stringsAsFactors=FALSE, header=TRUE)
 # LD filter misses these two SNPs, manually remove
@@ -205,8 +208,8 @@ slices_sig$SNPID <- paste(slices_sig$chr, ":", slices_sig$pos, "_",
                           slices_sig$a_0, "_", slices_sig$a_1, sep="")
 
 ## genotypes of ld-filtered, significant genome-wide association results ####
-geno_sig <- data.table::fread(file.path(directory,
-                              "gwas/Pseudomultitrait_slices_sig5e08_genotypes.dosage"),
+geno_sig <- data.table::fread(file.path(gwasdir,
+                              "Pseudomultitrait_slices_sig5e08_genotypes.dosage"),
                                   stringsAsFactors=FALSE, data.table=FALSE)
 geno_sig$SNPID <- paste(geno_sig$chromosome, ":", geno_sig$position, "_",
                         geno_sig$alleleA, "_", geno_sig$alleleB, sep="")
@@ -253,7 +256,7 @@ slices$a_1 <- as.character(slices$a_1)
 ## slices significant slice pvalues and betas ####
 sig_per_slice <- dplyr::filter(slices, p  < 5e-8)
 write.table(sig_per_slice,
-            paste(directory, '/gwas/Significant_per_slice.csv', sep=""),
+            file.path(gwasdir, 'Significant_per_slice.csv'),
             sep=',', col.names=TRUE, row.names=FALSE)
 
 # analyse betas slices ####
@@ -304,7 +307,7 @@ names(exposure_per_area) <- names(unique_per_area)
 
 
 ## MR base: `two-sample` MR with Biobank data ####
-token <- googleAuthR::gar_auth(paste(directory, "/MR/mrbase.oauth", sep=''))
+token <- googleAuthR::gar_auth(paste(mrdir, "/mrbase.oauth", sep=''))
 access <- token$credentials$access_token
 
 #SV ('UKB-b:6025'), QRS duration ('UKB-b:2240'), HR ('1056'), SBP ('UKB-a:360')
@@ -329,22 +332,21 @@ MRbase_results <- lapply(MRbase, function(x) {
 mr_tables <- lapply(seq_along(MRbase_results), function(x) {
     region <- MRbase_results[[x]]
     name_region <- names(MRbase_results)[x]
-    write.table(region$mr_results,  paste(directory, "/MR/", name_region,
-                                          "_MR_results.csv", sep=""),
+    write.table(region$mr_results,
+                file.path(mrdir, name_region, "_MR_results.csv"),
                 col.names=TRUE, row.names=FALSE, sep=',', quote=FALSE)
-    write.table(region$plei_results,  paste(directory, "/MR/", name_region,
-                                          "_MR_pleiotropy_results.csv", sep=""),
+    write.table(region$plei_results,
+                file.path(mrdir, name_region, "_MR_pleiotropy_results.csv"),
                 col.names=TRUE, row.names=FALSE, sep=',', quote=FALSE)
     write.table(region$directionality_results,
-                paste(directory, "/MR/", name_region,
-                      "_MR_directionality_results.csv", sep=""),
+                file.path(mrdir, name_region, "_MR_directionality_results.csv"),
                 col.names=TRUE, row.names=FALSE, sep=',', quote=FALSE)
 
-    write.table(region$I2, paste(directory, "/MR/", name_region,
-                                            "_MR_I2_results.csv", sep=""),
+    write.table(region$I2,
+                file.path(mrdir, name_region, "_MR_I2_results.csv"),
                 col.names=FALSE, row.names=FALSE, sep=',', quote=FALSE)
-    write.table(region$Fstat, paste(directory, "/MR/", name_region,
-                                 "_MR_Fstat_results.csv", sep=""),
+    write.table(region$Fstat,
+                file.path(mrdir, name_region, "_MR_Fstat_results.csv"),
                 col.names=FALSE, row.names=FALSE, sep=',', quote=FALSE)
 })
 
@@ -360,17 +362,20 @@ panel_plots <- lapply(mr_plots, function(x) x$all_plots)
 
 panels_sbp <- lapply(panel_plots, function(x) x[[1]])
 p_panels_sbp <- cowplot::plot_grid(plotlist=panels_sbp, nrow=3)
-ggsave(plot=p_panels_sbp, paste(directory, "/MR/MR_panels_SBP.pdf", sep=""),
+ggsave(plot=p_panels_sbp,
+       file.path(mrdir, "MR_panels_SBP.pdf"),
        height=20, width=12)
 
 panels_qrs <- lapply(panel_plots, function(x) x[[2]])
 p_panels_qrs <- cowplot::plot_grid(plotlist=panels_qrs, nrow=3)
-ggsave(plot=p_panels_qrs, paste(directory, "/MR/MR_panels_QRS.pdf", sep=""),
+ggsave(plot=p_panels_qrs,
+       file.path(mrdir, "MR_panels_QRS.pdf"),
        height=20, width=12)
 
 panels_sv <- lapply(panel_plots, function(x) x[[3]])
 p_panels_sv <- cowplot::plot_grid(plotlist=panels_sv, nrow=3)
-ggsave(plot=p_panels_sv, paste(directory, "/MR/MR_panels_SV.pdf", sep=""),
+ggsave(plot=p_panels_sv,
+       file.path(mrdir, "MR_panels_SV.pdf"),
        height=20, width=12)
 
 
@@ -379,15 +384,16 @@ forrests_sbp <- lapply(mr_plots, function(x) x$forrest[[1]] + theme_bw() +
                            theme(legend.position='none',
                                  axis.title.x = element_blank()))
 p_forrests_sbp <- cowplot::plot_grid(plotlist=forrests_sbp, ncol=3)
-ggsave(plot=p_forrests_sbp, paste(directory, "/MR/MR_forrest_SBP.pdf", sep=""),
+ggsave(plot=p_forrests_sbp,
+       file.path(mrdir, "MR_forrest_SBP.pdf"),
        height=4, width=12)
 
 p_basal_forrest_sbp <- mr_plots[[1]]$forrest[[1]] +
     theme_bw() +
     theme(legend.position='none')
 
-ggsave(plot=p_basal_forrest_sbp, paste(directory,
-                                       "/MR/MR_forrest_basal_SBP.pdf", sep=""),
+ggsave(plot=p_basal_forrest_sbp,
+       file.path(mrdir, "MR_forrest_basal_SBP.pdf"),
        height=4, width=4)
 
 forrests_qrs <- lapply(mr_plots, function(x) x$forrest[[2]] + theme_bw() +
@@ -395,7 +401,8 @@ forrests_qrs <- lapply(mr_plots, function(x) x$forrest[[2]] + theme_bw() +
                            theme(legend.position='none',
                                  axis.title.x = element_blank()))
 p_forrests_qrs <- cowplot::plot_grid(plotlist=forrests_qrs, ncol=3)
-ggsave(plot=p_forrests_qrs, paste(directory, "/MR/MR_forrest_QRS.pdf", sep=""),
+ggsave(plot=p_forrests_qrs,
+       file.path(mrdir, "MR_forrest_QRS.pdf"),
        height=4, width=12)
 
 forrests_sv <- lapply(mr_plots, function(x) x$forrest[[3]] + theme_bw() +
@@ -403,7 +410,8 @@ forrests_sv <- lapply(mr_plots, function(x) x$forrest[[3]] + theme_bw() +
                           theme(legend.position='none',
                               axis.title.x = element_blank()))
 p_forrests_sv <- cowplot::plot_grid(plotlist=forrests_sv, ncol=3)
-ggsave(plot=p_forrests_sv, paste(directory, "/MR/MR_forrest_SV.pdf", sep=""),
+ggsave(plot=p_forrests_sv,
+       file.path(mrdir, "MR_forrest_SV.pdf"),
        height=4, width=12)
 
 
