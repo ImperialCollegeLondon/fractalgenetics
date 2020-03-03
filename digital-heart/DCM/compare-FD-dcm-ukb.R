@@ -80,8 +80,9 @@ FDalongHeart$Location <- factor(FDalongHeart$Location,
                                          "Apical section"))
 FDalongHeart$study <- as.factor(FDalongHeart$study)
 
-p_fd <- ggplot(data=FDalongHeart)
-p_fd <- p_fd + geom_boxplot(aes(x=Slice, y=FD, color=Location, fill=study)) +
+p_fd <- ggplot(data=FDalongHeart, aes(x=Slice, y=FD, fill=study,))
+p_fd <- p_fd +
+    geom_boxplot(aes(color=Location), outlier.size = 0.2) +
     scale_color_manual(values=c('#67a9cf','#1c9099','#016c59')) +
     scale_fill_manual(values=c('#fc8d62', '#8da0cb'), name="Cohort") +
     labs(x="Slice", y="FD") +
