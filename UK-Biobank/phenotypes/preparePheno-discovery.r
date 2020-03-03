@@ -123,7 +123,8 @@ FDalongHeart$Location <- factor(FDalongHeart$Location,
                                          "Apical section"))
 
 p_fd <- ggplot(data=FDalongHeart)
-p_fd <- p_fd + geom_boxplot(aes(x=Slice, y=FD, color=Location)) +
+p_fd <- p_fd + geom_boxplot(aes(x=Slice, y=FD, color=Location),
+                            outlier.size = 0.2) +
     scale_color_manual(values=c('#67a9cf','#1c9099','#016c59')) +
     labs(x="Slice", y="FD") +
     theme_bw()
