@@ -98,9 +98,17 @@ getMRdata <- function(filename_exposure, data_exposure=NULL, outcomes=NULL,
 MRanalysis <- function(exposure_dat, outcome_dat,
                        methods=c("mr_egger_regression", "mr_ivw",
                                  "mr_weighted_median",
-                                 "mr_weighted_mode"), verbose=TRUE) {
+                                 "mr_weighted_mode"), verbose=TRUE,
+                       gene_mapping=NULL) {
     if (verbose) message("Harmonise exposure and outcome")
     dat <- harmonise_data(exposure_dat, outcome_dat, action = 2)
+    if (!is.null(gene_mapping)) {
+        dat$SNP <- as.character(dat$SNP)
+        dat <- dat %>%
+            inner_join(snp_gene) %>%
+            rowwise %>% mutate(SNP=str_c(SNP, GENE, sep="_")) %>%
+            ungroup
+    }
 
     if (verbose) message("MR regression analysis")
     mr_results <- mr(dat, method_list=methods)
@@ -210,7 +218,7 @@ MRplot <- function(dat, mr_results) {
 
 
 MR <- function(exposure_list=NULL, outcome_list=NULL, exposure=NULL,
-               outcome=NULL, name, mrdir) {
+               outcome=NULL, name, mrdir, gene_mapping=NULL) {
     if (!is.null(exposure_list) & !is.null(exposure)) {
         stop("Only one type of exposure can be provided: specify either",
              "exposure_list or exposure")
@@ -252,7 +260,7 @@ MR <- function(exposure_list=NULL, outcome_list=NULL, exposure=NULL,
                               str_c("MRbase", name, ".rds", sep="_")))
 
     MRresults <- lapply(MRbase, function(x) {
-        MRanalysis(x$exposure, x$outcome)
+        MRanalysis(x$exposure, x$outcome, gene_mapping=gene_mapping)
     })
 
     mr_tables <-  MRtables(MRresults, name)
@@ -263,17 +271,18 @@ MR <- function(exposure_list=NULL, outcome_list=NULL, exposure=NULL,
         tmp <- MRplot(dat, res)
     })
 
+    ncr <- length(mr_plots)
     panel_plots <- lapply(mr_plots, function(x) x$all_plots)
     panels <- lapply(panel_plots, function(x) x[[1]])
-    p_panels <- cowplot::plot_grid(plotlist=panels, nrow=3)
+    p_panels <- cowplot::plot_grid(plotlist=panels, nrow=ncr)
     ggsave(plot=p_panels,
            file.path(mrdir, str_c("MR_panels", name, ".pdf", sep="_")),
-           height=20, width=12)
+           height=6, width=12)
 
     forests <- lapply(mr_plots, function(x) x$forest[[1]] + theme_bw() +
-                          theme(legend.position='none',
-                                axis.title.x = element_blank()))
-    p_forests <- cowplot::plot_grid(plotlist=forests, ncol=3)
+                          theme(legend.position='none'))
+
+    p_forests <- cowplot::plot_grid(plotlist=forests, ncol=ncr)
     ggsave(plot=p_forests,
            file.path(mrdir, str_c("MR_forest", name, ".pdf", sep="_")),
            height=4, width=12)
@@ -423,7 +432,7 @@ unique_per_area <- lapply(seq_along(sig_per_area), function(test_area) {
         area <- area[-unlist(remove),]
     }
     area$id <- 'FD'
-    area$Phenotype <- 'FD'
+    area$Phenotype <- 'trabeculation'
     return(area)
 })
 names(unique_per_area) <- names(sig_per_area)
@@ -438,6 +447,9 @@ remove <- sapply(unique(dup$SNP), function(x) {
 })
 unique_all <- unique_all[-unlist(remove),]
 
+
+snp_gene <- read_csv(file.path(mrdir, "snp-gene-mapping.csv"),
+                     col_names=c("SNP", "GENE"))
 # HERMES MR
 # A1: effect allele, beta:log odds ratio of heart failure per extra copy of A1
 hermes <- read_delim(hermes_files, col_names = TRUE, delim="\t")
@@ -450,11 +462,8 @@ hermes <- hermes %>%
     mutate(Phenotype="HF") %>%
     mutate(id="HERMES")
 
-mr_hermes <- MR(exposure_list=unique_per_area, outcome=hermes,
-                name="HF", mrdir=mrdir)
-
-mr_hermes_all <- MR(exposure=all_formated, outcome=hermes,
-                name="HF_all", mrdir=mrdir)
+mr_hermes <- MR(exposure=all_formated, outcome=hermes,
+                name="HF", mrdir=mrdir, gene_mapping=snp_gene)
 
 ## DCM MR
 # A1: effect allele, beta:log odds ratio of heart failure per extra copy of A1
@@ -477,28 +486,16 @@ dcm <- sig_per_slice %>%
     distinct() %>%
     rename(SNP="rsid")
 
-
-mr_dcm <- MR(exposure_list=unique_per_area, outcome=dcm, name="DCM",
-             mrdir=mrdir)
-
-mr_dcm_all <- MR(exposure=all_formated, outcome=dcm,
-                    name="DCM_all", mrdir=mrdir)
+mr_dcm <- MR(exposure=all_formated, outcome=dcm,
+                    name="DCM", mrdir=mrdir, gene_mapping=snp_gene)
 
 ## Combine mr_forest plots for HERMES and DCM
-
-hermes_dcm <- cowplot::plot_grid(mr_hermes$mr_forest[[1]][[1]],
-                                 mr_dcm$mr_forest[[1]][[1]],
-                   ncol=1)
-ggsave(plot=hermes_dcm,
-       file.path(mrdir, "MR_hermes_dcm.pdf"),
-       height=8, width=12)
-
-hermes_dcm_all <- cowplot::plot_grid(mr_hermes_all$mr_forest[[1]][[1]],
-                                 mr_dcm_all$mr_forest[[1]][[1]],
-                                 ncol=1)
+hermes_dcm <- cowplot::plot_grid(mr_hermes$forest,
+                                 mr_dcm$forest,
+                                 ncol=2)
 ggsave(plot=hermes_dcm_all,
-       file.path(mrdir, "MR_hermes_dcm_all.pdf"),
-       height=8, width=12)
+       file.path(mrdir, "MR_hermes_dcm.pdf"),
+       height=2.5, width=8)
 
 
 
