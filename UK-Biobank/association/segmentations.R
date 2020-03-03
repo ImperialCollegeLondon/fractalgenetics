@@ -6,7 +6,7 @@ makeCall <- function(genotype) {
     x <- rep(1, length(genotype))
     x[genotype < 0.5] <- 0
     x[genotype >= 1.5] <- 2
-    return(x)    
+    return(x)
 }
 ############
 ## data ####
@@ -114,11 +114,12 @@ median_per_slice <- sapply(geno_per_slice, function(s) {
 
 ## read, process and register all measured slices per individual ####
 processed <- parallel::mclapply(idlist, rr$processSlices,
+#processed <- lapply(idlist, rr$processSlices,
                                 directory=paste(directory,
                                                 "/segmentations/aligned",
                                                 sep=""),
                                 sliceInfo=slices, n=2,
-                    rotation=FALSE)#, mc.cores=8)
+                    rotation=FALSE, mc.cores=8)
 names( processed) <- lapply(processed, function(x) {
     if (length(x) == 1) return(NULL)
     if (length(x) != 1) return(unique(x[[1]]$registered$perimeter$IID))
@@ -135,7 +136,7 @@ edges_all <- do.call(rbind, lapply(processed, function(ind) {
 edges <- dplyr::filter(edges_all, IID %in% same_slices$IID)
 
 tmp <- lapply(idlist, function(id) {
-    dplyr::filter(edges, slice %in% "Slice_5", IID %in% id)
+    dplyr::filter(edges, slice %in% "Slice_4", IID %in% id)
 })
 r.transformed <- do.call(cbind, lapply(tmp, function(x) x$r.transformed))
 colnames(r.transformed) <- sapply(tmp, function(x) unique(x$IID))
@@ -143,9 +144,10 @@ theta <- do.call(cbind, lapply(tmp, function(x) x$theta))
 colnames(theta) <- sapply(tmp, function(x) unique(x$IID))
 
 edges_slice5 <- list(r=r.transformed, theta=theta)
-median_slice5 <- median_per_slice[[4]][[7]]
+median_slice5 <- median_per_slice[[3]][[1]]
 
-pdf(paste(directory, "/segmentations/Slice5_rs35006907.pdf", sep=""),
+#pdf(paste(directory, "/segmentations/Slice5_rs35006907.pdf", sep=""),
+pdf(paste(directory, "/segmentations/Slice4_rs17608766.pdf", sep=""),
     height=6, width=2)
 layout(matrix(c(1, 2, 3), 3))
 radial.plot(edges_slice5$r[,1],
@@ -158,7 +160,7 @@ radial.plot(edges_slice5$r[,2],
             radial.pos=edges_slice5$theta[,2],
             labels="", rp.type = "s", main=median_slice5$FD[2],
             radial.lim=c(0, 1), point.symbols = 20, cex=0.5,
-            point.col='#e7298a',add=FALSE, 
+            point.col='#e7298a',add=FALSE,
             show.grid.labels = FALSE)
 radial.plot(edges_slice5$r[,3],
             radial.pos=edges_slice5$theta[,3],
