@@ -1,0 +1,6 @@
+ukbdir: "/homes/hannah/data/ukbb/ukb-hrt"
+genodir: "/homes/hannah/data/ukbb/500K_release_v3"
+pheno: "190402_fractal_dimension_26k"
+discovery: "180628_fractal_dimension"
+dcmdir: "/homes/hannah/data/digital-heart/gwas/DCM"
+hermesdir: "/homes/hannah/data/ukbb/HERMES"
