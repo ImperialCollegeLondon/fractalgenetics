@@ -3,7 +3,8 @@
 ###############################
 options(bitmapType = 'cairo', device = 'pdf')
 
-modules::import_package('dplyr', attach=TRUE)
+modules::import_package('tidyverse', attach=TRUE)
+modules::import_package('data.table', attach=TRUE)
 modules::import_package('ggplot2', attach=TRUE)
 modules::import_package('TwoSampleMR', attach=TRUE)
 optparse <- modules::import_package('optparse')
@@ -60,9 +61,16 @@ getMRdata <- function(filename_exposure, data_exposure=NULL, outcomes=NULL,
                       other_allele_col = "other_allele") {
     if (is.null(data_exposure)) {
         data_exposure <- read_exposure_data(filename = filename_exposure)
+    } else {
+        data_exposure <- format_data(data_exposure, type='exposure',
+                                    phenotype_col=phenotype_col,
+                                    snp_col=snp_col, beta_col=beta_col,
+                                    se_col=se_col, eaf_col=eaf_col,
+                                    pval_col=pval_col,
+                                    effect_allele_col=effect_allele_col,
+                                    other_allele_col=other_allele_col)
     }
     if (!is.null(outcomes)) {
-        ao <- available_outcomes(access)
         data_outcome <- extract_outcome_data(data_exposure$SNP, outcomes,
                                         proxies=TRUE, rsq=0.8, align_alleles=1,
                                         palindromes=1, maf_threshold=0.3,
@@ -114,10 +122,11 @@ MRanalysis <- function(exposure_dat, outcome_dat,
         data.frame(study=mr_results$outcome[!duplicated(mr_results$outcome)])
     per_study_F$ninstruments <- mr_results$nsnp[!duplicated(mr_results$outcome)]
     per_study_F$samplesize.exposure <- unique(dat$samplesize.exposure)
-    per_study_F$samplesize.outcome <- dat$samplesize.outcome[!duplicated(dat$outcome)]
+    per_study_F$samplesize.outcome <-
+        dat$samplesize.outcome[!duplicated(dat$outcome)]
     per_study_F$r2 <- directionality_results$snp_r2.exposure
     per_study_F$Fstat <- Fstat(per_study_F$r2, per_study_F$samplesize.exposure,
-                                  per_study_F$ninstruments)
+                               per_study_F$ninstruments)
     per_study_F$lowerBound <- apply(as.matrix(per_study_F[,-1]), 1, function(x){
         findlowerlimitF(x[5], x[1], x[2])
     })
@@ -128,17 +137,48 @@ MRanalysis <- function(exposure_dat, outcome_dat,
     I2 <- estimateI2(weighted_beta,weighted_se)
     return(list(dat=dat, mr_results=mr_results, het_results=het_results,
            plei_results=plei_results, loo_results=loo_results,
-           directionality_results=directionality_results, I2=I2,
+           directionality_results=directionality_results,
+           I2=I2,
            Fstat=per_study_F))
 }
 
-plotMR <- function(dat, mr_results) {
+MRtables <- function(MRbase_results, pheno) {
+    lapply(seq_along(MRbase_results), function(x, pheno) {
+        region <- MRbase_results[[x]]
+        name_region <- names(MRbase_results)[x]
+        write.table(region$mr_results,
+                    file.path(mrdir, str_c(name_region, pheno, "MR_results.csv",
+                                           sep="_")),
+                    col.names=TRUE, row.names=FALSE, sep=',', quote=FALSE)
+        write.table(region$plei_results,
+                    file.path(mrdir, str_c(name_region, pheno,
+                                           "MR_pleiotropy_results.csv",
+                                           sep="_")),
+                    col.names=TRUE, row.names=FALSE, sep=',', quote=FALSE)
+        write.table(region$directionality_results,
+                    file.path(mrdir, str_c(name_region, pheno,
+                                           "MR_directionality_results.csv",
+                                           sep="_")),
+                    col.names=TRUE, row.names=FALSE, sep=',', quote=FALSE)
+
+        write.table(region$I2,
+                    file.path(mrdir, str_c(name_region, pheno,
+                                           "MR_I2_results.csv", sep="_")),
+                    col.names=FALSE, row.names=FALSE, sep=',', quote=FALSE)
+        write.table(region$Fstat,
+                    file.path(mrdir, str_c(name_region, pheno,
+                                           "MR_Fstat_results.csv", sep="_")),
+                    col.names=FALSE, row.names=FALSE, sep=',', quote=FALSE)
+    }, pheno=pheno)
+}
+
+MRplot <- function(dat, mr_results) {
     p_mr <- mr_scatter_plot(mr_results, dat)
     res_single <- mr_singlesnp(dat,
                                all_method=c("mr_egger_regression", "mr_ivw",
                                             "mr_weighted_median",
                                             "mr_weighted_mode"))
-    p_forrest <- mr_forest_plot(res_single)
+    p_forest <- mr_forest_plot(res_single)
 
     res_loo <- mr_leaveoneout(dat)
     p_loo <- mr_leaveoneout_plot(res_loo)
@@ -147,17 +187,99 @@ plotMR <- function(dat, mr_results) {
     legendMR <- cowplot::get_legend(p_funnel[[1]] + theme_bw() +
                                         theme(legend.position='left') )
 
-    all_plots <- lapply(seq_along(p_forrest), function(x) {
+    all_plots <- lapply(seq_along(p_forest), function(x) {
         mr <- p_mr[[x]] + theme_bw()  + theme(legend.position='none')
-        forrest <- p_forrest[[x]] + theme_bw() + theme(legend.position='none')
+        forest <- p_forest[[x]] + theme_bw() + theme(legend.position='none')
         loo <- p_loo[[x]] + theme_bw() + theme(legend.position='none')
         funnel <-  p_funnel[[x]] + theme_bw() + theme(legend.position='none')
-        plots_1 <- cowplot::plot_grid(mr, funnel, nrow=2, align='v')
-        plots_2 <- cowplot::plot_grid(forrest,  loo, nrow=2, align='v')
-        plots <- cowplot::plot_grid(plots_1, plots_2, ncol=2, align='h')
+        plots_1 <- cowplot::plot_grid(mr, funnel, nrow=2, align='v',
+                                      axis="lr")
+        plots_2 <- cowplot::plot_grid(forest,  loo, nrow=2, align='v',
+                                      axis="lr")
+        plots <- cowplot::plot_grid(plots_1, plots_2, ncol=2, align='h',
+                                    axis="tb")
         p_all <- cowplot::plot_grid(legendMR, plots, ncol=2, rel_widths=c(1,4))
     })
-    return(list(all_plots=all_plots, forrest=p_forrest))
+    mr_panel_plots <- lapply(seq_along(p_forest), function(x) {
+        mr <- p_mr[[x]] + theme_bw()  + theme(legend.position='none')
+        forest <- p_forest[[x]] + theme_bw() + theme(legend.position='none')
+        cowplot::plot_grid(mr, forest, ncol=2, align='h', axis="tb")
+    })
+    return(list(all_plots=all_plots, forest=p_forest, mr_panel=mr_panel_plots))
+}
+
+
+MR <- function(exposure_list=NULL, outcome_list=NULL, exposure=NULL,
+               outcome=NULL, name, mrdir) {
+    if (!is.null(exposure_list) & !is.null(exposure)) {
+        stop("Only one type of exposure can be provided: specify either",
+             "exposure_list or exposure")
+    }
+    if (!is.null(outcome_list) & !is.null(outcome)) {
+        stop("Only one type of outcome can be provided: specify either",
+             "outcome_list or outcome")
+    }
+    if (!is.null(exposure_list)) {
+        if (!is.null(outcome_list)) {
+            MRbase <- list(basal=getMRdata(data_exposure = exposure_list[[1]],
+                                           data_outcome = outcome_list[[1]]),
+                           mid=getMRdata(data_exposure = exposure_list[[2]],
+                                         data_outcome = outcome_list[[2]]),
+                           apical=getMRdata(data_exposure = exposure_list[[3]],
+                                            data_outcome = outcome_list[[3]]))
+        } else {
+            MRbase <- list(basal=getMRdata(data_exposure = exposure_list[[1]],
+                                           data_outcome = outcome),
+                           mid=getMRdata(data_exposure = exposure_list[[2]],
+                                         data_outcome = outcome),
+                           apical=getMRdata(data_exposure = exposure_list[[3]],
+                                            data_outcome = outcome))
+        }
+    } else {
+        if (!is.null(outcome_list)) {
+            MRbase <- list(basal=getMRdata(data_exposure = exposure,
+                                           data_outcome = outcome_list[[1]]),
+                           mid=getMRdata(data_exposure = exposure,
+                                         data_outcome = outcome_list[[2]]),
+                           apical=getMRdata(data_exposure = exposure,
+                                            data_outcome = outcome_list[[3]]))
+        } else {
+            MRbase <- list(mr=getMRdata(data_exposure = exposure,
+                                           data_outcome = outcome))
+        }
+    }
+    saveRDS(MRbase, file.path(mrdir,
+                              str_c("MRbase", name, ".rds", sep="_")))
+
+    MRresults <- lapply(MRbase, function(x) {
+        MRanalysis(x$exposure, x$outcome)
+    })
+
+    mr_tables <-  MRtables(MRresults, name)
+
+    mr_plots <- lapply(MRresults, function(region) {
+        dat <- region$dat
+        res <- region$mr_results
+        tmp <- MRplot(dat, res)
+    })
+
+    panel_plots <- lapply(mr_plots, function(x) x$all_plots)
+    panels <- lapply(panel_plots, function(x) x[[1]])
+    p_panels <- cowplot::plot_grid(plotlist=panels, nrow=3)
+    ggsave(plot=p_panels,
+           file.path(mrdir, str_c("MR_panels", name, ".pdf", sep="_")),
+           height=20, width=12)
+
+    forests <- lapply(mr_plots, function(x) x$forest[[1]] + theme_bw() +
+                          theme(legend.position='none',
+                                axis.title.x = element_blank()))
+    p_forests <- cowplot::plot_grid(plotlist=forests, ncol=3)
+    ggsave(plot=p_forests,
+           file.path(mrdir, str_c("MR_forest", name, ".pdf", sep="_")),
+           height=4, width=12)
+
+    mr_forest <- lapply(mr_plots, function(x) x$mr_panel)
+    return(list(plot=mr_plots, forest=p_forests, mr_forest=mr_forest))
 }
 
 ############
@@ -194,6 +316,8 @@ if (args$debug) {
     args$verbose <- TRUE
 }
 directory <- args$directory
+gwasdir <- args$gwasdir
+mrdir <- args$mrdir
 verbose <- args$verbose
 
 ## ld-filtered, significant genome-wide association results ukb ####
@@ -208,9 +332,9 @@ slices_sig$SNPID <- paste(slices_sig$chr, ":", slices_sig$pos, "_",
                           slices_sig$a_0, "_", slices_sig$a_1, sep="")
 
 ## genotypes of ld-filtered, significant genome-wide association results ####
-geno_sig <- data.table::fread(file.path(gwasdir,
-                              "Pseudomultitrait_slices_sig5e08_genotypes.dosage"),
-                                  stringsAsFactors=FALSE, data.table=FALSE)
+geno_sig <- fread(file.path(gwasdir,
+                            "Pseudomultitrait_slices_sig5e08_genotypes.dosage.gz"),
+                  stringsAsFactors=FALSE, data.table=FALSE)
 geno_sig$SNPID <- paste(geno_sig$chromosome, ":", geno_sig$position, "_",
                         geno_sig$alleleA, "_", geno_sig$alleleB, sep="")
 geno_sig <- geno_sig[geno_sig$SNPID %in% slices_sig$SNPID,]
@@ -258,8 +382,12 @@ sig_per_slice <- dplyr::filter(slices, p  < 5e-8)
 write.table(sig_per_slice,
             file.path(gwasdir, 'Significant_per_slice.csv'),
             sep=',', col.names=TRUE, row.names=FALSE)
+# sig_per_slice <- read.table(file.path(gwasdir, 'Significant_per_slice.csv'),
+# sep=',', header=TRUE, stringsAsFactors = FALSE)
 
 # analyse betas slices ####
+# from https://jmarchini.org/bgenie-usage/: beta coefficient refers to the
+# effect of having an extra copy of a_1
 colnames(sig_per_slice)[1:9] <- c('rsid', 'a_0', 'a_1', 'af', 'samplesize',
                              'slices', 'slices_beta', 'slices_p', 'slices_se')
 
@@ -278,7 +406,7 @@ names(sig_per_area) <- levels(sig_per_slice$area)
 
 unique_per_area <- lapply(seq_along(sig_per_area), function(test_area) {
     area <- sig_per_area[[test_area]]
-    colnames(area)[1:9] <- c('SNP', 'effect_allele', 'other_allele', 'eaf',
+    colnames(area)[1:9] <- c('SNP', 'other_allele', 'effect_allele', 'eaf',
                              'samplesize', 'slices', 'beta', 'pval', 'se')
     if (any(duplicated(area$SNP))) {
         dup <- area[area$SNP %in% area$SNP[duplicated(area$SNP)],]
@@ -288,6 +416,8 @@ unique_per_area <- lapply(seq_along(sig_per_area), function(test_area) {
         })
         area <- area[-unlist(remove),]
     }
+    area$id <- 'FD'
+    area$Phenotype <- 'FD'
     return(area)
 })
 names(unique_per_area) <- names(sig_per_area)
@@ -297,7 +427,7 @@ exposure_per_area <- lapply(seq_along(unique_per_area), function(test_area) {
     area_exposure <- format_data(area, type='exposure')
     area_exposure$id.exposure <- 'FD'
     area_exposure$exposure <- 'FD'
-    write.table(area_exposure, paste(directory, '/',
+    write.table(area_exposure, paste(mrdir, '/',
                                   names(unique_per_area)[test_area],
                             "_association_results.txt", sep=""),
                 sep=' ', col.names=TRUE, row.names=FALSE, quote=FALSE)
@@ -305,114 +435,140 @@ exposure_per_area <- lapply(seq_along(unique_per_area), function(test_area) {
 })
 names(exposure_per_area) <- names(unique_per_area)
 
+## MRbase MR using BOLT LMM output files provided by Gib Hermani, 2/19/20 ####
+# A1: effect allele
+# UKB-b:6025 - n = 4525, UKB-b:2240 - n = 7796 (Gib Hermani, 2/24/20)
 
-## MR base: `two-sample` MR with Biobank data ####
-token <- googleAuthR::gar_auth(paste(mrdir, "/mrbase.oauth", sep=''))
-access <- token$credentials$access_token
+## Stroke volume
+sv <- read_delim("~/data/ukbb/ukb-hrt/MR/UKB-b6025.txt", col_names = TRUE,
+                     delim="\t")
+sv <- sv %>%
+    select(SNP, ALLELE1, ALLELE0, A1FREQ, BETA, P_LINREG, SE) %>%
+    rename(other_allele=ALLELE0, effect_allele=ALLELE1, eaf=A1FREQ, beta=BETA,
+           pval=P_LINREG, se=SE) %>%
+    distinct() %>%
+    mutate(Phenotype="SV") %>%
+    mutate(id="UKB-b:6025") %>%
+    mutate(samplesize=4525) %>%
+    filter(SNP %in% sig_per_slice$rsid)
 
-#SV ('UKB-b:6025'), QRS duration ('UKB-b:2240'), HR ('1056'), SBP ('UKB-a:360')
-# DBP ('UKB-a:359')
-outcomes <- c('UKB-b:6025', 'UKB-b:2240', 'UKB-a:360')
-names(outcomes) <- c("SV", "QRS", "SBP")
+write_csv(sv, "~/data/ukbb/ukb-hrt/MR/UKB-b6025_SV_outcome.csv")
 
-basalMRbase <- getMRdata(data_exposure=exposure_per_area[[1]],
-                       outcomes=as.vector(outcomes), access=access)
-midMRbase <- getMRdata(data_exposure=exposure_per_area[[2]],
-                       outcomes=as.vector(outcomes), access=access)
-apicalMRbase <- getMRdata(data_exposure=exposure_per_area[[3]],
-                          outcomes=as.vector(outcomes), access=access)
+mr_sv <- MR(exposure_list=unique_per_area, outcome=sv, name="SV",
+            mrdir=mrdir)
 
-MRbase <- list(basal=basalMRbase, mid=midMRbase, apical=apicalMRbase)
-saveRDS(MRbase, paste(directory, "/MR/MRbase.rds", sep=""))
+## QRS duration
+qrs <- read_delim("~/data/ukbb/ukb-hrt/MR/UKB-b2240.txt", col_names = TRUE,
+                 delim="\t")
+qrs <- qrs %>%
+    select(SNP, ALLELE1, ALLELE0, A1FREQ, BETA, P_LINREG, SE) %>%
+    rename(other_allele=ALLELE0, effect_allele=ALLELE1, eaf=A1FREQ, beta=BETA,
+           pval=P_LINREG, se=SE) %>%
+    distinct() %>%
+    mutate(Phenotype="QRS") %>%
+    mutate(id="UKB-b:2240")  %>%
+    mutate(samplesize=7796) %>%
+    filter(SNP %in% sig_per_slice$rsid)
 
-MRbase_results <- lapply(MRbase, function(x) {
-    MRanalysis(x$exposure, x$outcome)
+write_csv(qrs, "~/data/ukbb/ukb-hrt/MR/UKB-b2240_QRS_outcome.csv")
+
+mr_qrs<- MR(exposure_list=unique_per_area, outcome=qrs, name="QRS",
+            mrdir=mrdir)
+
+# HERMES MR
+# A1: effect allele, beta:log odds ratio of heart failure per extra copy of A1
+hermes <- read_delim("~/data/ukbb/HERMES/lookup_results.tsv", col_names = TRUE,
+                     delim="\t")
+
+hermes <- hermes %>%
+    select(SNP, A2, A1, freq, N, b, p, se) %>%
+    rename(other_allele=A2, effect_allele=A1, eaf=freq, samplesize=N,
+           beta=b, pval=p) %>%
+    distinct() %>%
+    mutate(Phenotype="HF") %>%
+    mutate(id="HERMES")
+
+mr_hermes <- MR(exposure_list=unique_per_area, outcome=hermes,
+                name="HF", mrdir=mrdir)
+
+all_formated <- do.call(rbind, unique_per_area)
+dup <- all_formated[all_formated$SNP %in% all_formated$SNP[duplicated(all_formated$SNP)],]
+remove <- sapply(unique(dup$SNP), function(x) {
+    minbeta <- sort(abs(all_formated$beta[all_formated$SNP %in% x]),decreasing=TRUE)[-1]
+    which(abs(all_formated$beta) %in% minbeta)
 })
+all_formated <- all_formated[-unlist(remove),]
 
-mr_tables <- lapply(seq_along(MRbase_results), function(x) {
-    region <- MRbase_results[[x]]
-    name_region <- names(MRbase_results)[x]
-    write.table(region$mr_results,
-                file.path(mrdir, name_region, "_MR_results.csv"),
-                col.names=TRUE, row.names=FALSE, sep=',', quote=FALSE)
-    write.table(region$plei_results,
-                file.path(mrdir, name_region, "_MR_pleiotropy_results.csv"),
-                col.names=TRUE, row.names=FALSE, sep=',', quote=FALSE)
-    write.table(region$directionality_results,
-                file.path(mrdir, name_region, "_MR_directionality_results.csv"),
-                col.names=TRUE, row.names=FALSE, sep=',', quote=FALSE)
+mr_hermes_all <- MR(exposure=all_formated, outcome=hermes,
+                name="HF_all", mrdir=mrdir)
 
-    write.table(region$I2,
-                file.path(mrdir, name_region, "_MR_I2_results.csv"),
-                col.names=FALSE, row.names=FALSE, sep=',', quote=FALSE)
-    write.table(region$Fstat,
-                file.path(mrdir, name_region, "_MR_Fstat_results.csv"),
-                col.names=FALSE, row.names=FALSE, sep=',', quote=FALSE)
-})
+## HERMES <-> SV,QRS
+exposure_sv <- list(basal=sv[sv$SNP %in% unique_per_area$basal$SNP,],
+                    mid=sv[sv$SNP %in% unique_per_area$mid$SNP,],
+                    apical=sv[sv$SNP %in% unique_per_area$apical$SNP,])
+exposure_qrs <- list(basal=qrs[qrs$SNP %in% unique_per_area$basal$SNP,],
+                    mid=qrs[qrs$SNP %in% unique_per_area$mid$SNP,],
+                    apical=qrs[qrs$SNP %in% unique_per_area$apical$SNP,])
+outcome_hermes <- list(basal=hermes[hermes$SNP %in% unique_per_area$basal$SNP,],
+                    mid=hermes[hermes$SNP %in% unique_per_area$mid$SNP,],
+                    apical=hermes[hermes$SNP %in% unique_per_area$apical$SNP,])
 
-mr_plots <- lapply(MRbase_results, function(region) {
-    dat <- region$dat
-    res <- region$mr_results
-    tmp <- plotMR(dat, res)
-})
+mr_hermes_sv <- MR(exposure_list=exposure_sv, outcome_list=outcome_hermes,
+                   name="SV_HF", mrdir=mrdir)
 
-panel_plots <- lapply(mr_plots, function(x) x$all_plots)
+mr_hermes_sv_all <- MR(exposure=sv, outcome=hermes, name="SV_HF_all",
+                       mrdir=mrdir)
 
-#SBP ('UKB-a:360'), SV ('UKB-b:6025'), QRS duration ('UKB-b:2240')
+mr_hermes_qrs <- MR(exposure_list=exposure_qrs, outcome_list=outcome_hermes,
+                   name="QRS_HF", mrdir=mrdir)
 
-panels_sbp <- lapply(panel_plots, function(x) x[[1]])
-p_panels_sbp <- cowplot::plot_grid(plotlist=panels_sbp, nrow=3)
-ggsave(plot=p_panels_sbp,
-       file.path(mrdir, "MR_panels_SBP.pdf"),
-       height=20, width=12)
+mr_hermes_qrs_all <- MR(exposure=qrs, outcome=hermes, name="QRS_HF_all",
+                       mrdir=mrdir)
 
-panels_qrs <- lapply(panel_plots, function(x) x[[2]])
-p_panels_qrs <- cowplot::plot_grid(plotlist=panels_qrs, nrow=3)
-ggsave(plot=p_panels_qrs,
-       file.path(mrdir, "MR_panels_QRS.pdf"),
-       height=20, width=12)
+## DCM MR
+# A1: effect allele, beta:log odds ratio of heart failure per extra copy of A1
+dcm <- read_delim("~/data/digital-heart/gwas/DCM/HVOL.DCM.FD.Pseudomultitrait_Slices_sig5e08.sigSNPs.clean.assoc.logistic.all", col_names=TRUE, delim = " ")
 
-panels_sv <- lapply(panel_plots, function(x) x[[3]])
-p_panels_sv <- cowplot::plot_grid(plotlist=panels_sv, nrow=3)
-ggsave(plot=p_panels_sv,
-       file.path(mrdir, "MR_panels_SV.pdf"),
-       height=20, width=12)
+dcm <- dcm %>%
+    select(SNP, A1, A2, MAF, NMISS, BETA, SE, ` EMP1`) %>%
+    rename(effect_allele=A1, other_allele=A2, eaf=MAF, samplesize=NMISS,
+           beta=BETA, pval=` EMP1`, se=SE) %>%
+    mutate(Phenotype="DCM") %>%
+    mutate(id="DCM")
+
+dcm <- sig_per_slice %>%
+    select(rsid, a_0, a_1) %>%
+    inner_join(dcm, by=c("rsid"="SNP")) %>%
+    mutate(other_allele=case_when(effect_allele == a_0 ~ a_1,
+                                  TRUE ~ a_0)) %>%
+    select(rsid, other_allele, effect_allele, eaf, beta, se, pval, samplesize,
+           Phenotype, id) %>%
+    distinct() %>%
+    rename(SNP="rsid")
 
 
-forrests_sbp <- lapply(mr_plots, function(x) x$forrest[[1]] + theme_bw() +
-                           scale_x_continuous(limits=c(-2,4)) +
-                           theme(legend.position='none',
-                                 axis.title.x = element_blank()))
-p_forrests_sbp <- cowplot::plot_grid(plotlist=forrests_sbp, ncol=3)
-ggsave(plot=p_forrests_sbp,
-       file.path(mrdir, "MR_forrest_SBP.pdf"),
-       height=4, width=12)
+mr_dcm <- MR(exposure_list=unique_per_area, outcome=dcm, name="DCM",
+             mrdir=mrdir)
 
-p_basal_forrest_sbp <- mr_plots[[1]]$forrest[[1]] +
-    theme_bw() +
-    theme(legend.position='none')
+mr_dcm_all <- MR(exposure=all_formated, outcome=dcm,
+                    name="DCM_all", mrdir=mrdir)
 
-ggsave(plot=p_basal_forrest_sbp,
-       file.path(mrdir, "MR_forrest_basal_SBP.pdf"),
-       height=4, width=4)
+## Combine mr_forest plots for HERMES and DCM
 
-forrests_qrs <- lapply(mr_plots, function(x) x$forrest[[2]] + theme_bw() +
-                           scale_x_continuous(limits=c(-2,4)) +
-                           theme(legend.position='none',
-                                 axis.title.x = element_blank()))
-p_forrests_qrs <- cowplot::plot_grid(plotlist=forrests_qrs, ncol=3)
-ggsave(plot=p_forrests_qrs,
-       file.path(mrdir, "MR_forrest_QRS.pdf"),
-       height=4, width=12)
+hermes_dcm <- cowplot::plot_grid(mr_hermes$mr_forest[[1]][[1]],
+                                 mr_dcm$mr_forest[[1]][[1]],
+                   ncol=1)
+ggsave(plot=hermes_dcm,
+       file.path(mrdir, "MR_hermes_dcm.pdf"),
+       height=8, width=12)
 
-forrests_sv <- lapply(mr_plots, function(x) x$forrest[[3]] + theme_bw() +
-                          scale_x_continuous(limits=c(-2,4)) +
-                          theme(legend.position='none',
-                              axis.title.x = element_blank()))
-p_forrests_sv <- cowplot::plot_grid(plotlist=forrests_sv, ncol=3)
-ggsave(plot=p_forrests_sv,
-       file.path(mrdir, "MR_forrest_SV.pdf"),
-       height=4, width=12)
+hermes_dcm_all <- cowplot::plot_grid(mr_hermes_all$mr_forest[[1]][[1]],
+                                 mr_dcm_all$mr_forest[[1]][[1]],
+                                 ncol=1)
+ggsave(plot=hermes_dcm_all,
+       file.path(mrdir, "MR_hermes_dcm_all.pdf"),
+       height=8, width=12)
+
 
 
 
