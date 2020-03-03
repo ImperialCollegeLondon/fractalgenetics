@@ -62,7 +62,7 @@ if (args$debug) {
     args$cov <- "~/data/ukbb/ukb-hrt/rawdata/180628_cardiac_phenotypes.csv"
     args$samples <- "~/data/ukbb/ukb-hrt/rawdata/ukb18545_imp_chr1_v3_s487378.sample"
     args$relatedness <-"~/data/ukbb/ukb-hrt/rawdata/ukb18545_rel_s488346.dat"
-    args$europeans <- "~/data/ukbb/ukb-hrt/phenotypes/190402_fractal_dimension_26k/European_samples_filtered_by_HapMapIII_CGRCh37_replication.txt"
+    args$europeans <- "~/data/ukbb/ukb-hrt/phenotypes/180628_fractal_dimension/European_samples_filtered_by_HapMapIII_CGRCh37_replication.txt"
     args$pcs <- "~/data/ukbb/ukb-hrt/ancestry/180628_fractal_dimension/ukb_imp_genome_v3_maf0.1.pruned.European.pca"
 }
 
@@ -225,7 +225,7 @@ fd_cov <- dplyr::select(fd_all, genetic_sex_f22001_0_0,
 slices <- paste("Slice_", 1:args$interpolate, sep="")
 fd_slices <- dplyr::select(fd_all, slices)
 
-fd_lvv <- dplyr::select(fd_all, LVEDV, LVESV, LVM, SV, CO, HR)
+fd_lvv <- dplyr::select(fd_all, LVEDV, LVESV, LVM, SV, CO, HR, STRAIN)
 
 write.table(fd_all, paste(args$outdir, "/FD_all_slices", args$interpolate,
                           ".csv", sep=""),
@@ -240,7 +240,7 @@ write.table(fd_lvv, paste(args$outdir, "/FD_LVV.csv", sep=""),
 
 
 ## Plot distribution of covariates ####
-df <- dplyr::select(fd_all, MeanBasalFD, MeanMidFD, MeanApicalFD, LVEDV, SV, CO,
+df <- dplyr::select(fd_all, MeanBasalFD, MeanMidFD, MeanApicalFD, LVEDV, SV, STRAIN,
                     genetic_sex_f22001_0_0,
                     age_when_attended_assessment_centre_f21003_0_0,
                     weight_f21002_0_0,
@@ -253,7 +253,7 @@ p <- ggpairs(df,
                                             pch=20),
                           combo = wrap("facethist")),
              columnLabels = c("meanBasalFD", "meanMidFD", "meanApicalFD",
-                              "EDV~(ml)", "SV~(ml)", "CO~(ml/min)", "Sex~(f/m)",
+                              "EDV~(ml)", "SV~(ml)", "Strain~(perc)", "Sex~(f/m)",
                               "Age~(years)", "Height~(m)",
                               "Weight~(kg)", "BMI~(kg/m^2)"),
              labeller = 'label_parsed',
@@ -264,7 +264,7 @@ p <- ggpairs(df,
           axis.text.x = element_text(angle=90),
           strip.text = element_text(size=8),
           strip.background = element_rect(fill="white", colour=NA))
-p[6,5] <- p[6,5] + geom_histogram(binwidth=3
+p[6,5] <- p[6,5] + geom_histogram(binwidth=3)
 ggsave(plot=p, file=paste(args$outdir, "/pairs_fdcovariates.png", sep=""),
        height=12, width=12, units="in")
 
@@ -327,7 +327,7 @@ fd_europeans_norelated <- merge(fd_europeans_norelated, pcs[,-1], by=1)
 index_pheno <- which(grepl("FD", colnames(fd_europeans_norelated)))
 index_slices <- which(grepl("Slice_", colnames(fd_europeans_norelated)))
 index_volumes <- 15:21
-index_cov <- c(22:26, 32:ncol(fd_europeans_norelated))
+index_cov <- c(22:27, 33:ncol(fd_europeans_norelated))
 
 lm_fd_pcs <- sapply(index_pheno, function(x) {
     tmp <- lm(y ~ ., data=data.frame(y=fd_europeans_norelated[,x],
@@ -391,6 +391,10 @@ write.table(fd_bgenie[, (index_slices + 3)],
 write.table(fd_bgenie[,-c(1:4, index_pheno + 3, index_slices + 3,
                           index_volumes + 3)],
             paste(args$outdir, "/FD_covariates_bgenie.txt", sep=""), sep=" ",
+            row.names=FALSE, col.names=TRUE, quote=FALSE)
+write.table(fd_bgenie[,-c(1:4, index_pheno + 3, index_slices + 3,
+                          index_volumes[-8] + 3)],
+            paste(args$outdir, "/FD_covariates_STRAIN_bgenie.txt", sep=""), sep=" ",
             row.names=FALSE, col.names=TRUE, quote=FALSE)
 write.table(fd_bgenie[,(index_volumes + 3)],
             paste(args$outdir, "/FD_volumes_bgenie.txt", sep=""), sep=" ",
