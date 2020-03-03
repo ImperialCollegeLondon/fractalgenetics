@@ -296,6 +296,14 @@ option_list <- list(
                dest="mrdir",
                type="character", help="Path to output MR directory
                 [default: %default].", default=NULL),
+    optparse$make_option(c("--dcm"), action="store",
+                         dest="dcm_file",
+                         type="character", help="Path to DCM association file
+                [default: %default].", default=NULL),
+    optparse$make_option(c("--herms"), action="store",
+                         dest="hermes_file",
+                         type="character", help="Path to HERMES association file
+                [default: %default].", default=NULL),
     optparse$make_option(c("--showProgress"), action="store_true",
                dest="verbose",
                default=FALSE, type="logical", help="If set, progress messages
@@ -313,11 +321,17 @@ if (args$debug) {
     args <- list()
     args$gwasdir <- "~/data/ukbb/ukb-hrt/gwas/180628_fractal_dimension"
     args$mrdir <- "~/data/ukbb/ukb-hrt/MR/180628_fractal_dimension"
+    args$dcm_file <- paste("~/data/digital-heart/gwas/DCM/HVOL.DCM.FD.",
+                           "Pseudomultitrait_Slices_sig5e08.sigSNPs.clean.",
+                           "assoc.logistic.all", sep="")
+    args$hermes_file <- "~/data/ukbb/HERMES/lookup_results.tsv"
     args$verbose <- TRUE
 }
 directory <- args$directory
 gwasdir <- args$gwasdir
 mrdir <- args$mrdir
+dcm_file <- args$dcm_file
+hermes_file <- args$hermes_file
 verbose <- args$verbose
 
 ## ld-filtered, significant genome-wide association results ukb ####
@@ -325,20 +339,12 @@ slices_sig <- read.table(paste(gwasdir,
                                "/Pseudomultitrait_Slices_sig5e08_ldFiltered.txt",
                                sep=""),
                          sep=",", stringsAsFactors=FALSE, header=TRUE)
+
 # LD filter misses these two SNPs, manually remove
 slices_sig <- slices_sig[!slices_sig$rsid %in% c("rs12214483", "rs117953218"),]
 
 slices_sig$SNPID <- paste(slices_sig$chr, ":", slices_sig$pos, "_",
                           slices_sig$a_0, "_", slices_sig$a_1, sep="")
-
-## genotypes of ld-filtered, significant genome-wide association results ####
-geno_sig <- fread(file.path(gwasdir,
-                            "Pseudomultitrait_slices_sig5e08_genotypes.dosage.gz"),
-                  stringsAsFactors=FALSE, data.table=FALSE)
-geno_sig$SNPID <- paste(geno_sig$chromosome, ":", geno_sig$position, "_",
-                        geno_sig$alleleA, "_", geno_sig$alleleB, sep="")
-geno_sig <- geno_sig[geno_sig$SNPID %in% slices_sig$SNPID,]
-geno_sig <- merge(slices_sig[, c(2,6)], geno_sig, by='rsid')
 
 ###############
 ## analysis ###
@@ -422,63 +428,19 @@ unique_per_area <- lapply(seq_along(sig_per_area), function(test_area) {
 })
 names(unique_per_area) <- names(sig_per_area)
 
-exposure_per_area <- lapply(seq_along(unique_per_area), function(test_area) {
-    area <- unique_per_area[[test_area]]
-    area_exposure <- format_data(area, type='exposure')
-    area_exposure$id.exposure <- 'FD'
-    area_exposure$exposure <- 'FD'
-    write.table(area_exposure, paste(mrdir, '/',
-                                  names(unique_per_area)[test_area],
-                            "_association_results.txt", sep=""),
-                sep=' ', col.names=TRUE, row.names=FALSE, quote=FALSE)
-    return(area_exposure)
+unique_all <- do.call(rbind, unique_per_area)
+dup <-
+    unique_all[unique_all$SNP %in% unique_all$SNP[duplicated(unique_all$SNP)],]
+remove <- sapply(unique(dup$SNP), function(x) {
+    minbeta <- sort(abs(unique_all$beta[unique_all$SNP %in% x]),
+                    decreasing=TRUE)[-1]
+    which(abs(unique_all$beta) %in% minbeta)
 })
-names(exposure_per_area) <- names(unique_per_area)
-
-## MRbase MR using BOLT LMM output files provided by Gib Hermani, 2/19/20 ####
-# A1: effect allele
-# UKB-b:6025 - n = 4525, UKB-b:2240 - n = 7796 (Gib Hermani, 2/24/20)
-
-## Stroke volume
-sv <- read_delim("~/data/ukbb/ukb-hrt/MR/UKB-b6025.txt", col_names = TRUE,
-                     delim="\t")
-sv <- sv %>%
-    select(SNP, ALLELE1, ALLELE0, A1FREQ, BETA, P_LINREG, SE) %>%
-    rename(other_allele=ALLELE0, effect_allele=ALLELE1, eaf=A1FREQ, beta=BETA,
-           pval=P_LINREG, se=SE) %>%
-    distinct() %>%
-    mutate(Phenotype="SV") %>%
-    mutate(id="UKB-b:6025") %>%
-    mutate(samplesize=4525) %>%
-    filter(SNP %in% sig_per_slice$rsid)
-
-write_csv(sv, "~/data/ukbb/ukb-hrt/MR/UKB-b6025_SV_outcome.csv")
-
-mr_sv <- MR(exposure_list=unique_per_area, outcome=sv, name="SV",
-            mrdir=mrdir)
-
-## QRS duration
-qrs <- read_delim("~/data/ukbb/ukb-hrt/MR/UKB-b2240.txt", col_names = TRUE,
-                 delim="\t")
-qrs <- qrs %>%
-    select(SNP, ALLELE1, ALLELE0, A1FREQ, BETA, P_LINREG, SE) %>%
-    rename(other_allele=ALLELE0, effect_allele=ALLELE1, eaf=A1FREQ, beta=BETA,
-           pval=P_LINREG, se=SE) %>%
-    distinct() %>%
-    mutate(Phenotype="QRS") %>%
-    mutate(id="UKB-b:2240")  %>%
-    mutate(samplesize=7796) %>%
-    filter(SNP %in% sig_per_slice$rsid)
-
-write_csv(qrs, "~/data/ukbb/ukb-hrt/MR/UKB-b2240_QRS_outcome.csv")
-
-mr_qrs<- MR(exposure_list=unique_per_area, outcome=qrs, name="QRS",
-            mrdir=mrdir)
+unique_all <- unique_all[-unlist(remove),]
 
 # HERMES MR
 # A1: effect allele, beta:log odds ratio of heart failure per extra copy of A1
-hermes <- read_delim("~/data/ukbb/HERMES/lookup_results.tsv", col_names = TRUE,
-                     delim="\t")
+hermes <- read_delim(hermes_files, col_names = TRUE, delim="\t")
 
 hermes <- hermes %>%
     select(SNP, A2, A1, freq, N, b, p, se) %>%
@@ -491,43 +453,12 @@ hermes <- hermes %>%
 mr_hermes <- MR(exposure_list=unique_per_area, outcome=hermes,
                 name="HF", mrdir=mrdir)
 
-all_formated <- do.call(rbind, unique_per_area)
-dup <- all_formated[all_formated$SNP %in% all_formated$SNP[duplicated(all_formated$SNP)],]
-remove <- sapply(unique(dup$SNP), function(x) {
-    minbeta <- sort(abs(all_formated$beta[all_formated$SNP %in% x]),decreasing=TRUE)[-1]
-    which(abs(all_formated$beta) %in% minbeta)
-})
-all_formated <- all_formated[-unlist(remove),]
-
 mr_hermes_all <- MR(exposure=all_formated, outcome=hermes,
                 name="HF_all", mrdir=mrdir)
 
-## HERMES <-> SV,QRS
-exposure_sv <- list(basal=sv[sv$SNP %in% unique_per_area$basal$SNP,],
-                    mid=sv[sv$SNP %in% unique_per_area$mid$SNP,],
-                    apical=sv[sv$SNP %in% unique_per_area$apical$SNP,])
-exposure_qrs <- list(basal=qrs[qrs$SNP %in% unique_per_area$basal$SNP,],
-                    mid=qrs[qrs$SNP %in% unique_per_area$mid$SNP,],
-                    apical=qrs[qrs$SNP %in% unique_per_area$apical$SNP,])
-outcome_hermes <- list(basal=hermes[hermes$SNP %in% unique_per_area$basal$SNP,],
-                    mid=hermes[hermes$SNP %in% unique_per_area$mid$SNP,],
-                    apical=hermes[hermes$SNP %in% unique_per_area$apical$SNP,])
-
-mr_hermes_sv <- MR(exposure_list=exposure_sv, outcome_list=outcome_hermes,
-                   name="SV_HF", mrdir=mrdir)
-
-mr_hermes_sv_all <- MR(exposure=sv, outcome=hermes, name="SV_HF_all",
-                       mrdir=mrdir)
-
-mr_hermes_qrs <- MR(exposure_list=exposure_qrs, outcome_list=outcome_hermes,
-                   name="QRS_HF", mrdir=mrdir)
-
-mr_hermes_qrs_all <- MR(exposure=qrs, outcome=hermes, name="QRS_HF_all",
-                       mrdir=mrdir)
-
 ## DCM MR
 # A1: effect allele, beta:log odds ratio of heart failure per extra copy of A1
-dcm <- read_delim("~/data/digital-heart/gwas/DCM/HVOL.DCM.FD.Pseudomultitrait_Slices_sig5e08.sigSNPs.clean.assoc.logistic.all", col_names=TRUE, delim = " ")
+dcm <- read_delim(dcmfile, col_names=TRUE, delim = " ")
 
 dcm <- dcm %>%
     select(SNP, A1, A2, MAF, NMISS, BETA, SE, ` EMP1`) %>%
