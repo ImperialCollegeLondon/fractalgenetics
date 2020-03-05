@@ -14,14 +14,8 @@ option_list <- list(
     make_option(c("-d", "--dir"), action="store", dest="dir",
                 type="character", help="Path to output directory
                 data [default: %default].", default=NULL),
-    make_option(c("--dcm"), action="store", dest="dcm",
-                type="character", help="Path to file with DCM per slice FD
-                [default: %default].", default=NULL),
-    make_option(c("-i", "--interpolate"), action="store", dest="interpolate",
-                type="integer", help="Number of slices to interpolate to
-               [default: %default].", default=9),
-    make_option(c("--ukb"), action="store", dest="ukb",
-                type="character", help="Path to file with UKB per slice FD
+    make_option(c("--ct"), action="store", dest="ct",
+                type="character", help="Path to file with CT per slice FD
                 [default: %default].", default=NULL),
     make_option(c("--debug"), action="store_true",
                 dest="debug", default=FALSE, type="logical",
@@ -35,7 +29,7 @@ if (args$debug) {
     args <- list()
     args$dir <- "~/data/ukbb/ukb-hrt/phenotypes"
     args$ct <- "~/data/ukbb/ukb-hrt/rawdata/ct_fd.csv"
-    args$interpolate <- 9
+}
 #############
 ## data  ####
 #############
