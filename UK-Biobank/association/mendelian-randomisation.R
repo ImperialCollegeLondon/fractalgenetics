@@ -151,33 +151,29 @@ MRanalysis <- function(exposure_dat, outcome_dat,
 }
 
 MRtables <- function(MRbase_results, pheno) {
-    lapply(seq_along(MRbase_results), function(x, pheno) {
-        region <- MRbase_results[[x]]
-        name_region <- names(MRbase_results)[x]
-        write.table(region$mr_results,
-                    file.path(mrdir, str_c(name_region, pheno, "MR_results.csv",
+        write.table(MRbase_results$mr_results,
+                    file.path(mrdir, str_c(pheno, "MR_results.csv",
                                            sep="_")),
                     col.names=TRUE, row.names=FALSE, sep=',', quote=FALSE)
-        write.table(region$plei_results,
-                    file.path(mrdir, str_c(name_region, pheno,
+        write.table(MRbase_results$plei_results,
+                    file.path(mrdir, str_c(pheno,
                                            "MR_pleiotropy_results.csv",
                                            sep="_")),
                     col.names=TRUE, row.names=FALSE, sep=',', quote=FALSE)
-        write.table(region$directionality_results,
-                    file.path(mrdir, str_c(name_region, pheno,
+        write.table(MRbase_results$directionality_results,
+                    file.path(mrdir, str_c(pheno,
                                            "MR_directionality_results.csv",
                                            sep="_")),
                     col.names=TRUE, row.names=FALSE, sep=',', quote=FALSE)
 
-        write.table(region$I2,
-                    file.path(mrdir, str_c(name_region, pheno,
+        write.table(MRbase_results$I2,
+                    file.path(mrdir, str_c(pheno,
                                            "MR_I2_results.csv", sep="_")),
                     col.names=FALSE, row.names=FALSE, sep=',', quote=FALSE)
-        write.table(region$Fstat,
-                    file.path(mrdir, str_c(name_region, pheno,
+        write.table(MRbase_results$Fstat,
+                    file.path(mrdir, str_c(pheno,
                                            "MR_Fstat_results.csv", sep="_")),
                     col.names=FALSE, row.names=FALSE, sep=',', quote=FALSE)
-    }, pheno=pheno)
 }
 
 MRplot <- function(dat, mr_results) {
@@ -217,59 +213,20 @@ MRplot <- function(dat, mr_results) {
 }
 
 
-MR <- function(exposure_list=NULL, outcome_list=NULL, exposure=NULL,
-               outcome=NULL, name, mrdir, gene_mapping=NULL) {
-    if (!is.null(exposure_list) & !is.null(exposure)) {
-        stop("Only one type of exposure can be provided: specify either",
-             "exposure_list or exposure")
-    }
-    if (!is.null(outcome_list) & !is.null(outcome)) {
-        stop("Only one type of outcome can be provided: specify either",
-             "outcome_list or outcome")
-    }
-    if (!is.null(exposure_list)) {
-        if (!is.null(outcome_list)) {
-            MRbase <- list(basal=getMRdata(data_exposure = exposure_list[[1]],
-                                           data_outcome = outcome_list[[1]]),
-                           mid=getMRdata(data_exposure = exposure_list[[2]],
-                                         data_outcome = outcome_list[[2]]),
-                           apical=getMRdata(data_exposure = exposure_list[[3]],
-                                            data_outcome = outcome_list[[3]]))
-        } else {
-            MRbase <- list(basal=getMRdata(data_exposure = exposure_list[[1]],
-                                           data_outcome = outcome),
-                           mid=getMRdata(data_exposure = exposure_list[[2]],
-                                         data_outcome = outcome),
-                           apical=getMRdata(data_exposure = exposure_list[[3]],
-                                            data_outcome = outcome))
-        }
-    } else {
-        if (!is.null(outcome_list)) {
-            MRbase <- list(basal=getMRdata(data_exposure = exposure,
-                                           data_outcome = outcome_list[[1]]),
-                           mid=getMRdata(data_exposure = exposure,
-                                         data_outcome = outcome_list[[2]]),
-                           apical=getMRdata(data_exposure = exposure,
-                                            data_outcome = outcome_list[[3]]))
-        } else {
-            MRbase <- list(mr=getMRdata(data_exposure = exposure,
-                                           data_outcome = outcome))
-        }
-    }
+MR <- function(exposure=NULL, outcome=NULL, name, mrdir, gene_mapping=NULL) {
+    MRbase <- getMRdata(data_exposure = exposure, data_outcome = outcome)
     saveRDS(MRbase, file.path(mrdir,
                               str_c("MRbase", name, ".rds", sep="_")))
 
-    MRresults <- lapply(MRbase, function(x) {
-        MRanalysis(x$exposure, x$outcome, gene_mapping=gene_mapping)
-    })
+    MRresults <- MRanalysis(MRbase$exposure, MRbase$outcome,
+                            gene_mapping=gene_mapping)
+
+    write_csv(MRresults$dat,
+              file.path(mrdir, str_c("MRbase_", name, "_data.csv")))
 
     mr_tables <-  MRtables(MRresults, name)
 
-    mr_plots <- lapply(MRresults, function(region) {
-        dat <- region$dat
-        res <- region$mr_results
-        tmp <- MRplot(dat, res)
-    })
+    mr_plots <- MRplot(MRresults$dat, MRresults$mr_results)
 
     ncr <- length(mr_plots)
     panel_plots <- lapply(mr_plots, function(x) x$all_plots)
@@ -339,8 +296,8 @@ if (args$debug) {
 directory <- args$directory
 gwasdir <- args$gwasdir
 mrdir <- args$mrdir
-dcm_file <- args$dcm_file
-hermes_file <- args$hermes_file
+dcmfile <- args$dcm_file
+hermesfile <- args$hermes_file
 verbose <- args$verbose
 
 ## ld-filtered, significant genome-wide association results ukb ####
@@ -448,11 +405,10 @@ remove <- sapply(unique(dup$SNP), function(x) {
 unique_all <- unique_all[-unlist(remove),]
 
 
-snp_gene <- read_csv(file.path(mrdir, "snp-gene-mapping.csv"),
-                     col_names=c("SNP", "GENE"))
+snp_gene <- read_csv(file.path(mrdir, "snp-gene-mapping.csv"))
 # HERMES MR
 # A1: effect allele, beta:log odds ratio of heart failure per extra copy of A1
-hermes <- read_delim(hermes_files, col_names = TRUE, delim="\t")
+hermes <- read_delim(hermesfile, col_names = TRUE, delim="\t")
 
 hermes <- hermes %>%
     select(SNP, A2, A1, freq, N, b, p, se) %>%
