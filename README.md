@@ -1,6 +1,6 @@
 [![DOI](https://zenodo.org/badge/166986710.svg)](https://zenodo.org/badge/latestdoi/166986710)
 
-# Genetically-determined fractal properties of heart muscle are crucial to cardiovascular function
+# Genetic and functional insights into the fractal structure of the heart
 The endocardial surface of the adult human hearts consists of a complex network of muscular trabeculae. Thought to be a remnant of embryonic development, it remains uknown why these complex structures still persistent in the adult organ. Here, we use population genomics, image-based intermediate phenotyping and *in silico* modelling to determine the effect of this complex cardiovascular trait on function.
 
 The full study is available on [BioRxiv](https://www.biorxiv.org/content/10.1101/553651v1).
@@ -32,6 +32,9 @@ Trabeculation GWAS in the UK Digital Heart Project cohort (second replication co
 
 ### 5. [Finite element modelling](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/Finite-element-modelling)
 Finite element modeling input files (Abaqus Standard, SIMULIA, Dessault Systemes)for the simulation of 5 consecutive cardiac cycles of the left ventricle, starting from the ventricular reference configuration (zero ventricular pressure).
+
+## Citation
+Meyer HV et al., Genetic and functional insights into the fractal structure of the heart, *Nature*, 2020, [DOI:10.1038/s41586-020-2635-8](https://doi.org/10.1038/s41586-020-2635-8)
 
 
 
