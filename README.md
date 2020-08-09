@@ -3,7 +3,7 @@
 # Genetic and functional insights into the fractal structure of the heart
 The endocardial surface of the adult human hearts consists of a complex network of muscular trabeculae. Thought to be a remnant of embryonic development, it remains uknown why these complex structures still persistent in the adult organ. Here, we use population genomics, image-based intermediate phenotyping and *in silico* modelling to determine the effect of this complex cardiovascular trait on function.
 
-The full study is available on [BioRxiv](https://www.biorxiv.org/content/10.1101/553651v1).
+A pre-print for this study is on [BioRxiv](https://www.biorxiv.org/content/10.1101/553651v1).
 
 The following repository contains all data analysis and processing scripts applied in the study.
 
