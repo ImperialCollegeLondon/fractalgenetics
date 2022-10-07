@@ -2,7 +2,7 @@
 R code for post-processing of FD values output by
 [AutoFD](https://github.com/ImperialCollegeLondon/fractalgenetics/tree/master/automated-fractal-analysis).
 
-1. fracDecimateFD.R (fracDecimate function)
+1. interpolate.R (fracDecimate function)
     Interpolation of FD values to a common number of slices across individuals.
 1. summaryFD.R (summaryStatistics function)
     Summary statistics of FD values per individual: mean global FD, mean and max
@@ -62,7 +62,7 @@ Notes to fracDecimate
 - Fitting is by a kernel regression estimate with a bandwidth of 1.5 slices
 
 ### summaryFD.R
-    summaryStatistic(data, discard, NaN.val)
+    summaryStatistics(data, discard, NaN.val)
 with:
 data = [N x NrSlices] matrix of FD value for N individuals and NrSlices
 
