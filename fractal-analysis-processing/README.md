@@ -50,7 +50,7 @@ interactive = If TRUE, histogram of FD is plotted (default: FALSE)
 
 verbose = If TRUE, progress messages are printed (default: TRUE)
 
-e.g., `output <- fracDecimate(interpNoSlices=9, filename="FD.csv")`
+usage is e.g., `output <- fracDecimate(interpNoSlices=9, filename="FD.csv")`
 
 The output is a [N x interpNoSlices] matrix with the interpolated data. Rownames
 are the subject IDs. Column names are: "Slice_x" where x is a number from 1 to
@@ -76,7 +76,7 @@ The output is a [N x 6] matrix with summary statistics for N individuals:
 NrSlices used for computation, mean global FD, mean and max Apical FD, mean and
 max Basal FD
 
-usage is e.g., `summaryStatistics_output <- t(apply(df, 1, summaryStatistics))`
+usage is e.g., `summaryStatistics_output <- t(apply(output, 1, summaryStatistics))`
 
 ### radial-registration.R
 A detailed example of how to run radial co-registration of myocard and
