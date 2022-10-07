@@ -76,6 +76,9 @@ The output is a [N x 6] matrix with summary statistics for N individuals:
 NrSlices used for computation, mean global FD, mean and max Apical FD, mean and
 max Basal FD
 
+usage is e.g.,
+summaryStatistics_output <- t(apply(df, 1, summaryStatistics))
+
 ### radial-registration.R
 A detailed example of how to run radial co-registration of myocard and
 trabeculation outline based on intermediate files generated in
