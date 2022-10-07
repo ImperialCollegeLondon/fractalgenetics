@@ -11,7 +11,7 @@ Options.Interpreter = 'tex';
 
 Prompt = { 'Blood pool pixel count threshold: ', 'Minimum connected percentage: ' };
 
-Starts = { '64', '50.0' };  % 60-65 pixels is best for Genscan, 38 for Biobank
+Starts = { '64', '50.0' };  % 60-65 pixels is best for Genscan, 38 for UK Biobank
 
 Layout = zeros(2, 2, 'int16');
 Layout(:, 1) = 1;
