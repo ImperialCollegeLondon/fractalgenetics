@@ -26,16 +26,18 @@ A test file `FD.csv` is included in the repo, but any csv file can be called by
 the function.
 
 ## Running the code
+Example of use for the publication can be found: https://github.com/ImperialCollegeLondon/fractalgenetics/blob/master/UK-Biobank/phenotypes/preparePheno-discovery.r
+
 ### fracDecimate
     output <- fracDecimate(interpNoSlices, cut.off, data, filename, id.col.name,
     interactive, verbose) [Enter]
 with:
 interpNoSlices = A number between 3 and 50 indicating the number of slices
-    you want the data interpolated to (default: 10)
+    you want the data interpolated to (default: 10; 9 used in publication)
 
 cut.off = A number between 1 and 20 indicating the minimum number of
     datapoints per patient for that patient to be included in the analysis
-    (default: 3)
+    (default: 3; 6 used in publication)
 
 filename = The filename of the FD data exported from AutoFD (default: FD.csv)
     or
@@ -50,6 +52,8 @@ interactive = If TRUE, histogram of FD is plotted (default: FALSE)
 
 verbose = If TRUE, progress messages are printed (default: TRUE)
 
+NB: on FD output, in r, use colnames(dataFD)[colnames(dataFD) == 'FD - Slice 1'] <- 'Slice 1’ to remove FD from first column.
+
 usage is e.g., `output <- fracDecimate(interpNoSlices=9, filename="FD.csv")`
 
 The output is a [N x interpNoSlices] matrix with the interpolated data. Rownames
@@ -62,7 +66,7 @@ Notes to fracDecimate
 - Fitting is by a kernel regression estimate with a bandwidth of 1.5 slices
 
 ### summaryFD.R
-    summaryStatistics(data, discard, NaN.val)
+    summaryStatistics(data, discard, NaN.val, sections)
 with:
 data = [N x NrSlices] matrix of FD value for N individuals and NrSlices
 
@@ -71,6 +75,8 @@ discard = if TRUE, first and last slice are excluded for computing summary
 
 NaN.val = vector with character strings of accepted NaN values (default:
     c("Meagre blood pool", "Sparse myocardium" or "FD measure failed"))
+    
+sections = flag to estimate statistics for Basal, Mid, Apical (sections="BMA")
 
 The output is a [N x 6] matrix with summary statistics for N individuals:
 NrSlices used for computation, mean global FD, mean and max Apical FD, mean and
