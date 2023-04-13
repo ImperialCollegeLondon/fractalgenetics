@@ -36,7 +36,7 @@ Dialogue boxes are used to confirm the following:
 
   * Stacks are stored from Apex to Base (default for the Test Data) or vice-versa.
   * Interpolate images x4 in each direction in-plane (default for the Test Data), or to 0.25 mm pixels.
-  * Minimum blood pool pixel count (default = 64 for the sample Test Data, optimised by means of a balanced probability calculation comparing manual and automated workflows) and percentage of blood pool connected to myocardium (default = 50%). Refer to the [Processing Flowchart](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/Processing%20Flowchart.pdf) for details.
+  * Minimum blood pool pixel count (default = 64 for the sample Test Data, 38 for UK Biobank, optimised by means of a balanced probability calculation comparing manual and automated workflows) and percentage of blood pool connected to myocardium (default = 50%). Refer to the [Processing Flowchart](https://github.com/UK-Digital-Heart-Project/AutoFD/blob/master/Processing%20Flowchart.pdf) for details.
   * Keep or discard the end slices in the calculation of the summary statistics (the default is keep).
   
 ## Test data
