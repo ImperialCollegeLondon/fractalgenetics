@@ -2,7 +2,7 @@
 Matlab script for automated fractal analysis of segmented cardiac images. For UK Biobank-specific code, please download https://github.com/UK-Digital-Heart-Project/AutoFD/tree/UKBB via zip
 
 ## Prerequisites
-- Matlab (with the add ons: Image Processing Toolbox, Computer Vision Toolbox, and Statistics and Machine Learning Toolbox).
+- Matlab (with the add ons: Image Processing Toolbox and Statistics and Machine Learning Toolbox).
 <!--- Windows or Linux. --->
 <!--- - GhostScript. --->
 <!--- - Possibly XPDF. --->
