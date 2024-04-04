@@ -34,6 +34,9 @@ Finite element modeling input files (Abaqus Standard, SIMULIA, Dessault Systemes
 ## Citation
 Meyer HV et al., Genetic and functional insights into the fractal structure of the heart, *Nature*, 2020, [DOI:10.1038/s41586-020-2635-8](https://doi.org/10.1038/s41586-020-2635-8)
 
+## See
+McGurk KA et al., https://github.com/ImperialCollegeLondon/trabecular_variants
+
 
 
 
